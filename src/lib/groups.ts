@@ -125,6 +125,131 @@ async function trackClaimedAccounts(groupId: number, userId: string): Promise<nu
   return claimed.length;
 }
 
+/**
+ * Adds every account this user has claimed to every group they are already in.
+ *
+ * Called after a claim is verified, because the alternative bites: joining a
+ * group before claiming an account left you permanently invisible, and the only
+ * cure was an owner running SQL.
+ */
+export async function syncClaimsToGroups(userId: string): Promise<number> {
+  const claimed = await db
+    .select({ puuid: accountClaims.puuid })
+    .from(accountClaims)
+    .where(eq(accountClaims.userId, userId));
+
+  const memberships = await db
+    .select({ groupId: groupMemberships.groupId })
+    .from(groupMemberships)
+    .where(eq(groupMemberships.userId, userId));
+
+  if (claimed.length === 0 || memberships.length === 0) return 0;
+
+  const rows = memberships.flatMap((m) =>
+    claimed.map((c) => ({ groupId: m.groupId, puuid: c.puuid, addedBy: userId })),
+  );
+
+  const inserted = await db
+    .insert(trackedAccounts)
+    .values(rows)
+    .onConflictDoNothing()
+    .returning({ puuid: trackedAccounts.puuid });
+
+  return inserted.length;
+}
+
+/** One of the user's accounts, and whether it is on a given group's board. */
+export interface BoardAccount {
+  puuid: string;
+  gameName: string;
+  tagLine: string;
+  platform: string;
+  verified: boolean;
+  onBoard: boolean;
+}
+
+export async function listMyAccountsForGroup(
+  groupId: number,
+  userId: string,
+): Promise<BoardAccount[]> {
+  const claimed = await db
+    .select({
+      puuid: accounts.puuid,
+      gameName: accounts.gameName,
+      tagLine: accounts.tagLine,
+      platform: accounts.platform,
+      verifiedAt: accountClaims.verifiedAt,
+    })
+    .from(accountClaims)
+    .innerJoin(accounts, eq(accounts.puuid, accountClaims.puuid))
+    .where(eq(accountClaims.userId, userId));
+
+  if (claimed.length === 0) return [];
+
+  const onBoard = await db
+    .select({ puuid: trackedAccounts.puuid })
+    .from(trackedAccounts)
+    .where(eq(trackedAccounts.groupId, groupId));
+
+  const tracked = new Set(onBoard.map((row) => row.puuid));
+
+  return claimed.map((account) => ({
+    puuid: account.puuid,
+    gameName: account.gameName,
+    tagLine: account.tagLine,
+    platform: account.platform,
+    verified: account.verifiedAt !== null,
+    onBoard: tracked.has(account.puuid),
+  }));
+}
+
+async function assertCanManageAccount(
+  groupId: number,
+  userId: string,
+  puuid: string,
+): Promise<void> {
+  const [membership] = await db
+    .select({ userId: groupMemberships.userId })
+    .from(groupMemberships)
+    .where(
+      and(eq(groupMemberships.groupId, groupId), eq(groupMemberships.userId, userId)),
+    )
+    .limit(1);
+
+  if (!membership) throw new GroupError('You are not a member of that group.');
+
+  const [claim] = await db
+    .select({ puuid: accountClaims.puuid })
+    .from(accountClaims)
+    .where(and(eq(accountClaims.userId, userId), eq(accountClaims.puuid, puuid)))
+    .limit(1);
+
+  if (!claim) throw new GroupError('That account is not yours.');
+}
+
+export async function addAccountToBoard(
+  groupId: number,
+  userId: string,
+  puuid: string,
+): Promise<void> {
+  await assertCanManageAccount(groupId, userId, puuid);
+  await db
+    .insert(trackedAccounts)
+    .values({ groupId, puuid, addedBy: userId })
+    .onConflictDoNothing();
+}
+
+export async function removeAccountFromBoard(
+  groupId: number,
+  userId: string,
+  puuid: string,
+): Promise<void> {
+  await assertCanManageAccount(groupId, userId, puuid);
+  await db
+    .delete(trackedAccounts)
+    .where(and(eq(trackedAccounts.groupId, groupId), eq(trackedAccounts.puuid, puuid)));
+}
+
 export async function createGroup(userId: string, name: string): Promise<GroupSummary> {
   const trimmed = name.trim();
   if (trimmed.length < 2) throw new GroupError('Give the group a name.');

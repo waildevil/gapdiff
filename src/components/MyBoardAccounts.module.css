@@ -1,0 +1,110 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.row:last-of-type {
+  border-bottom: none;
+}
+
+.who {
+  flex: 1;
+  min-width: 140px;
+}
+
+.name {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.name span {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+
+.verified {
+  color: var(--good);
+  background: var(--good-soft);
+}
+
+.unverified {
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.toggle {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  border-radius: var(--r-sm);
+  padding: 7px 13px;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.add {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-color: var(--amber-line);
+}
+
+.add:hover:not(:disabled) {
+  background: var(--amber);
+  color: var(--surface);
+}
+
+.remove:hover:not(:disabled) {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  padding: 0 16px 12px;
+  color: var(--bad);
+  font-size: 12px;
+}
+
+.empty {
+  padding: 18px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.empty a {
+  color: var(--amber);
+}

@@ -3,10 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import {
+  addAccountToBoard,
   createGroup,
   createInvite,
   GroupError,
   joinGroupByInvite,
+  removeAccountFromBoard,
   revokeInvite,
 } from '@/lib/groups';
 
@@ -58,6 +60,29 @@ export async function revokeInviteAction(code: string, slug: string): Promise<vo
   const userId = await requireUserId();
   await revokeInvite(code, userId);
   revalidatePath(`/groups/${slug}/manage`);
+}
+
+export type BoardResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Members control which of their own accounts appear on a board — smurfs are
+ * normal, and not everybody wants every account counted.
+ */
+export async function setAccountOnBoard(
+  groupId: number,
+  slug: string,
+  puuid: string,
+  onBoard: boolean,
+): Promise<BoardResult> {
+  try {
+    const userId = await requireUserId();
+    if (onBoard) await addAccountToBoard(groupId, userId, puuid);
+    else await removeAccountFromBoard(groupId, userId, puuid);
+    revalidatePath(`/group/${slug}`);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not update the board.') };
+  }
 }
 
 export type JoinResultAction =

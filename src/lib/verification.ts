@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, ne } from 'drizzle-orm';
 import { db } from '@/db';
 import { accountClaims, accounts, iconChallenges } from '@/db/schema';
+import { syncClaimsToGroups } from './groups';
 import { getRiotClient, RiotApiError } from './riot/client';
 import { parsePlatform, parseRiotId, type Platform } from './riot/routing';
 
@@ -178,6 +179,10 @@ export async function checkClaim(userId: string, puuid: string): Promise<CheckRe
     .update(accountClaims)
     .set({ verifiedAt: now, verifiedVia: 'profile-icon' })
     .where(and(eq(accountClaims.userId, userId), eq(accountClaims.puuid, puuid)));
+
+  // Put it straight onto the boards of every group they're already in. Without
+  // this, verifying after joining leaves you invisible on the leaderboard.
+  await syncClaimsToGroups(userId);
 
   await db
     .update(iconChallenges)

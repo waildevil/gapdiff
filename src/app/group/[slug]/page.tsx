@@ -8,10 +8,12 @@ import {
   StandingsRow,
   UnrankedDivider,
 } from '@/components/StandingsRow';
+import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
 import { StatBoards } from '@/components/StatBoards';
 import { latestVersion } from '@/lib/ddragon';
+import { listMyAccountsForGroup } from '@/lib/groups';
 import { getGroupStandings } from '@/lib/leaderboard';
 
 interface PageProps {
@@ -35,9 +37,12 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
   }
 
   const requested = Number.parseInt(monthParam ?? '', 10);
-  const [standings, version] = await Promise.all([
+  const [standings, version, myAccounts] = await Promise.all([
     getGroupStandings(slug, Number.isFinite(requested) ? requested : undefined),
     latestVersion(),
+    session?.user?.id
+      ? listMyAccountsForGroup(access.group.id, session.user.id)
+      : Promise.resolve([]),
   ]);
 
   if (!standings) notFound();
@@ -115,6 +120,14 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
               })}
             </div>
           </div>
+
+          {access.isMember ? (
+            <MyBoardAccounts
+              groupId={access.group.id}
+              slug={group.slug}
+              accounts={myAccounts}
+            />
+          ) : null}
 
           <div className="section-gap">
             <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
