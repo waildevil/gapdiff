@@ -25,30 +25,34 @@ export function SearchForm({
   const [platform, setPlatform] = useState<Platform>(defaultPlatform);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PlayerSuggestion[]>([]);
+  const [otherRegions, setOtherRegions] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const wrap = useRef<HTMLDivElement>(null);
   /** Guards against a slow response overwriting a newer one. */
   const requestId = useRef(0);
 
+  // Re-runs on region change too, so switching the dropdown refilters.
   useEffect(() => {
     const query = value.trim();
     if (query.length < 2) {
       setSuggestions([]);
+      setOtherRegions(false);
       return;
     }
 
     const id = ++requestId.current;
     const timer = setTimeout(async () => {
-      const results = await searchPlayers(query);
+      const result = await searchPlayers(query, platform);
       if (id !== requestId.current) return;
-      setSuggestions(results);
+      setSuggestions(result.players);
+      setOtherRegions(result.fromOtherRegions);
       setActive(-1);
-      setOpen(results.length > 0);
+      setOpen(result.players.length > 0);
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [value]);
+  }, [value, platform]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -158,6 +162,12 @@ export function SearchForm({
 
       {open && suggestions.length > 0 ? (
         <div className={styles.menu} role="listbox">
+          {otherRegions ? (
+            <div className={styles.menuBanner}>
+              Nobody by that name on {PLATFORM_LABELS[platform]} — showing other regions
+            </div>
+          ) : null}
+
           {suggestions.map((player, index) => (
             <button
               key={player.puuid}

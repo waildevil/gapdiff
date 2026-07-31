@@ -161,6 +161,20 @@
   letter-spacing: 0.08em;
 }
 
+.menuBanner {
+  padding: 8px 11px;
+  margin-bottom: 4px;
+  border-radius: var(--r-sm);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber-line);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  line-height: 1.4;
+}
+
 .menuNote {
   padding: 9px 11px;
   font-family: var(--mono);
