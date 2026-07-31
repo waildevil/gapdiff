@@ -63,6 +63,34 @@ Regenerate at [developer.riotgames.com](https://developer.riotgames.com), paste 
 | Profile says key expired | 24h dev key | Regenerate, update `.env` |
 | Standings look stale | Pages cache for 60s | Wait, or restart the dev server |
 
+## Deploying
+
+Hosted on Vercel, built from `main`. Pushing to `main` deploys.
+
+```bash
+git push
+```
+
+### First-time setup
+
+1. **Connect the repo** — Vercel project → Settings → Git → Connect Git Repository.
+   Connecting does *not* deploy; the next push does.
+2. **Set the environment variables** — Settings → Environment Variables. Everything in
+   `.env.example` except `PGLITE_DIR`, which points at a local folder that can't exist on
+   a server. `.env` itself is never uploaded.
+3. **Add the production OAuth redirect** at
+   [discord.com/developers](https://discord.com/developers/applications) → OAuth2 →
+   Redirects, alongside the localhost one:
+   `https://<your-domain>/api/auth/callback/discord`
+
+> **Deploy from git, not `vercel` from the CLI.** The CLI uploads the working directory
+> and only honours `.gitignore` when the folder is a git repository — deploy from a
+> non-repo and it ships `.env` straight into the bundle, where it stays readable in that
+> deployment's source view forever. Building from git makes that impossible.
+
+> **Never delete every deployment.** There is no "current" build to fall back on, the
+> production domain 404s, and the only way back is another push.
+
 ## Stack
 
 - **Next.js 15** (App Router, React Server Components) + **React 19** + **TypeScript**
