@@ -7,6 +7,7 @@ import {
   StandingsHeader,
   StandingsRow,
   UnrankedDivider,
+  UnratedDivider,
 } from '@/components/StandingsRow';
 import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
@@ -100,18 +101,25 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
             <div>
               {entries.map((entry, index) => {
                 const above = index > 0 ? entries[index - 1] : undefined;
-                // The ranked/unranked boundary gets a divider, not a gap: the
-                // two scores are built from different pillars.
-                const crossesBoundary =
+
+                // Dividers, not gap markers, wherever the scores stop being
+                // built the same way — a difference across those lines isn't
+                // a real gap.
+                const entersUnrated =
+                  above !== undefined && above.rating.rated && !entry.rating.rated;
+                const entersUnranked =
                   above !== undefined &&
+                  entry.rating.rated &&
                   above.rating.rankScore !== null &&
                   entry.rating.rankScore === null;
 
                 return (
                   <div key={entry.player.puuid}>
-                    {crossesBoundary ? (
+                    {entersUnrated ? (
+                      <UnratedDivider />
+                    ) : entersUnranked ? (
                       <UnrankedDivider />
-                    ) : above ? (
+                    ) : above && entry.rating.rated ? (
                       <GapMarker delta={entry.gapToNext} />
                     ) : null}
                     <StandingsRow entry={entry} version={version} />

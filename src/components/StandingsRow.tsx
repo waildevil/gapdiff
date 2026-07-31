@@ -48,6 +48,17 @@ export function UnrankedDivider() {
   );
 }
 
+/** Nobody below this line has any games to score. */
+export function UnratedDivider() {
+  return (
+    <div className={styles.boundary}>
+      <div className={styles.boundaryLine} />
+      <div className={styles.boundaryLabel}>No games ingested yet</div>
+      <div className={styles.boundaryLine} />
+    </div>
+  );
+}
+
 export function StandingsRow({
   entry,
   version,
@@ -96,33 +107,56 @@ export function StandingsRow({
       </div>
 
       <div className={styles.scoreCell}>
-        <div className={styles.score}>{rating.gapScore.toFixed(1)}</div>
-        <div className={styles.scoreSub}>out of 100</div>
+        {rating.rated ? (
+          <>
+            <div className={styles.score}>{rating.gapScore.toFixed(1)}</div>
+            <div className={styles.scoreSub}>out of 100</div>
+          </>
+        ) : (
+          <>
+            <div className={`${styles.score} ${styles.unrated}`}>—</div>
+            <div className={styles.scoreSub}>not scored</div>
+          </>
+        )}
       </div>
 
       <div className={styles.pillarCell}>
-        <PillarBar
-          rankScore={rating.rankScore}
-          performanceScore={rating.performanceScore}
-          consistencyScore={rating.consistencyScore}
-        />
+        {rating.rated ? (
+          <PillarBar
+            rankScore={rating.rankScore}
+            performanceScore={rating.performanceScore}
+            consistencyScore={rating.consistencyScore}
+          />
+        ) : (
+          <div className={styles.awaiting}>Waiting on the next ingest</div>
+        )}
       </div>
 
       <div className={styles.record}>
-        <div className={styles.kda}>
-          {player.kda.toFixed(2)} <span>KDA</span>
-        </div>
-        <div className={styles.recordSub}>
-          {winRate(rating.wins, rating.losses)}% of {games} games
-        </div>
-        <div className={styles.recordSub}>
-          {rating.wins}W {rating.losses}L
-        </div>
+        {rating.rated ? (
+          <>
+            <div className={styles.kda}>
+              {player.kda.toFixed(2)} <span>KDA</span>
+            </div>
+            <div className={styles.recordSub}>
+              {winRate(rating.wins, rating.losses)}% of {games} games
+            </div>
+            <div className={styles.recordSub}>
+              {rating.wins}W {rating.losses}L
+            </div>
+          </>
+        ) : (
+          <div className={styles.recordSub}>no games yet</div>
+        )}
       </div>
 
       <div className={styles.trend}>
-        <Sparkline values={player.form.slice(0, 12)} seed={player.puuid.slice(0, 8)} />
-        <div className={styles.trendLabel}>last {Math.min(12, player.form.length)}</div>
+        {rating.rated ? (
+          <>
+            <Sparkline values={player.form.slice(0, 12)} seed={player.puuid.slice(0, 8)} />
+            <div className={styles.trendLabel}>last {Math.min(12, player.form.length)}</div>
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -132,6 +132,18 @@
   line-height: 1.05;
 }
 
+.unrated {
+  color: var(--faint);
+}
+
+.awaiting {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--faint);
+}
+
 .scoreSub {
   font-family: var(--mono);
   font-size: 9px;

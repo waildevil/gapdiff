@@ -65,6 +65,8 @@ export function formatRank(tier: string, division: string, leaguePoints: number)
 const HALF_LIFE_GAMES = 20;
 /** Bayesian shrinkage strength — games needed before you own your average. */
 const SHRINKAGE_K = 15;
+/** Same idea for spread, which needs fewer games to say something. */
+const CONSISTENCY_SHRINKAGE_K = 8;
 /** Std-dev of performance that maps to a consistency score of 0. */
 const MAX_STDDEV = 22;
 
@@ -79,6 +81,8 @@ export interface RatingInput {
 }
 
 export interface Rating {
+  /** False when there are no games to score — shown as "—", never ranked. */
+  rated: boolean;
   gapScore: number;
   /** 0-100 components, before weighting. */
   rankScore: number | null;
@@ -118,25 +122,54 @@ export function computeRating(input: RatingInput): Rating {
   const { scores, wins, losses } = input;
   const games = scores.length;
   const prior = input.prior ?? 50;
-
-  const rawPerformance = exponentialWeightedMean(scores);
-
-  // Four great games shouldn't outrank fifty good ones until they're proven.
-  const performanceScore =
-    games === 0
-      ? prior
-      : (games * rawPerformance + SHRINKAGE_K * prior) / (games + SHRINKAGE_K);
-
-  const arithmeticMean =
-    games === 0 ? 0 : scores.reduce((sum, s) => sum + s, 0) / games;
-  const stdDev = standardDeviation(scores, arithmeticMean);
-  const consistencyScore = clamp(100 - (stdDev / MAX_STDDEV) * 100, 0, 100);
+  const total = wins + losses;
 
   const rankScore = input.rank
     ? normalisedRank(
         rankPoints(input.rank.tier, input.rank.division, input.rank.leaguePoints),
       )
     : null;
+
+  /*
+   * Nobody with zero games gets a score.
+   *
+   * The maths used to hand them one, and a flattering one: performance fell
+   * back to the group mean and standard deviation of nothing is zero, which
+   * read as perfect consistency. A player who had never been ingested came out
+   * top of the board on 75.3.
+   */
+  if (games === 0) {
+    return {
+      rated: false,
+      gapScore: 0,
+      rankScore: rankScore === null ? null : Math.round(rankScore * 10) / 10,
+      performanceScore: 0,
+      consistencyScore: 0,
+      rawPerformance: 0,
+      games: 0,
+      wins,
+      losses,
+      winRate: total > 0 ? wins / total : 0,
+      confidence: 0,
+    };
+  }
+
+  const rawPerformance = exponentialWeightedMean(scores);
+
+  // Four great games shouldn't outrank fifty good ones until they're proven.
+  const performanceScore =
+    (games * rawPerformance + SHRINKAGE_K * prior) / (games + SHRINKAGE_K);
+
+  const arithmeticMean = scores.reduce((sum, s) => sum + s, 0) / games;
+  const stdDev = standardDeviation(scores, arithmeticMean);
+  const rawConsistency = clamp(100 - (stdDev / MAX_STDDEV) * 100, 0, 100);
+
+  // Spread needs a sample. One or two games have a standard deviation of zero
+  // by definition, which is not the same as being consistent — so shrink
+  // towards neutral until there are enough games to mean something.
+  const consistencyScore =
+    (games * rawConsistency + CONSISTENCY_SHRINKAGE_K * 50) /
+    (games + CONSISTENCY_SHRINKAGE_K);
 
   // Unranked players still get a fair score: the rank weight is redistributed
   // across the two components we can actually measure.
@@ -145,9 +178,8 @@ export function computeRating(input: RatingInput): Rating {
       ? 0.65 * performanceScore + 0.35 * consistencyScore
       : 0.4 * rankScore + 0.4 * performanceScore + 0.2 * consistencyScore;
 
-  const total = wins + losses;
-
   return {
+    rated: true,
     gapScore: Math.round(gapScore * 10) / 10,
     rankScore: rankScore === null ? null : Math.round(rankScore * 10) / 10,
     performanceScore: Math.round(performanceScore * 10) / 10,
@@ -191,14 +223,22 @@ export function buildLeaderboard<T>(
       player,
       rating: computeRating({ ...input, prior: groupMean }),
     }))
-    // Ranked players always sort above unranked ones. The unranked score is
-    // computed without a rank pillar, so nothing drags it down — comparing it
-    // directly against a ranked score would make having no rank an advantage.
-    // Within each group the score decides.
+    /*
+     * Three tiers, in order:
+     *   1. rated and ranked
+     *   2. rated but unranked  — scored without a rank pillar, so nothing drags
+     *      it down; comparing it directly against a ranked score would make
+     *      having no rank an advantage
+     *   3. no games at all     — not scored, so nothing to compare
+     * Within each tier the score decides.
+     */
     .sort((a, b) => {
+      if (a.rating.rated !== b.rating.rated) return a.rating.rated ? -1 : 1;
+
       const aRanked = a.rating.rankScore !== null;
       const bRanked = b.rating.rankScore !== null;
       if (aRanked !== bRanked) return aRanked ? -1 : 1;
+
       return b.rating.gapScore - a.rating.gapScore;
     });
 
