@@ -13,3 +13,4 @@ node_modules/
 
 config/group.json
 ui-demo.html
+tsconfig.tsbuildinfo
