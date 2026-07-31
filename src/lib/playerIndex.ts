@@ -1,4 +1,4 @@
-import { desc, ilike, or, sql } from 'drizzle-orm';
+import { desc, ilike, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { knownPlayers } from '@/db/schema';
 import type { Match } from './riot/types';
@@ -94,18 +94,16 @@ export async function suggestPlayers(query: string): Promise<PlayerSuggestion[]>
       gamesSeen: knownPlayers.gamesSeen,
     })
     .from(knownPlayers)
+    // Prefix only: typing "anvil" should offer anvil and anvilito, never
+    // theanvil. Matching mid-name turns a short query into noise.
     .where(
       tagPart
         ? sql`${knownPlayers.gameName} ilike ${escaped + '%'} and ${knownPlayers.tagLine} ilike ${tagPart + '%'}`
-        : or(
-            ilike(knownPlayers.gameName, `${escaped}%`),
-            // Also allow matching mid-name, ranked below prefix hits.
-            ilike(knownPlayers.gameName, `%${escaped}%`),
-          ),
+        : ilike(knownPlayers.gameName, `${escaped}%`),
     )
-    // Exact prefix first, then whoever we've seen most.
+    // An exact name wins outright, then whoever we have seen most.
     .orderBy(
-      sql`case when ${knownPlayers.gameName} ilike ${escaped + '%'} then 0 else 1 end`,
+      sql`case when lower(${knownPlayers.gameName}) = lower(${namePart}) then 0 else 1 end`,
       desc(knownPlayers.gamesSeen),
     )
     .limit(SUGGESTION_LIMIT);
