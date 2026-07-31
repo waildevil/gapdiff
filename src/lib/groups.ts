@@ -1,0 +1,411 @@
+import { randomBytes } from 'node:crypto';
+import { and, count, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { db } from '@/db';
+import {
+  accountClaims,
+  accounts,
+  groupMemberships,
+  groups,
+  invites,
+  trackedAccounts,
+  users,
+} from '@/db/schema';
+
+/**
+ * Groups, invites and joining.
+ *
+ * A group has two populations that are deliberately not the same thing:
+ * `group_memberships` is the people, `tracked_accounts` is the Riot accounts on
+ * the board. One person can put several accounts up; an account can sit there
+ * with nobody attached, which is how you keep tracking somebody who has stopped
+ * playing or won't sign in.
+ */
+
+export class GroupError extends Error {}
+
+const SLUG_MAX = 48;
+
+function slugify(name: string): string {
+  const base = name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, SLUG_MAX);
+  return base || 'group';
+}
+
+async function uniqueSlug(name: string): Promise<string> {
+  const base = slugify(name);
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    const [taken] = await db
+      .select({ slug: groups.slug })
+      .from(groups)
+      .where(eq(groups.slug, candidate))
+      .limit(1);
+    if (!taken) return candidate;
+  }
+  return `${base}-${randomBytes(3).toString('hex')}`;
+}
+
+/** URL-safe, no ambiguous characters, short enough to paste in chat. */
+function inviteCode(): string {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = randomBytes(10);
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
+
+export interface GroupSummary {
+  id: number;
+  slug: string;
+  name: string;
+  isOwner: boolean;
+  memberCount: number;
+  trackedCount: number;
+}
+
+export async function listUserGroups(userId: string): Promise<GroupSummary[]> {
+  const rows = await db
+    .select({
+      id: groups.id,
+      slug: groups.slug,
+      name: groups.name,
+      ownerId: groups.ownerId,
+      role: groupMemberships.role,
+    })
+    .from(groupMemberships)
+    .innerJoin(groups, eq(groups.id, groupMemberships.groupId))
+    .where(eq(groupMemberships.userId, userId))
+    .orderBy(desc(groups.createdAt));
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const [members] = await db
+        .select({ n: count() })
+        .from(groupMemberships)
+        .where(eq(groupMemberships.groupId, row.id));
+      const [tracked] = await db
+        .select({ n: count() })
+        .from(trackedAccounts)
+        .where(eq(trackedAccounts.groupId, row.id));
+      return {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        isOwner: row.ownerId === userId || row.role === 'owner',
+        memberCount: members?.n ?? 0,
+        trackedCount: tracked?.n ?? 0,
+      };
+    }),
+  );
+}
+
+/**
+ * Puts every account this user has claimed onto a group's board.
+ *
+ * Deliberately all of them rather than a picker: smurfs are the normal case,
+ * and an account can be removed from the board afterwards in one click.
+ */
+async function trackClaimedAccounts(groupId: number, userId: string): Promise<number> {
+  const claimed = await db
+    .select({ puuid: accountClaims.puuid })
+    .from(accountClaims)
+    .where(eq(accountClaims.userId, userId));
+
+  if (claimed.length === 0) return 0;
+
+  await db
+    .insert(trackedAccounts)
+    .values(claimed.map((c) => ({ groupId, puuid: c.puuid, addedBy: userId })))
+    .onConflictDoNothing();
+
+  return claimed.length;
+}
+
+export async function createGroup(userId: string, name: string): Promise<GroupSummary> {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) throw new GroupError('Give the group a name.');
+  if (trimmed.length > 64) throw new GroupError('That name is too long.');
+
+  const slug = await uniqueSlug(trimmed);
+
+  const [group] = await db
+    .insert(groups)
+    .values({ slug, name: trimmed, ownerId: userId, isPrivate: true })
+    .returning();
+
+  if (!group) throw new GroupError('Could not create the group.');
+
+  await db
+    .insert(groupMemberships)
+    .values({ groupId: group.id, userId, role: 'owner' })
+    .onConflictDoNothing();
+
+  const tracked = await trackClaimedAccounts(group.id, userId);
+
+  return {
+    id: group.id,
+    slug: group.slug,
+    name: group.name,
+    isOwner: true,
+    memberCount: 1,
+    trackedCount: tracked,
+  };
+}
+
+export async function isOwner(groupId: number, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: groups.id })
+    .from(groups)
+    .leftJoin(
+      groupMemberships,
+      and(eq(groupMemberships.groupId, groups.id), eq(groupMemberships.userId, userId)),
+    )
+    .where(
+      and(
+        eq(groups.id, groupId),
+        or(eq(groups.ownerId, userId), eq(groupMemberships.role, 'owner')),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
+export interface InviteView {
+  code: string;
+  createdAt: Date;
+  expiresAt: Date | null;
+  maxUses: number | null;
+  uses: number;
+  revokedAt: Date | null;
+  active: boolean;
+}
+
+function inviteIsActive(row: {
+  expiresAt: Date | null;
+  maxUses: number | null;
+  uses: number;
+  revokedAt: Date | null;
+}): boolean {
+  if (row.revokedAt) return false;
+  if (row.expiresAt && row.expiresAt.getTime() < Date.now()) return false;
+  if (row.maxUses !== null && row.uses >= row.maxUses) return false;
+  return true;
+}
+
+export async function createInvite(
+  groupId: number,
+  userId: string,
+  options: { expiresInDays?: number | null; maxUses?: number | null } = {},
+): Promise<InviteView> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can create invites.');
+  }
+
+  const expiresAt =
+    options.expiresInDays && options.expiresInDays > 0
+      ? new Date(Date.now() + options.expiresInDays * 24 * 60 * 60 * 1000)
+      : null;
+
+  const [row] = await db
+    .insert(invites)
+    .values({
+      code: inviteCode(),
+      groupId,
+      createdBy: userId,
+      expiresAt,
+      maxUses: options.maxUses ?? null,
+    })
+    .returning();
+
+  if (!row) throw new GroupError('Could not create the invite.');
+  return { ...row, active: inviteIsActive(row) };
+}
+
+export async function listInvites(groupId: number): Promise<InviteView[]> {
+  const rows = await db
+    .select()
+    .from(invites)
+    .where(eq(invites.groupId, groupId))
+    .orderBy(desc(invites.createdAt));
+  return rows.map((row) => ({ ...row, active: inviteIsActive(row) }));
+}
+
+export async function revokeInvite(
+  code: string,
+  userId: string,
+): Promise<void> {
+  const [row] = await db.select().from(invites).where(eq(invites.code, code)).limit(1);
+  if (!row) throw new GroupError('No such invite.');
+  if (!(await isOwner(row.groupId, userId))) {
+    throw new GroupError('Only the group owner can revoke invites.');
+  }
+  await db
+    .update(invites)
+    .set({ revokedAt: new Date() })
+    .where(eq(invites.code, code));
+}
+
+export interface InviteTarget {
+  code: string;
+  group: { id: number; slug: string; name: string };
+  invitedBy: string | null;
+  active: boolean;
+  reason: 'revoked' | 'expired' | 'exhausted' | null;
+}
+
+export async function getInvite(code: string): Promise<InviteTarget | null> {
+  const [row] = await db
+    .select({
+      code: invites.code,
+      groupId: invites.groupId,
+      expiresAt: invites.expiresAt,
+      maxUses: invites.maxUses,
+      uses: invites.uses,
+      revokedAt: invites.revokedAt,
+      slug: groups.slug,
+      name: groups.name,
+      inviterName: users.name,
+    })
+    .from(invites)
+    .innerJoin(groups, eq(groups.id, invites.groupId))
+    .leftJoin(users, eq(users.id, invites.createdBy))
+    .where(eq(invites.code, code))
+    .limit(1);
+
+  if (!row) return null;
+
+  let reason: InviteTarget['reason'] = null;
+  if (row.revokedAt) reason = 'revoked';
+  else if (row.expiresAt && row.expiresAt.getTime() < Date.now()) reason = 'expired';
+  else if (row.maxUses !== null && row.uses >= row.maxUses) reason = 'exhausted';
+
+  return {
+    code: row.code,
+    group: { id: row.groupId, slug: row.slug, name: row.name },
+    invitedBy: row.inviterName,
+    active: reason === null,
+    reason,
+  };
+}
+
+export interface JoinResult {
+  slug: string;
+  trackedCount: number;
+  alreadyMember: boolean;
+}
+
+export async function joinGroupByInvite(code: string, userId: string): Promise<JoinResult> {
+  const invite = await getInvite(code);
+  if (!invite) throw new GroupError('That invite link is not valid.');
+  if (!invite.active) {
+    const messages = {
+      revoked: 'That invite has been revoked.',
+      expired: 'That invite has expired.',
+      exhausted: 'That invite has been used up.',
+    } as const;
+    throw new GroupError(messages[invite.reason ?? 'revoked']);
+  }
+
+  const [existing] = await db
+    .select({ userId: groupMemberships.userId })
+    .from(groupMemberships)
+    .where(
+      and(
+        eq(groupMemberships.groupId, invite.group.id),
+        eq(groupMemberships.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (existing) {
+    const tracked = await trackClaimedAccounts(invite.group.id, userId);
+    return { slug: invite.group.slug, trackedCount: tracked, alreadyMember: true };
+  }
+
+  await db
+    .insert(groupMemberships)
+    .values({ groupId: invite.group.id, userId, role: 'member' });
+
+  // Count the use against the invite, not against the person — rejoining after
+  // leaving shouldn't burn another slot, but a fresh join should.
+  await db
+    .update(invites)
+    .set({ uses: sql`${invites.uses} + 1` })
+    .where(eq(invites.code, code));
+
+  const tracked = await trackClaimedAccounts(invite.group.id, userId);
+  return { slug: invite.group.slug, trackedCount: tracked, alreadyMember: false };
+}
+
+export interface GroupMemberView {
+  userId: string;
+  name: string | null;
+  image: string | null;
+  role: string;
+  joinedAt: Date;
+  accounts: { puuid: string; gameName: string; tagLine: string; verified: boolean }[];
+}
+
+export async function listMembers(groupId: number): Promise<GroupMemberView[]> {
+  const people = await db
+    .select({
+      userId: groupMemberships.userId,
+      name: users.name,
+      image: users.image,
+      role: groupMemberships.role,
+      joinedAt: groupMemberships.joinedAt,
+    })
+    .from(groupMemberships)
+    .innerJoin(users, eq(users.id, groupMemberships.userId))
+    .where(eq(groupMemberships.groupId, groupId));
+
+  return Promise.all(
+    people.map(async (person) => {
+      const owned = await db
+        .select({
+          puuid: accounts.puuid,
+          gameName: accounts.gameName,
+          tagLine: accounts.tagLine,
+          verifiedAt: accountClaims.verifiedAt,
+        })
+        .from(trackedAccounts)
+        .innerJoin(accounts, eq(accounts.puuid, trackedAccounts.puuid))
+        .innerJoin(
+          accountClaims,
+          and(
+            eq(accountClaims.puuid, trackedAccounts.puuid),
+            eq(accountClaims.userId, person.userId),
+          ),
+        )
+        .where(eq(trackedAccounts.groupId, groupId));
+
+      return {
+        ...person,
+        accounts: owned.map((a) => ({
+          puuid: a.puuid,
+          gameName: a.gameName,
+          tagLine: a.tagLine,
+          verified: a.verifiedAt !== null,
+        })),
+      };
+    }),
+  );
+}
+
+/** Accounts on the board that nobody has claimed — seeded or manually added. */
+export async function listUnclaimedAccounts(groupId: number) {
+  return db
+    .select({
+      puuid: accounts.puuid,
+      gameName: accounts.gameName,
+      tagLine: accounts.tagLine,
+    })
+    .from(trackedAccounts)
+    .innerJoin(accounts, eq(accounts.puuid, trackedAccounts.puuid))
+    .leftJoin(accountClaims, eq(accountClaims.puuid, trackedAccounts.puuid))
+    .where(and(eq(trackedAccounts.groupId, groupId), isNull(accountClaims.puuid)));
+}

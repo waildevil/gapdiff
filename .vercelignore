@@ -1,0 +1,15 @@
+# The Vercel CLI only honours .gitignore when the folder is a git repository.
+# This project isn't one yet, so secrets and local state need listing again here
+# — otherwise `vercel` uploads .env straight into the deployment bundle.
+
+.env
+.env.local
+.env*.local
+
+.pglite/
+.vercel/
+node_modules/
+.next/
+
+config/group.json
+ui-demo.html

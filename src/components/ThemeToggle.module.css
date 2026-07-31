@@ -1,0 +1,32 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--muted);
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.toggle:hover {
+  color: var(--amber);
+  border-color: var(--amber-line);
+  background: var(--amber-soft);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* Reserves the slot during the first render, before the theme is known. */
+.placeholder {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}

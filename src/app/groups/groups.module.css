@@ -1,0 +1,146 @@
+.wrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-size: 14px;
+  padding: 10px 13px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--amber-line);
+}
+
+.input::placeholder {
+  color: var(--faint);
+}
+
+.submit {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber-line);
+  border-radius: var(--r-md);
+  padding: 0 18px;
+  flex: 0 0 auto;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--amber);
+  color: var(--surface);
+}
+
+.submit:disabled {
+  color: var(--faint);
+  background: var(--surface-2);
+  border-color: var(--line);
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--bad);
+  font-size: 12.5px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.name {
+  flex: 1;
+  min-width: 150px;
+}
+
+.nameText {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.nameText:hover {
+  color: var(--amber);
+}
+
+.meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  margin-top: 3px;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.action {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 6px 11px;
+  white-space: nowrap;
+}
+
+.action:hover {
+  color: var(--amber);
+  border-color: var(--amber-line);
+}
+
+.empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.emptyHint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 8px;
+}

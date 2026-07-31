@@ -1,0 +1,23 @@
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Secrets. .env.example is the committed template; .env never is.
+.env
+.env.local
+.env*.local
+
+# Local group config — real Riot IDs, not everyone's to publish.
+config/group.json
+
+# Local PGlite database files
+.pglite/
+
+# Vercel project link
+.vercel/
+
+.DS_Store
+*.log

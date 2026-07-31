@@ -1,0 +1,76 @@
+.header {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+
+.mark {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.mark span {
+  color: var(--amber);
+}
+
+.tagline {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+}
+
+.search {
+  flex: 1;
+  max-width: 420px;
+  margin-left: auto;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* On the home page there is no header search, so the actions carry the gap. */
+.pushRight {
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .inner {
+    padding: 10px 16px;
+    gap: 12px;
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .search {
+    max-width: none;
+  }
+}

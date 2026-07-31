@@ -1,0 +1,446 @@
+/* ============================================================
+   gapdiff — design tokens and shared component styles.
+
+   Ground: cool blue-biased slate. Signature: amber phosphor readout.
+   The chromatic work is done by LoL tier colours; amber marks interaction
+   and the leader. Page-specific styles live in CSS modules next to their
+   components; everything shared lives here.
+   ============================================================ */
+
+/* Dark is the default. An inline script in the layout resolves the viewer's
+   stored choice (or their system preference) into data-theme before first
+   paint, so there is never a flash of the wrong theme. */
+:root {
+  /* The canvas sits lighter than the cards, so panels read as inset wells
+     rather than floating tiles. */
+  --bg: #2a363f;
+  --surface: #1e272f;
+  --surface-2: #26323c;
+  --surface-3: #303e4a;
+  --line: #38454f;
+  --line-soft: #2a353f;
+  --text: #e9eff3;
+  --muted: #93a9b6;
+  --faint: #6c8593;
+  --amber: #ffb020;
+  --amber-soft: rgba(255, 176, 32, 0.14);
+  --amber-line: rgba(255, 176, 32, 0.35);
+  --good: #3fcf8e;
+  --bad: #f0576a;
+  --good-soft: rgba(63, 207, 142, 0.13);
+  --bad-soft: rgba(240, 87, 106, 0.13);
+
+  --iron: #7a7a7a;
+  --bronze: #a3754c;
+  --silver: #a6b6c2;
+  --gold: #e0a63c;
+  --platinum: #4fc5b0;
+  --emerald: #35b36b;
+  --diamond: #5b8df0;
+  --master: #a568e8;
+  --grandmaster: #e0605f;
+  --challenger: #ecc964;
+
+  --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 8px;
+  --rail-w: 208px;
+}
+
+/* White canvas. Cards are white too and separate by border rather than by fill,
+   which keeps large data tables from turning into stripes of competing greys. */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f6f8;
+  --surface-3: #e4ebef;
+  --line: #d5dee3;
+  --line-soft: #e8eef1;
+  --text: #0d1519;
+  --muted: #4e646f;
+  --faint: #7b909c;
+  --amber: #a86400;
+  --amber-soft: rgba(168, 100, 0, 0.1);
+  --amber-line: rgba(168, 100, 0, 0.3);
+  --good: #0f8a58;
+  --bad: #c32e42;
+  --good-soft: rgba(15, 138, 88, 0.1);
+  --bad-soft: rgba(195, 46, 66, 0.1);
+  /* Saturation is pushed by driving the lowest channel toward zero rather than
+     by lightening, which keeps every tier at or above 4.5:1 on white. */
+  --iron: #5f6a70;
+  --bronze: #94581c;
+  --silver: #5f7482;
+  --gold: #916800;
+  --platinum: #008074;
+  --emerald: #00854a;
+  --diamond: #1f5ed6;
+  --master: #7d29d4;
+  --grandmaster: #c62233;
+  --challenger: #8a6a00;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- shell ---------- */
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+  min-width: 0;
+}
+
+.page {
+  padding: 28px 32px 80px;
+  max-width: 1180px;
+}
+
+.page-head {
+  margin-bottom: 26px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-size: 27px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+
+.page-sub {
+  color: var(--muted);
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* ---------- primitives ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.card-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.card-note {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.chip.good {
+  color: var(--good);
+  background: var(--good-soft);
+  border-color: transparent;
+}
+
+.chip.bad {
+  color: var(--bad);
+  background: var(--bad-soft);
+  border-color: transparent;
+}
+
+.chip.accent {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-color: var(--amber-line);
+}
+
+.tier {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scroll-x {
+  overflow-x: auto;
+}
+
+/* ---------- tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  font-weight: 500;
+  text-align: right;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+  padding-left: 16px;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 16px;
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* ---------- stat tiles ---------- */
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat {
+  padding: 14px 16px;
+}
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  margin-bottom: 7px;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-foot {
+  margin-top: 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.section-gap {
+  margin-top: 18px;
+}
+
+/* ---------- toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.seg {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.seg button {
+  padding: 6px 13px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-right: 1px solid var(--line);
+}
+
+.seg button:last-child {
+  border-right: none;
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.seg button:hover {
+  color: var(--text);
+}
+
+/* ---------- note ---------- */
+
+.note {
+  margin-top: 28px;
+  padding: 13px 15px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.note b {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ---------- loading ---------- */
+
+.loadingBar {
+  width: 40%;
+  height: 100%;
+  background: var(--amber);
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loadingBar {
+    animation: slide 1.1s ease-in-out infinite;
+  }
+}
+
+@keyframes slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 900px) {
+  .page {
+    padding: 20px 16px 96px;
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+}

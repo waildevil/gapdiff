@@ -1,0 +1,396 @@
+.card {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.card:last-child {
+  border-bottom: none;
+}
+
+/* ---------- collapsed summary ---------- */
+
+/*
+ * Column widths must fit their contents exactly or the grid overflows into the
+ * next cell: the champion block is a 42px icon plus a 19px spell stack, and the
+ * item row is seven 22px icons with 2px gaps.
+ */
+.summary {
+  display: grid;
+  grid-template-columns: 3px 64px minmax(110px, 1fr) 96px 78px 74px 168px 56px 26px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 0;
+  width: 100%;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.summary:hover {
+  background: var(--surface-2);
+}
+
+.expanded .summary {
+  background: var(--surface-2);
+}
+
+.flag {
+  align-self: stretch;
+  border-radius: 0 2px 2px 0;
+}
+
+.flagWin {
+  background: var(--good);
+}
+
+.flagLoss {
+  background: var(--bad);
+}
+
+.flagRemake {
+  background: var(--faint);
+}
+
+.champBlock {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.champ {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  display: block;
+}
+
+.champLevel {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  background: rgba(6, 9, 11, 0.85);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 0 var(--r-sm) 0 var(--r-sm);
+}
+
+.spells {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spell {
+  width: 19px;
+  height: 19px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  display: block;
+}
+
+.champName {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Grid children default to min-content width; this lets the text truncate. */
+.nameCell {
+  min-width: 0;
+}
+
+.sub {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.kda {
+  font-family: var(--mono);
+  font-size: 14px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.result {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: right;
+}
+
+.resultWin {
+  color: var(--good);
+}
+
+.resultLoss {
+  color: var(--bad);
+}
+
+.resultRemake {
+  color: var(--faint);
+}
+
+.itemRow {
+  display: flex;
+  gap: 2px;
+}
+
+.item {
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  display: block;
+}
+
+.itemEmpty {
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+}
+
+.score {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: var(--r-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  text-align: center;
+  transition: transform 150ms ease;
+}
+
+.expanded .chevron {
+  transform: rotate(180deg);
+  color: var(--amber);
+}
+
+/* ---------- expanded scoreboard ---------- */
+
+.detail {
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.board {
+  min-width: 720px;
+}
+
+.teamHead {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 46px 96px 116px 58px 66px 158px;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 14px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.teamHeadWin {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.teamHeadLoss {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.teamHead span:not(:first-child) {
+  text-align: right;
+  color: var(--faint);
+}
+
+.objectives {
+  display: flex;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.playerRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 46px 96px 116px 58px 66px 158px;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.playerRow:last-child {
+  border-bottom: none;
+}
+
+.playerRow:hover {
+  background: var(--surface);
+}
+
+.searched {
+  background: var(--amber-soft);
+}
+
+.searched:hover {
+  background: var(--amber-soft);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.whoChamp {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  flex: 0 0 auto;
+}
+
+.whoSpells {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.whoSpell {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  display: block;
+}
+
+.whoName {
+  min-width: 0;
+}
+
+.whoNameText {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 122px;
+}
+
+.whoNameText:hover {
+  color: var(--amber);
+}
+
+.damageWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+}
+
+.damageNums {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.damageTrack {
+  width: 100%;
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+}
+
+.damageDealt {
+  height: 100%;
+  background: var(--bad);
+}
+
+.damageTaken {
+  height: 100%;
+  background: var(--muted);
+  opacity: 0.55;
+}
+
+.boardItems {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.boardItem {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  display: block;
+}
+
+.boardItemEmpty {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+}
+
+.footer {
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  /* Spells, CS and items are hidden below, so the champion block is icon-only. */
+  .summary {
+    grid-template-columns: 3px 42px minmax(84px, 1fr) 88px 66px 50px 26px;
+    gap: 9px;
+  }
+
+  .hideSmall {
+    display: none;
+  }
+}

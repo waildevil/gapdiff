@@ -1,0 +1,245 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------- add form ---------- */
+
+.form {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  flex-wrap: wrap;
+}
+
+.select {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0 12px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.input {
+  flex: 1;
+  min-width: 180px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-size: 14px;
+  padding: 10px 13px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--amber-line);
+}
+
+.input::placeholder {
+  color: var(--faint);
+}
+
+.submit {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber-line);
+  border-radius: var(--r-md);
+  padding: 0 18px;
+  flex: 0 0 auto;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--amber);
+  color: var(--surface);
+}
+
+.submit:disabled {
+  color: var(--faint);
+  background: var(--surface-2);
+  border-color: var(--line);
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--bad);
+  font-size: 12.5px;
+}
+
+/* ---------- account row ---------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  flex: 0 0 auto;
+}
+
+.who {
+  flex: 1;
+  min-width: 150px;
+}
+
+.name {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.name span {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+
+.verified {
+  color: var(--good);
+  background: var(--good-soft);
+}
+
+.unverified {
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.link {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--bad);
+}
+
+/* ---------- challenge ---------- */
+
+.challenge {
+  width: 100%;
+  margin-top: 4px;
+  padding: 16px;
+  border: 1px dashed var(--amber-line);
+  border-radius: var(--r-md);
+  background: var(--amber-soft);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.target {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--amber);
+  flex: 0 0 auto;
+  background: var(--surface-2);
+}
+
+.instructions {
+  flex: 1;
+  min-width: 220px;
+}
+
+.step {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0 0 4px;
+}
+
+.stepNote {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  margin: 0;
+}
+
+.verifyRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.verify {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--surface);
+  background: var(--amber);
+  border-radius: var(--r-md);
+  padding: 9px 18px;
+}
+
+.verify:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.status {
+  font-size: 12px;
+}
+
+.statusBad {
+  color: var(--bad);
+}
+
+.statusGood {
+  color: var(--good);
+}
+
+.empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--muted);
+}

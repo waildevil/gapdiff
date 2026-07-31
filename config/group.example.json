@@ -1,0 +1,16 @@
+{
+  "$comment": [
+    "Copy to group.json and fill in your friends. The seed script resolves each",
+    "Riot ID to a PUUID and creates the group. Everyone must be on the same",
+    "platform for now — cross-region groups work but match history won't overlap,",
+    "so head-to-head and synergy stats would be empty."
+  ],
+  "slug": "the-boys",
+  "name": "The Boys",
+  "platform": "euw1",
+  "members": [
+    { "riotId": "YourName#EUW", "nickname": "wail" },
+    { "riotId": "FriendOne#1234", "nickname": "the jungler" },
+    { "riotId": "FriendTwo#EUW", "nickname": "ward andy" }
+  ]
+}

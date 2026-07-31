@@ -1,0 +1,1720 @@
+<title>gapdiff — UI demo</title>
+
+<style>
+  /* ============================================================
+     gapdiff — design tokens
+     Ground: cool blue-biased slate. Signature: amber phosphor readout.
+     Chromatic work is done by LoL tier colours; amber marks interaction.
+     ============================================================ */
+  :root {
+    --bg: #0b1014;
+    --surface: #121a20;
+    --surface-2: #182530;
+    --surface-3: #1f303c;
+    --line: #22313b;
+    --line-soft: #1a252d;
+    --text: #e6eef2;
+    --muted: #8199a8;
+    --faint: #56707f;
+    --amber: #ffb020;
+    --amber-soft: rgba(255, 176, 32, 0.14);
+    --amber-line: rgba(255, 176, 32, 0.35);
+    --good: #3fcf8e;
+    --bad: #f0576a;
+    --good-soft: rgba(63, 207, 142, 0.13);
+    --bad-soft: rgba(240, 87, 106, 0.13);
+
+    --iron: #7a7a7a;
+    --bronze: #a3754c;
+    --silver: #a6b6c2;
+    --gold: #e0a63c;
+    --platinum: #4fc5b0;
+    --emerald: #35b36b;
+    --diamond: #5b8df0;
+    --master: #a568e8;
+    --grandmaster: #e0605f;
+    --challenger: #ecc964;
+
+    --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --r-sm: 3px;
+    --r-md: 5px;
+    --r-lg: 8px;
+    --rail-w: 208px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef1f2;
+      --surface: #ffffff;
+      --surface-2: #f2f5f6;
+      --surface-3: #e5eaec;
+      --line: #d2dade;
+      --line-soft: #e3e9eb;
+      --text: #0d1519;
+      --muted: #556d79;
+      --faint: #859aa5;
+      --amber: #a86400;
+      --amber-soft: rgba(168, 100, 0, 0.1);
+      --amber-line: rgba(168, 100, 0, 0.3);
+      --good: #0f8a58;
+      --bad: #c32e42;
+      --good-soft: rgba(15, 138, 88, 0.1);
+      --bad-soft: rgba(195, 46, 66, 0.1);
+      --iron: #6d6d6d;
+      --bronze: #8a5f3c;
+      --silver: #7d8d99;
+      --gold: #b07f21;
+      --platinum: #2a8d7c;
+      --emerald: #1f8b4d;
+      --diamond: #3c68c4;
+      --master: #7c40c0;
+      --grandmaster: #b93f3e;
+      --challenger: #ab8b1c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0b1014;
+    --surface: #121a20;
+    --surface-2: #182530;
+    --surface-3: #1f303c;
+    --line: #22313b;
+    --line-soft: #1a252d;
+    --text: #e6eef2;
+    --muted: #8199a8;
+    --faint: #56707f;
+    --amber: #ffb020;
+    --amber-soft: rgba(255, 176, 32, 0.14);
+    --amber-line: rgba(255, 176, 32, 0.35);
+    --good: #3fcf8e;
+    --bad: #f0576a;
+    --good-soft: rgba(63, 207, 142, 0.13);
+    --bad-soft: rgba(240, 87, 106, 0.13);
+    --iron: #7a7a7a;
+    --bronze: #a3754c;
+    --silver: #a6b6c2;
+    --gold: #e0a63c;
+    --platinum: #4fc5b0;
+    --emerald: #35b36b;
+    --diamond: #5b8df0;
+    --master: #a568e8;
+    --grandmaster: #e0605f;
+    --challenger: #ecc964;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #eef1f2;
+    --surface: #ffffff;
+    --surface-2: #f2f5f6;
+    --surface-3: #e5eaec;
+    --line: #d2dade;
+    --line-soft: #e3e9eb;
+    --text: #0d1519;
+    --muted: #556d79;
+    --faint: #859aa5;
+    --amber: #a86400;
+    --amber-soft: rgba(168, 100, 0, 0.1);
+    --amber-line: rgba(168, 100, 0, 0.3);
+    --good: #0f8a58;
+    --bad: #c32e42;
+    --good-soft: rgba(15, 138, 88, 0.1);
+    --bad-soft: rgba(195, 46, 66, 0.1);
+    --iron: #6d6d6d;
+    --bronze: #8a5f3c;
+    --silver: #7d8d99;
+    --gold: #b07f21;
+    --platinum: #2a8d7c;
+    --emerald: #1f8b4d;
+    --diamond: #3c68c4;
+    --master: #7c40c0;
+    --grandmaster: #b93f3e;
+    --challenger: #ab8b1c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+  :focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+
+  /* ---------- shell ---------- */
+
+  .app { display: flex; min-height: 100vh; }
+
+  .rail {
+    width: var(--rail-w);
+    flex: 0 0 var(--rail-w);
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .brand {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .brand-mark {
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .brand-mark span { color: var(--amber); }
+
+  .brand-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--faint);
+  }
+
+  .nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 1px; flex: 1; }
+
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--faint);
+    padding: 12px 8px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-md);
+    color: var(--muted);
+    font-size: 13.5px;
+    border-left: 2px solid transparent;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item[aria-current="page"] {
+    background: var(--amber-soft);
+    border-left-color: var(--amber);
+    color: var(--text);
+    font-weight: 600;
+  }
+  .nav-glyph {
+    font-family: var(--mono);
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+    color: var(--faint);
+  }
+  .nav-item[aria-current="page"] .nav-glyph { color: var(--amber); }
+
+  .rail-foot { padding: 14px 18px; border-top: 1px solid var(--line-soft); }
+
+  .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--bad);
+    margin-right: 7px;
+    vertical-align: middle;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .live-dot { animation: pulse 2s ease-in-out infinite; }
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  main { flex: 1; min-width: 0; }
+
+  .page { padding: 28px 32px 80px; max-width: 1180px; }
+
+  .page-head { margin-bottom: 26px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--faint);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 27px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  .page-sub { color: var(--muted); margin: 0; max-width: 62ch; }
+
+  /* ---------- primitives ---------- */
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+  }
+  .card-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-title { font-size: 13px; font-weight: 650; letter-spacing: -0.01em; }
+  .card-note { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 7px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .chip.good { color: var(--good); background: var(--good-soft); border-color: transparent; }
+  .chip.bad { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
+  .chip.accent { color: var(--amber); background: var(--amber-soft); border-color: var(--amber-line); }
+
+  .tier { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: var(--r-md);
+    display: grid;
+    place-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #06090b;
+    flex: 0 0 auto;
+    letter-spacing: -0.03em;
+  }
+  .avatar.sm { width: 26px; height: 26px; font-size: 9.5px; border-radius: var(--r-sm); }
+  .avatar.lg { width: 62px; height: 62px; font-size: 19px; border-radius: var(--r-md); }
+
+  .scroll-x { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--faint);
+    font-weight: 500;
+    text-align: right;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  th:first-child, td:first-child { text-align: left; padding-left: 16px; }
+  th:last-child, td:last-child { padding-right: 16px; }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line-soft);
+    text-align: right;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  /* ---------- standings ---------- */
+
+  .standings { display: flex; flex-direction: column; }
+
+  .srow {
+    display: grid;
+    grid-template-columns: 40px 34px minmax(150px, 1.2fr) 96px minmax(140px, 1fr) 104px 82px;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    transition: background 120ms ease;
+  }
+  .srow:hover { background: var(--surface-2); }
+  .srow:last-of-type { border-bottom: none; }
+
+  .srow-pos {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .srow.lead .srow-pos { color: var(--amber); }
+
+  .srow-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .srow-name {
+    font-weight: 600;
+    font-size: 14.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .srow-name:hover { color: var(--amber); }
+  .srow-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .srow-meta .tier { white-space: nowrap; }
+  .srow-nick {
+    font-size: 11.5px;
+    color: var(--faint);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .srow-gap { text-align: right; }
+  .gap-value {
+    font-family: var(--mono);
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .srow.lead .gap-value { color: var(--amber); }
+
+  .pillars { display: flex; flex-direction: column; gap: 5px; }
+  .pillar-bar {
+    display: flex;
+    height: 7px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--surface-3);
+  }
+  .pillar-seg { height: 100%; }
+  .pillar-seg.rank { background: var(--diamond); }
+  .pillar-seg.perf { background: var(--amber); }
+  .pillar-seg.cons { background: var(--platinum); }
+  .pillar-key {
+    display: flex;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .record { text-align: right; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .record-wr { font-size: 10.5px; color: var(--faint); }
+
+  /* The signature: the gap between rows, stated as a number. */
+  .gap-marker {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0 16px 0 0;
+    height: 16px;
+    margin-top: -8px;
+    margin-bottom: -8px;
+    position: relative;
+    pointer-events: none;
+  }
+  .gap-marker-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line)); }
+  .gap-marker-val {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+
+  .spark { display: block; }
+
+  /* ---------- stat grid ---------- */
+
+  .grid { display: grid; gap: 14px; }
+  .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .stat { padding: 14px 16px; }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--faint);
+    margin-bottom: 7px;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-foot { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
+
+  /* ---------- player page ---------- */
+
+  .profile {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    flex-wrap: wrap;
+  }
+  .profile-id { flex: 1; min-width: 200px; }
+  h1.profile-name { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+  .profile-tag { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .profile-tags { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+
+  .profile-score { text-align: right; }
+  .profile-score .gap-value { font-size: 40px; color: var(--amber); }
+
+  .breakdown { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+  .bd-row { display: grid; grid-template-columns: 108px 1fr 54px; align-items: center; gap: 12px; }
+  .bd-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .bd-track { height: 6px; background: var(--surface-3); border-radius: 2px; overflow: hidden; }
+  .bd-fill { height: 100%; border-radius: 2px; }
+  .bd-val { font-family: var(--mono); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .matchlist { display: flex; flex-direction: column; }
+  .mrow {
+    display: grid;
+    grid-template-columns: 3px 34px minmax(96px, 1fr) 92px 76px 88px 60px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .mrow:last-child { border-bottom: none; }
+  .mrow:hover { background: var(--surface-2); }
+  .mrow-flag { align-self: stretch; border-radius: 0 2px 2px 0; }
+  .mrow-flag.win { background: var(--good); }
+  .mrow-flag.loss { background: var(--bad); }
+  .mrow-champ { font-size: 13px; font-weight: 550; }
+  .mrow-sub { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+  .mrow-kda { font-family: var(--mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+  .mrow-num { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .perf-badge {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    padding: 3px 0;
+    border-radius: var(--r-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- match page ---------- */
+
+  .team-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--line);
+  }
+  .team-head.win { background: var(--good-soft); color: var(--good); }
+  .team-head.loss { background: var(--bad-soft); color: var(--bad); }
+
+  .prow {
+    display: grid;
+    grid-template-columns: 30px minmax(120px, 1.4fr) 74px 62px 62px 56px 56px 48px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 12.5px;
+  }
+  .prow:last-child { border-bottom: none; }
+  .prow.me { background: var(--amber-soft); }
+  .prow-name { display: flex; flex-direction: column; min-width: 0; }
+  .prow-name b { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow-name span { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+
+  /* ---------- awards ---------- */
+
+  .award {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .award-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+  }
+  .award-holder { display: flex; align-items: center; gap: 10px; }
+  .award-who { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
+  .award-stat { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .award-desc { font-size: 12px; color: var(--faint); line-height: 1.45; }
+
+  /* ---------- live ---------- */
+
+  .live-card { padding: 0; overflow: hidden; }
+  .live-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .live-who { display: flex; align-items: center; gap: 11px; }
+  .live-teams { display: grid; grid-template-columns: 1fr 1fr; }
+  .live-team { padding: 12px 0; }
+  .live-team + .live-team { border-left: 1px solid var(--line-soft); }
+  .live-team-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--faint);
+    padding: 0 16px 8px;
+  }
+  .live-player {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 16px;
+  }
+  .live-player-id { flex: 1; min-width: 0; }
+  .live-player-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-player-champ { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+
+  /* ---------- head to head ---------- */
+
+  .h2h-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 20px; }
+  .h2h-side { display: flex; align-items: center; gap: 12px; }
+  .h2h-side.right { flex-direction: row-reverse; text-align: right; }
+  .h2h-vs { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; color: var(--faint); }
+  .h2h-name { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+
+  .cmp-row { display: grid; grid-template-columns: 62px 1fr 122px 1fr 62px; align-items: center; gap: 10px; padding: 9px 20px; border-bottom: 1px solid var(--line-soft); }
+  .cmp-row:last-child { border-bottom: none; }
+  .cmp-val { font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  .cmp-val.right { text-align: right; }
+  .cmp-val.lead { color: var(--amber); font-weight: 700; }
+  .cmp-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); text-align: center; }
+  .cmp-track { height: 5px; background: var(--surface-3); border-radius: 2px; overflow: hidden; display: flex; }
+  .cmp-track.flip { justify-content: flex-end; }
+  .cmp-fill { height: 100%; background: var(--muted); border-radius: 2px; }
+  .cmp-fill.lead { background: var(--amber); }
+
+  /* ---------- duos ---------- */
+
+  .matrix { border-collapse: separate; border-spacing: 3px; }
+  .matrix th { border: none; padding: 4px; text-align: center; }
+  .matrix th.rowhead { text-align: right; padding-right: 9px; color: var(--muted); font-size: 10.5px; letter-spacing: 0.04em; }
+  .matrix td { border: none; padding: 0; text-align: center; }
+  .cell {
+    height: 44px;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+  }
+  .cell.empty { background: var(--surface-2); color: var(--faint); }
+  .cell small { display: block; font-size: 9px; opacity: 0.7; }
+
+  /* ---------- misc ---------- */
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+  .seg button {
+    padding: 6px 13px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-right: 1px solid var(--line);
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button[aria-pressed="true"] { background: var(--amber-soft); color: var(--amber); }
+  .seg button:hover { color: var(--text); }
+
+  .note {
+    margin-top: 28px;
+    padding: 13px 15px;
+    border: 1px dashed var(--line);
+    border-radius: var(--r-md);
+    font-size: 12px;
+    color: var(--faint);
+    line-height: 1.55;
+  }
+  .note b { color: var(--muted); font-weight: 600; }
+
+  .section-gap { margin-top: 18px; }
+
+  .tabbar { display: none; }
+
+  /* ---------- responsive ---------- */
+
+  @media (max-width: 940px) {
+    .srow { grid-template-columns: 34px 30px minmax(110px, 1fr) 76px 88px 68px; }
+    .srow .pillars { display: none; }
+  }
+
+  @media (max-width: 900px) {
+    .rail { display: none; }
+    .page { padding: 20px 16px 96px; }
+    .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .live-teams { grid-template-columns: 1fr; }
+    .live-team + .live-team { border-left: none; border-top: 1px solid var(--line-soft); }
+    h1 { font-size: 22px; }
+
+    .tabbar {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+      z-index: 20;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .tabbar a {
+      flex: 1;
+      padding: 9px 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .tabbar a[aria-current="page"] { color: var(--amber); }
+    .tabbar .nav-glyph { font-size: 14px; }
+  }
+
+  @media (max-width: 560px) {
+    .srow { grid-template-columns: 28px 28px minmax(80px, 1fr) 64px 62px; gap: 9px; padding: 11px 12px; }
+    .srow .record { display: none; }
+    /* At this width the nickname costs a line and earns nothing. */
+    .srow-nick { display: none; }
+    .mrow { grid-template-columns: 3px 30px minmax(70px, 1fr) 78px 52px; gap: 9px; }
+    .mrow .mrow-num { display: none; }
+    .prow { grid-template-columns: 26px minmax(84px, 1fr) 66px 52px 44px; gap: 8px; }
+    .prow .prow-hide { display: none; }
+    .cmp-row { grid-template-columns: 50px 1fr 92px 1fr 50px; padding: 9px 12px; gap: 7px; }
+    .h2h-head { grid-template-columns: 1fr; gap: 12px; }
+    .h2h-side.right { flex-direction: row; text-align: left; }
+  }
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark">gap<span>diff</span></div>
+      <div class="brand-sub">The Boys · EUW</div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="rail-foot">
+      <div class="brand-sub"><span class="live-dot"></span>2 in game</div>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+<nav class="tabbar" id="tabbar"></nav>
+
+<script>
+(function () {
+  'use strict';
+
+  // ============================================================
+  // Mock data. Shaped exactly like what the ingestion worker writes,
+  // so swapping in real rows later is a straight substitution.
+  // ============================================================
+
+  var PLAYERS = [
+    { id: 'wail', name: 'wail', tag: 'EUW', nick: 'the shotcaller', tier: 'EMERALD', div: 'II', lp: 47,
+      gap: 78.4, rank: 74.2, perf: 81.6, cons: 79.0, w: 62, l: 41, role: 'MIDDLE', move: 0,
+      champs: ['Ahri', 'Orianna', 'Sylas'],
+      form: [72, 68, 84, 91, 77, 63, 88, 79, 82, 74, 90, 66, 85, 81, 76, 93, 70, 87, 83, 79] },
+    { id: 'sami', name: 'sami', tag: 'EUW', nick: 'perma-invade', tier: 'DIAMOND', div: 'IV', lp: 12,
+      gap: 76.1, rank: 79.8, perf: 77.4, cons: 62.1, w: 88, l: 74, role: 'JUNGLE', move: 2,
+      champs: ['Lee Sin', 'Viego', 'Vi'],
+      form: [91, 54, 88, 42, 95, 61, 79, 86, 48, 92, 57, 84, 73, 96, 51, 88, 65, 90, 44, 87] },
+    { id: 'karim', name: 'karim', tag: 'EUW', nick: 'farm simulator', tier: 'PLATINUM', div: 'I', lp: 88,
+      gap: 68.9, rank: 63.5, perf: 72.8, cons: 71.4, w: 51, l: 44, role: 'BOTTOM', move: -1,
+      champs: ['Jinx', "Kai'Sa", 'Caitlyn'],
+      form: [77, 71, 65, 83, 74, 69, 80, 62, 76, 88, 70, 73, 67, 81, 75, 72, 79, 68, 84, 71] },
+    { id: 'yousef', name: 'yousef', tag: 'EUW', nick: 'ward andy', tier: 'PLATINUM', div: 'III', lp: 34,
+      gap: 61.2, rank: 57.1, perf: 64.9, cons: 63.8, w: 39, l: 35, role: 'UTILITY', move: 1,
+      champs: ['Thresh', 'Nautilus', 'Lulu'],
+      form: [64, 70, 58, 72, 66, 61, 75, 59, 68, 63, 71, 57, 69, 74, 62, 65, 60, 73, 67, 64] },
+    { id: 'omar', name: 'omar', tag: 'EUW', nick: 'the wall', tier: 'GOLD', div: 'I', lp: 61,
+      gap: 55.7, rank: 51.3, perf: 58.2, cons: 60.4, w: 44, l: 42, role: 'TOP', move: -2,
+      champs: ['Sett', 'Darius', 'Camille'],
+      form: [58, 62, 51, 66, 55, 60, 47, 71, 54, 63, 49, 68, 57, 52, 65, 59, 61, 48, 70, 56] },
+    { id: 'bilal', name: 'bilal', tag: 'EUW', nick: 'int merchant', tier: 'GOLD', div: 'III', lp: 9,
+      gap: 49.3, rank: 44.8, perf: 52.7, cons: 51.1, w: 33, l: 38, role: 'MIDDLE', move: 0,
+      champs: ['Yasuo', 'Yone', 'Zed'],
+      form: [39, 88, 31, 72, 45, 91, 28, 64, 52, 83, 35, 77, 41, 69, 33, 86, 47, 58, 30, 74] },
+    { id: 'adam', name: 'adam', tag: 'EUW', nick: 'weekend warrior', tier: 'SILVER', div: 'II', lp: 74,
+      gap: 41.8, rank: 33.2, perf: 47.1, cons: 49.6, w: 21, l: 19, role: 'BOTTOM', move: 1,
+      champs: ['Ezreal', 'Jhin', 'Lucian'],
+      form: [45, 51, 42, 48, 55, 39, 47, 52, 44, 50, 46, 41, 53, 49, 43, 47, 54, 40, 46, 51] },
+    { id: 'tarek', name: 'tarek', tag: 'EUW', nick: 'placements pending', tier: 'UNRANKED', div: '', lp: 0,
+      gap: 38.6, rank: null, perf: 41.2, cons: 34.1, w: 4, l: 3, role: 'TOP', move: 0,
+      champs: ['Garen', 'Malphite'],
+      form: [52, 28, 61, 35, 44, 22, 58] }
+  ];
+
+  var TIER_VAR = {
+    IRON: '--iron', BRONZE: '--bronze', SILVER: '--silver', GOLD: '--gold',
+    PLATINUM: '--platinum', EMERALD: '--emerald', DIAMOND: '--diamond',
+    MASTER: '--master', GRANDMASTER: '--grandmaster', CHALLENGER: '--challenger',
+    UNRANKED: '--faint'
+  };
+
+  var ROLE_GLYPH = { TOP: 'TOP', JUNGLE: 'JG', MIDDLE: 'MID', BOTTOM: 'ADC', UTILITY: 'SUP' };
+
+  var MATCHES = [
+    { id: 'EUW1_7412885031', champ: 'Ahri', role: 'MIDDLE', win: true, k: 11, d: 3, a: 9, cs: 241, csm: 8.1,
+      dur: '29:44', queue: 'Ranged Solo', perf: 87.4, lp: '+21', when: '2h ago', vision: 24 },
+    { id: 'EUW1_7412771904', champ: 'Orianna', role: 'MIDDLE', win: true, k: 7, d: 2, a: 14, cs: 268, csm: 7.9,
+      dur: '33:52', queue: 'Ranked Solo', perf: 82.1, lp: '+18', when: '3h ago', vision: 31 },
+    { id: 'EUW1_7412650118', champ: 'Sylas', role: 'MIDDLE', win: false, k: 4, d: 8, a: 6, cs: 189, csm: 6.4,
+      dur: '29:18', queue: 'Ranked Solo', perf: 43.8, lp: '−17', when: '4h ago', vision: 19 },
+    { id: 'EUW1_7411902266', champ: 'Ahri', role: 'MIDDLE', win: true, k: 9, d: 5, a: 11, cs: 224, csm: 7.2,
+      dur: '31:06', queue: 'Ranked Solo', perf: 74.6, lp: '+19', when: 'Yesterday', vision: 27 },
+    { id: 'EUW1_7411874530', champ: 'Orianna', role: 'MIDDLE', win: false, k: 2, d: 7, a: 8, cs: 197, csm: 6.8,
+      dur: '28:55', queue: 'Ranked Solo', perf: 38.2, lp: '−16', when: 'Yesterday', vision: 22 },
+    { id: 'EUW1_7411655289', champ: 'Ahri', role: 'MIDDLE', win: true, k: 14, d: 4, a: 7, cs: 253, csm: 8.4,
+      dur: '30:11', queue: 'Ranked Solo', perf: 91.3, lp: '+22', when: 'Yesterday', vision: 25 }
+  ];
+
+  var MATCH_DETAIL = {
+    id: 'EUW1_7412885031',
+    queue: 'Ranked Solo/Duo',
+    duration: '29:44',
+    when: '2 hours ago',
+    patch: '15.14',
+    teams: [
+      { side: 'Blue', win: true, kills: 41, gold: 58420, towers: 9, dragons: 3, barons: 1,
+        players: [
+          { champ: 'Sett', name: 'omar', tag: 'EUW', role: 'TOP', k: 6, d: 4, a: 12, cs: 198, dmg: 18420, vision: 21, perf: 71.2, friend: true },
+          { champ: 'Viego', name: 'sami', tag: 'EUW', role: 'JUNGLE', k: 9, d: 5, a: 14, cs: 176, dmg: 22140, vision: 28, perf: 79.8, friend: true },
+          { champ: 'Ahri', name: 'wail', tag: 'EUW', role: 'MIDDLE', k: 11, d: 3, a: 9, cs: 241, dmg: 31680, vision: 24, perf: 87.4, friend: true, me: true },
+          { champ: 'Jinx', name: 'SoloQPain', tag: 'EUW', role: 'BOTTOM', k: 12, d: 2, a: 8, cs: 267, dmg: 34210, vision: 18, perf: 84.1 },
+          { champ: 'Thresh', name: 'yousef', tag: 'EUW', role: 'UTILITY', k: 3, d: 6, a: 24, cs: 41, dmg: 9840, vision: 62, perf: 76.5, friend: true }
+        ] },
+      { side: 'Red', win: false, kills: 20, gold: 47890, towers: 2, dragons: 1, barons: 0,
+        players: [
+          { champ: 'Camille', name: 'TopDiffAndy', tag: 'EUW', role: 'TOP', k: 5, d: 7, a: 3, cs: 214, dmg: 19230, vision: 16, perf: 48.3 },
+          { champ: 'Lee Sin', name: 'BlindMonkGod', tag: 'EUNE', role: 'JUNGLE', k: 4, d: 9, a: 6, cs: 158, dmg: 14760, vision: 24, perf: 39.7 },
+          { champ: 'Yasuo', name: 'ItsNotMyFault', tag: '0000', role: 'MIDDLE', k: 3, d: 11, a: 4, cs: 203, dmg: 17890, vision: 12, perf: 28.4 },
+          { champ: "Kai'Sa", name: 'AdcPlayer99', tag: 'EUW', role: 'BOTTOM', k: 7, d: 6, a: 5, cs: 231, dmg: 26410, vision: 15, perf: 58.9 },
+          { champ: 'Nautilus', name: 'HookOrFeed', tag: 'EUW', role: 'UTILITY', k: 1, d: 8, a: 11, cs: 33, dmg: 7120, vision: 48, perf: 44.6 }
+        ] }
+    ],
+    goldDiff: [0, 120, -340, -180, 460, 890, 620, 1450, 2100, 1780, 2640, 3320, 2950, 4180, 5240, 4870, 6310, 7450, 8120, 9640, 10530, 11480, 10540]
+  };
+
+  var AWARDS = [
+    { name: 'Farm King', who: 'karim', stat: '8.7 CS/min', desc: 'Highest average creep score per minute across the week. Ten games, never below 8.' },
+    { name: 'Ward Andy', who: 'yousef', stat: '2.41 vision/min', desc: 'More vision score per minute than the rest of the group combined. Somebody has to.' },
+    { name: 'The Wall', who: 'omar', stat: '31.2% dmg taken', desc: 'Largest share of team damage absorbed. Sett into three bruisers, repeatedly.' },
+    { name: 'Executioner', who: 'wail', stat: '14 solo kills', desc: 'Most kills with no assisting teammate. Nine of them in the mid lane before 15 minutes.' },
+    { name: 'Int Merchant', who: 'bilal', stat: '28.4% death share', desc: 'Largest share of team deaths. Yasuo games only. This is not a coincidence.' },
+    { name: 'Coin Flip', who: 'bilal', stat: '±24.8 std dev', desc: 'Widest spread between best and worst game. A 91 on Monday, a 28 on Tuesday.' },
+    { name: 'Tilt Proof', who: 'karim', stat: '61% after a loss', desc: 'Best winrate in the game immediately following a defeat. Genuinely rare.' },
+    { name: 'Duo Bond', who: 'sami + yousef', stat: '14-4 together', desc: 'Highest winrate of any pair that queued together this week. 78% over 18 games.' }
+  ];
+
+  var LIVE = [
+    { who: 'sami', champ: 'Viego', role: 'JUNGLE', queue: 'Ranked Solo/Duo', elapsed: '14:22',
+      allies: [
+        { name: 'sami', champ: 'Viego', tier: 'DIAMOND', div: 'IV', friend: true },
+        { name: 'RiftPilgrim', champ: 'Gnar', tier: 'DIAMOND', div: 'III' },
+        { name: 'MidOrFeed', champ: 'Orianna', tier: 'EMERALD', div: 'I' },
+        { name: 'LateGameGod', champ: 'Jinx', tier: 'DIAMOND', div: 'IV' },
+        { name: 'PeelPlease', champ: 'Milio', tier: 'EMERALD', div: 'I' }
+      ],
+      enemies: [
+        { name: 'SplitPushOnly', champ: 'Fiora', tier: 'DIAMOND', div: 'IV' },
+        { name: 'JungleDiffer', champ: 'Kindred', tier: 'DIAMOND', div: 'II', flag: 'Smurf?' },
+        { name: 'ControlMage', champ: 'Viktor', tier: 'DIAMOND', div: 'IV' },
+        { name: 'CritOrNothing', champ: 'Aphelios', tier: 'EMERALD', div: 'I' },
+        { name: 'EngageBot', champ: 'Rakan', tier: 'DIAMOND', div: 'IV' }
+      ] },
+    { who: 'bilal', champ: 'Yasuo', role: 'MIDDLE', queue: 'Normal Draft', elapsed: '3:41',
+      allies: [
+        { name: 'bilal', champ: 'Yasuo', tier: 'GOLD', div: 'III', friend: true },
+        { name: 'TankAndy', champ: 'Ornn', tier: 'GOLD', div: 'I' },
+        { name: 'SmiteStealer', champ: 'Nunu', tier: 'SILVER', div: 'I' },
+        { name: 'AutoAttacker', champ: 'Ashe', tier: 'GOLD', div: 'II' },
+        { name: 'ShieldBot', champ: 'Karma', tier: 'GOLD', div: 'IV' }
+      ],
+      enemies: [
+        { name: 'ToplaneIsland', champ: 'Riven', tier: 'PLATINUM', div: 'IV', flag: 'Smurf?' },
+        { name: 'GankMachine', champ: 'Elise', tier: 'GOLD', div: 'II' },
+        { name: 'ScalingDiff', champ: 'Kassadin', tier: 'GOLD', div: 'I' },
+        { name: 'HyperCarry', champ: 'Vayne', tier: 'GOLD', div: 'III' },
+        { name: 'RootAndRun', champ: 'Morgana', tier: 'SILVER', div: 'II' }
+      ] }
+  ];
+
+  var CHAMPIONS = [
+    { champ: 'Ahri', games: 34, w: 22, kda: 4.12, csm: 7.8, perf: 78.4, top: 'wail' },
+    { champ: 'Lee Sin', games: 31, w: 15, kda: 2.84, csm: 5.9, perf: 64.2, top: 'sami' },
+    { champ: 'Jinx', games: 28, w: 17, kda: 3.91, csm: 8.9, perf: 74.6, top: 'karim' },
+    { champ: 'Thresh', games: 26, w: 16, kda: 3.44, csm: 1.4, perf: 71.8, top: 'yousef' },
+    { champ: 'Sett', games: 24, w: 12, kda: 2.67, csm: 6.8, perf: 61.3, top: 'omar' },
+    { champ: 'Yasuo', games: 23, w: 8, kda: 1.92, csm: 7.1, perf: 47.9, top: 'bilal' },
+    { champ: 'Viego', games: 21, w: 14, kda: 3.78, csm: 6.2, perf: 76.1, top: 'sami' },
+    { champ: "Kai'Sa", games: 19, w: 11, kda: 3.52, csm: 8.4, perf: 70.4, top: 'karim' },
+    { champ: 'Orianna', games: 18, w: 12, kda: 4.38, csm: 8.1, perf: 79.2, top: 'wail' },
+    { champ: 'Nautilus', games: 16, w: 9, kda: 2.98, csm: 1.2, perf: 66.7, top: 'yousef' }
+  ];
+
+  // Pairs that have queued together: [a, b, wins, losses]
+  var DUOS = [
+    ['wail', 'sami', 31, 18], ['wail', 'karim', 14, 11], ['wail', 'yousef', 22, 12],
+    ['wail', 'omar', 9, 10], ['wail', 'bilal', 12, 17], ['sami', 'yousef', 27, 9],
+    ['sami', 'karim', 16, 13], ['sami', 'omar', 11, 12], ['sami', 'bilal', 8, 14],
+    ['karim', 'yousef', 24, 15], ['karim', 'omar', 7, 8], ['yousef', 'omar', 13, 11],
+    ['yousef', 'bilal', 10, 12], ['omar', 'bilal', 15, 14], ['karim', 'bilal', 6, 9],
+    ['adam', 'bilal', 5, 4], ['adam', 'omar', 3, 6]
+  ];
+
+  // ============================================================
+  // Helpers
+  // ============================================================
+
+  function h(strings) {
+    var out = strings[0];
+    for (var i = 1; i < arguments.length; i++) out += arguments[i] + strings[i];
+    return out;
+  }
+
+  function esc(value) {
+    return String(value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /** Deterministic hue per champion/player so avatars stay stable between renders. */
+  function hueOf(name) {
+    var hash = 0;
+    for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 360;
+    return hash;
+  }
+
+  function initials(name) {
+    var clean = name.replace(/[^A-Za-z0-9' ]/g, '');
+    var parts = clean.split(/[\s']+/).filter(Boolean);
+    if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return clean.slice(0, 2).toUpperCase();
+  }
+
+  /**
+   * Champion and profile art comes from Data Dragon in the real app. The demo
+   * runs under a CSP that blocks external images, so avatars are generated.
+   */
+  function avatar(name, size) {
+    var hue = hueOf(name);
+    var cls = 'avatar' + (size ? ' ' + size : '');
+    var bg = 'linear-gradient(145deg, hsl(' + hue + ' 62% 62%), hsl(' + ((hue + 38) % 360) + ' 58% 44%))';
+    return h`<div class="${cls}" style="background:${bg}" title="${esc(name)}">${esc(initials(name))}</div>`;
+  }
+
+  function tierColor(tier) { return 'var(' + (TIER_VAR[tier] || '--faint') + ')'; }
+
+  function tierLabel(p) {
+    if (p.tier === 'UNRANKED') return 'Unranked';
+    var pretty = p.tier.charAt(0) + p.tier.slice(1).toLowerCase();
+    return pretty + ' ' + p.div + ' · ' + p.lp + ' LP';
+  }
+
+  function perfColor(score) {
+    if (score >= 75) return 'var(--good)';
+    if (score >= 55) return 'var(--amber)';
+    if (score >= 45) return 'var(--muted)';
+    return 'var(--bad)';
+  }
+
+  function perfBadge(score) {
+    var color = perfColor(score);
+    var bg = score >= 75 ? 'var(--good-soft)' : score < 45 ? 'var(--bad-soft)' : 'var(--surface-2)';
+    return h`<div class="perf-badge" style="color:${color};background:${bg}">${score.toFixed(1)}</div>`;
+  }
+
+  function moveChip(move) {
+    if (!move) return '<span class="chip">—</span>';
+    var cls = move > 0 ? 'good' : 'bad';
+    var arrow = move > 0 ? '▲' : '▼';
+    return h`<span class="chip ${cls}">${arrow} ${Math.abs(move)}</span>`;
+  }
+
+  /** Sparkline of recent performance scores, most recent on the right. */
+  function sparkline(values, width, height) {
+    var series = values.slice().reverse();
+    var min = Math.min.apply(null, series);
+    var max = Math.max.apply(null, series);
+    var span = Math.max(1, max - min);
+    var stepX = width / Math.max(1, series.length - 1);
+    var points = series.map(function (v, i) {
+      var x = i * stepX;
+      var y = height - ((v - min) / span) * (height - 4) - 2;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    var last = points[points.length - 1].split(',');
+    var area = 'M0,' + height + ' L' + points.join(' L') + ' L' + width + ',' + height + ' Z';
+    var id = 'sp' + Math.random().toString(36).slice(2, 8);
+
+    return h`<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--amber)" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="var(--amber)" stop-opacity="0"/>
+      </linearGradient></defs>
+      <path d="${area}" fill="url(#${id})"/>
+      <polyline points="${points.join(' ')}" fill="none" stroke="var(--amber)" stroke-width="1.5"
+        stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${last[0]}" cy="${last[1]}" r="2.4" fill="var(--amber)"/>
+    </svg>`;
+  }
+
+  /** Gold difference chart: filled above and below a zero line. */
+  function goldChart(series, width, height) {
+    var peak = Math.max.apply(null, series.map(Math.abs));
+    var scale = Math.ceil(peak / 2500) * 2500;
+    var stepX = width / (series.length - 1);
+    var mid = height / 2;
+    var toY = function (v) { return mid - (v / scale) * (mid - 8); };
+    var points = series.map(function (v, i) { return (i * stepX).toFixed(1) + ',' + toY(v).toFixed(1); });
+    var area = 'M0,' + mid + ' L' + points.join(' L') + ' L' + width + ',' + mid + ' Z';
+
+    var ticks = '';
+    for (var m = 0; m <= series.length - 1; m += 5) {
+      var x = (m * stepX).toFixed(1);
+      ticks += h`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="var(--line-soft)" stroke-width="1"/>
+        <text x="${x}" y="${height - 3}" fill="var(--faint)" font-size="9" font-family="monospace"
+          text-anchor="middle">${m}'</text>`;
+    }
+
+    return h`<svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"
+        role="img" aria-label="Gold difference over time, blue team ahead by 10,530 at the end">
+      ${ticks}
+      <line x1="0" y1="${mid}" x2="${width}" y2="${mid}" stroke="var(--line)" stroke-width="1"/>
+      <path d="${area}" fill="var(--amber)" fill-opacity="0.16"/>
+      <polyline points="${points.join(' ')}" fill="none" stroke="var(--amber)" stroke-width="2"
+        stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  function pillarBar(p) {
+    // Each pillar contributes its weighted share of the 0-100 score.
+    var ranked = p.rank !== null;
+    var contributions = ranked
+      ? [{ cls: 'rank', v: p.rank * 0.4 }, { cls: 'perf', v: p.perf * 0.4 }, { cls: 'cons', v: p.cons * 0.2 }]
+      : [{ cls: 'perf', v: p.perf * 0.65 }, { cls: 'cons', v: p.cons * 0.35 }];
+
+    var segments = contributions.map(function (c) {
+      return h`<div class="pillar-seg ${c.cls}" style="width:${c.v}%"></div>`;
+    }).join('');
+
+    var key = ranked
+      ? h`<span>RNK ${p.rank.toFixed(0)}</span><span>PRF ${p.perf.toFixed(0)}</span><span>CNS ${p.cons.toFixed(0)}</span>`
+      : h`<span>UNRANKED</span><span>PRF ${p.perf.toFixed(0)}</span><span>CNS ${p.cons.toFixed(0)}</span>`;
+
+    return h`<div class="pillars"><div class="pillar-bar">${segments}</div><div class="pillar-key">${key}</div></div>`;
+  }
+
+  function byId(id) {
+    return PLAYERS.filter(function (p) { return p.id === id; })[0];
+  }
+
+  function winRate(w, l) {
+    var total = w + l;
+    return total ? Math.round((w / total) * 100) : 0;
+  }
+
+  // ============================================================
+  // Pages
+  // ============================================================
+
+  var pages = {};
+
+  pages.standings = function () {
+    var rows = PLAYERS.map(function (p, i) {
+      var marker = i === 0 ? '' : h`<div class="gap-marker">
+        <div class="gap-marker-line"></div>
+        <div class="gap-marker-val">−${(PLAYERS[i - 1].gap - p.gap).toFixed(1)}</div>
+      </div>`;
+
+      return marker + h`<div class="srow${i === 0 ? ' lead' : ''}">
+        <div class="srow-pos">${i + 1}</div>
+        ${avatar(p.name)}
+        <div class="srow-id">
+          <a class="srow-name" href="#/player/${p.id}">${esc(p.name)}</a>
+          <div class="srow-meta">
+            <span class="tier" style="color:${tierColor(p.tier)}">${tierLabel(p)}</span>
+            <span class="srow-nick">${esc(p.nick)}</span>
+          </div>
+        </div>
+        <div class="srow-gap">
+          <div class="gap-value">${p.gap.toFixed(1)}</div>
+        </div>
+        ${pillarBar(p)}
+        <div class="record">
+          ${p.w}–${p.l}
+          <div class="record-wr">${winRate(p.w, p.l)}% · ${p.w + p.l} games</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          ${sparkline(p.form.slice(0, 12), 68, 22)}
+          ${moveChip(p.move)}
+        </div>
+      </div>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Season 7 · resets in 12 days</div>
+        <h1>The gap, as of right now</h1>
+        <p class="page-sub">Gap Score weights ranked LP, in-game performance against the lobby you
+          played in, and consistency. Every number below is clickable.</p>
+      </div>
+
+      <div class="toolbar">
+        <div class="seg">
+          <button aria-pressed="true">This season</button>
+          <button aria-pressed="false">Last 30 days</button>
+          <button aria-pressed="false">All time</button>
+        </div>
+        <div class="seg">
+          <button aria-pressed="true">All queues</button>
+          <button aria-pressed="false">Solo/Duo</button>
+          <button aria-pressed="false">Flex</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Standings</div>
+          <div class="card-note">8 players · 649 games ingested</div>
+        </div>
+        <div class="standings">${rows}</div>
+      </div>
+
+      <div class="grid grid-4 section-gap">
+        <div class="card stat">
+          <div class="stat-label">Biggest climb</div>
+          <div class="stat-value" style="color:var(--good)">+2</div>
+          <div class="stat-foot">sami, up to 2nd on a 9–2 week</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Closest race</div>
+          <div class="stat-value">2.3</div>
+          <div class="stat-foot">wail over sami — smallest gap on the board</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Group winrate</div>
+          <div class="stat-value">53%</div>
+          <div class="stat-foot">342–307 across all tracked queues</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Games this week</div>
+          <div class="stat-value">87</div>
+          <div class="stat-foot">bilal accounts for 31 of them</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Why the order isn't just LP.</b> sami is a full division above wail but sits second:
+        their performance scores swing between 96 and 42, and the consistency pillar costs them
+        17 points. The leaderboard shows the breakdown precisely so this is arguable.
+      </div>
+    </div>`;
+  };
+
+  pages.player = function (id) {
+    var p = byId(id) || PLAYERS[0];
+    var recent = p.form.slice(0, 10);
+    var best = Math.max.apply(null, p.form);
+    var worst = Math.min.apply(null, p.form);
+
+    var bd = [
+      { label: 'Rank', value: p.rank, weight: '40%', color: 'var(--diamond)' },
+      { label: 'Performance', value: p.perf, weight: '40%', color: 'var(--amber)' },
+      { label: 'Consistency', value: p.cons, weight: '20%', color: 'var(--platinum)' }
+    ].map(function (row) {
+      if (row.value === null) {
+        return h`<div class="bd-row">
+          <div class="bd-label">${row.label}</div>
+          <div class="bd-track"></div>
+          <div class="bd-val" style="color:var(--faint)">—</div>
+        </div>`;
+      }
+      return h`<div class="bd-row">
+        <div class="bd-label">${row.label} <span style="color:var(--faint)">${row.weight}</span></div>
+        <div class="bd-track"><div class="bd-fill" style="width:${row.value}%;background:${row.color}"></div></div>
+        <div class="bd-val">${row.value.toFixed(1)}</div>
+      </div>`;
+    }).join('');
+
+    var matchRows = MATCHES.map(function (m) {
+      return h`<a class="mrow" href="#/match/${m.id}">
+        <div class="mrow-flag ${m.win ? 'win' : 'loss'}"></div>
+        ${avatar(m.champ)}
+        <div>
+          <div class="mrow-champ">${esc(m.champ)}</div>
+          <div class="mrow-sub">${m.queue} · ${m.when}</div>
+        </div>
+        <div class="mrow-kda">
+          ${m.k}/${m.d}/${m.a}
+          <div class="mrow-sub">${((m.k + m.a) / Math.max(1, m.d)).toFixed(2)} KDA</div>
+        </div>
+        <div class="mrow-num">${m.cs} CS<div class="mrow-sub">${m.csm}/min</div></div>
+        <div class="mrow-num">${m.dur}<div class="mrow-sub" style="color:${m.win ? 'var(--good)' : 'var(--bad)'}">${m.lp} LP</div></div>
+        ${perfBadge(m.perf)}
+      </a>`;
+    }).join('');
+
+    var champRows = p.champs.map(function (c, i) {
+      var games = [21, 14, 9][i] || 6;
+      var wins = [14, 8, 5][i] || 3;
+      return h`<div style="display:flex;align-items:center;gap:11px;padding:9px 16px;border-bottom:1px solid var(--line-soft)">
+        ${avatar(c, 'sm')}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;font-weight:550">${esc(c)}</div>
+          <div class="mrow-sub">${games} games · ${winRate(wins, games - wins)}% win</div>
+        </div>
+        <div class="num" style="font-size:12.5px;color:${perfColor(p.perf + (i === 0 ? 4 : -3 * i))}">
+          ${(p.perf + (i === 0 ? 4 : -3 * i)).toFixed(1)}
+        </div>
+      </div>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="card">
+        <div class="profile">
+          ${avatar(p.name, 'lg')}
+          <div class="profile-id">
+            <h1 class="profile-name">${esc(p.name)}</h1>
+            <div class="profile-tag">#${esc(p.tag)} · Level 312</div>
+            <div class="profile-tags">
+              <span class="chip" style="color:${tierColor(p.tier)}">${tierLabel(p)}</span>
+              <span class="chip">${ROLE_GLYPH[p.role]} main</span>
+              <span class="chip">${esc(p.nick)}</span>
+            </div>
+          </div>
+          <div class="profile-score">
+            <div class="stat-label">Gap Score</div>
+            <div class="gap-value">${p.gap.toFixed(1)}</div>
+            <div class="stat-foot">${PLAYERS.indexOf(p) + 1}${['st', 'nd', 'rd'][PLAYERS.indexOf(p)] || 'th'} of ${PLAYERS.length} in The Boys</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section-gap">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Score breakdown</div>
+            <div class="card-note">${p.rank === null ? 'rank weight redistributed' : '40 / 40 / 20'}</div>
+          </div>
+          <div class="breakdown">${bd}</div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Form</div>
+            <div class="card-note">last ${p.form.length} games</div>
+          </div>
+          <div style="padding:16px">
+            ${sparkline(p.form, 460, 92)}
+            <div style="display:flex;justify-content:space-between;margin-top:11px;font-family:var(--mono);font-size:11px;color:var(--faint)">
+              <span>Best ${best}</span>
+              <span>Avg ${(recent.reduce(function (a, b) { return a + b; }, 0) / recent.length).toFixed(1)}</span>
+              <span>Worst ${worst}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-4 section-gap">
+        <div class="card stat"><div class="stat-label">Win rate</div>
+          <div class="stat-value">${winRate(p.w, p.l)}%</div>
+          <div class="stat-foot">${p.w}W ${p.l}L</div></div>
+        <div class="card stat"><div class="stat-label">CS / min</div>
+          <div class="stat-value">7.6</div>
+          <div class="stat-foot">+0.8 vs group average</div></div>
+        <div class="card stat"><div class="stat-label">Kill participation</div>
+          <div class="stat-value">64%</div>
+          <div class="stat-foot">2nd highest in the group</div></div>
+        <div class="card stat"><div class="stat-label">Vision / min</div>
+          <div class="stat-value">0.84</div>
+          <div class="stat-foot">−0.31 vs group average</div></div>
+      </div>
+
+      <div class="grid grid-2 section-gap" style="grid-template-columns:1.7fr 1fr">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Recent games</div>
+            <div class="card-note">performance scored against each lobby</div>
+          </div>
+          <div class="matchlist">${matchRows}</div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Champion pool</div>
+            <div class="card-note">this season</div>
+          </div>
+          <div>${champRows}</div>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  pages.match = function () {
+    var m = MATCH_DETAIL;
+
+    var teamBlock = function (team) {
+      var rows = team.players.map(function (pl) {
+        return h`<div class="prow${pl.me ? ' me' : ''}">
+          ${avatar(pl.champ, 'sm')}
+          <div class="prow-name">
+            <b>${pl.friend ? esc(pl.name) : esc(pl.name)}</b>
+            <span>${esc(pl.champ)} · ${ROLE_GLYPH[pl.role]}</span>
+          </div>
+          <div class="num" style="text-align:right">${pl.k}/${pl.d}/${pl.a}</div>
+          <div class="num prow-hide" style="text-align:right;color:var(--muted)">${pl.cs} cs</div>
+          <div class="num prow-hide" style="text-align:right;color:var(--muted)">${(pl.dmg / 1000).toFixed(1)}k</div>
+          <div class="num prow-hide" style="text-align:right;color:var(--muted)">${pl.vision} vs</div>
+          <div></div>
+          ${perfBadge(pl.perf)}
+        </div>`;
+      }).join('');
+
+      return h`<div class="card" style="overflow:hidden">
+        <div class="team-head ${team.win ? 'win' : 'loss'}">
+          <span>${team.side} team · ${team.win ? 'Victory' : 'Defeat'}</span>
+          <span class="num">${team.kills} kills · ${(team.gold / 1000).toFixed(1)}k gold · ${team.towers} towers</span>
+        </div>
+        <div class="team-head" style="background:var(--surface-2);color:var(--faint);font-size:10px">
+          <span>Player</span>
+          <span>KDA · CS · DMG · VIS · SCORE</span>
+        </div>
+        ${rows}
+      </div>`;
+    };
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">${m.queue} · Patch ${m.patch} · ${m.when}</div>
+        <h1>Blue team wins in ${m.duration}</h1>
+        <p class="page-sub">Four of The Boys queued together. Every player is scored against the
+          other nine in this lobby — that comparison is the whole basis of the performance pillar.</p>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="card stat"><div class="stat-label">Match MVP</div>
+          <div class="stat-value" style="font-size:19px;color:var(--amber)">wail</div>
+          <div class="stat-foot">87.4 · Ahri · 11/3/9</div></div>
+        <div class="card stat"><div class="stat-label">Gold lead at end</div>
+          <div class="stat-value">+10.5k</div>
+          <div class="stat-foot">Blue side, never behind after 12 minutes</div></div>
+        <div class="card stat"><div class="stat-label">Biggest lane gap</div>
+          <div class="stat-value">59.0</div>
+          <div class="stat-foot">wail 87.4 over ItsNotMyFault 28.4</div></div>
+        <div class="card stat"><div class="stat-label">Objectives</div>
+          <div class="stat-value">4–1</div>
+          <div class="stat-foot">3 dragons and a baron to one dragon</div></div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-head">
+          <div class="card-title">Gold difference</div>
+          <div class="card-note">blue team advantage, per minute</div>
+        </div>
+        <div style="padding:14px 16px 8px">${goldChart(m.goldDiff, 900, 170)}</div>
+      </div>
+
+      <div class="grid section-gap" style="gap:14px">
+        ${teamBlock(m.teams[0])}
+        ${teamBlock(m.teams[1])}
+      </div>
+
+      <div class="note">
+        <b>Where the performance scores come from.</b> Each metric is turned into a z-score against
+        this lobby, weighted by role — vision dominates for support, damage share and CS for mid —
+        then squashed to 0–100. Beating your direct opponent counts extra. In the real app every
+        badge expands into that per-metric breakdown.
+      </div>
+    </div>`;
+  };
+
+  pages.h2h = function () {
+    var a = byId('wail');
+    var b = byId('sami');
+
+    var rows = [
+      { label: 'Gap Score', a: a.gap, b: b.gap, max: 100, dp: 1 },
+      { label: 'Rank pillar', a: a.rank, b: b.rank, max: 100, dp: 1 },
+      { label: 'Performance', a: a.perf, b: b.perf, max: 100, dp: 1 },
+      { label: 'Consistency', a: a.cons, b: b.cons, max: 100, dp: 1 },
+      { label: 'Win rate', a: winRate(a.w, a.l), b: winRate(b.w, b.l), max: 100, dp: 0, suffix: '%' },
+      { label: 'Games', a: a.w + a.l, b: b.w + b.l, max: 200, dp: 0 },
+      { label: 'CS / min', a: 7.6, b: 6.1, max: 10, dp: 1 },
+      { label: 'Kill part.', a: 64, b: 71, max: 100, dp: 0, suffix: '%' },
+      { label: 'Vision / min', a: 0.84, b: 1.12, max: 2, dp: 2 }
+    ].map(function (r) {
+      var aLead = r.a > r.b;
+      return h`<div class="cmp-row">
+        <div class="cmp-val ${aLead ? 'lead' : ''}">${r.a.toFixed(r.dp)}${r.suffix || ''}</div>
+        <div class="cmp-track flip"><div class="cmp-fill ${aLead ? 'lead' : ''}" style="width:${(r.a / r.max) * 100}%"></div></div>
+        <div class="cmp-label">${r.label}</div>
+        <div class="cmp-track"><div class="cmp-fill ${!aLead ? 'lead' : ''}" style="width:${(r.b / r.max) * 100}%"></div></div>
+        <div class="cmp-val right ${!aLead ? 'lead' : ''}">${r.b.toFixed(r.dp)}${r.suffix || ''}</div>
+      </div>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Head to head</div>
+        <h1>wail versus sami</h1>
+        <p class="page-sub">The two closest players on the board, 2.3 points apart. Includes only
+          games where both queued — 49 together, plus every solo game for the pillar averages.</p>
+      </div>
+
+      <div class="card">
+        <div class="h2h-head">
+          <div class="h2h-side">
+            ${avatar(a.name, 'lg')}
+            <div>
+              <div class="h2h-name">${esc(a.name)}</div>
+              <div class="tier" style="color:${tierColor(a.tier)}">${tierLabel(a)}</div>
+            </div>
+          </div>
+          <div class="h2h-vs">VS</div>
+          <div class="h2h-side right">
+            ${avatar(b.name, 'lg')}
+            <div>
+              <div class="h2h-name">${esc(b.name)}</div>
+              <div class="tier" style="color:${tierColor(b.tier)}">${tierLabel(b)}</div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--line)">${rows}</div>
+      </div>
+
+      <div class="grid grid-3 section-gap">
+        <div class="card stat"><div class="stat-label">Queued together</div>
+          <div class="stat-value">31–18</div>
+          <div class="stat-foot">63% — better than either of them alone</div></div>
+        <div class="card stat"><div class="stat-label">On opposite teams</div>
+          <div class="stat-value">4–2</div>
+          <div class="stat-foot">wail leads the direct series</div></div>
+        <div class="card stat"><div class="stat-label">Higher score in shared games</div>
+          <div class="stat-value">28–21</div>
+          <div class="stat-foot">wail outscored sami in 28 of 49</div></div>
+      </div>
+    </div>`;
+  };
+
+  pages.awards = function () {
+    var cards = AWARDS.map(function (aw) {
+      return h`<div class="card award">
+        <div class="award-name">${esc(aw.name)}</div>
+        <div class="award-holder">
+          ${avatar(aw.who.split(' ')[0])}
+          <div>
+            <div class="award-who">${esc(aw.who)}</div>
+            <div class="award-stat">${esc(aw.stat)}</div>
+          </div>
+        </div>
+        <div class="award-desc">${esc(aw.desc)}</div>
+      </div>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Week 31 · 14–20 July</div>
+        <h1>This week's receipts</h1>
+        <p class="page-sub">Computed every Monday from the same match data as the leaderboard,
+          then posted to the Discord whether anyone wants it or not.</p>
+      </div>
+      <div class="grid grid-3">${cards}</div>
+      <div class="note">
+        <b>The Discord hook.</b> Every award, milestone and sufficiently bad game posts to your
+        server automatically. In practice this is the feature that makes people open the site —
+        the leaderboard is what they argue about once they're there.
+      </div>
+    </div>`;
+  };
+
+  pages.live = function () {
+    var cards = LIVE.map(function (game) {
+      var side = function (players, label) {
+        var rows = players.map(function (pl) {
+          return h`<div class="live-player">
+            ${avatar(pl.champ, 'sm')}
+            <div class="live-player-id">
+              <div class="live-player-name" style="${pl.friend ? 'color:var(--amber);font-weight:600' : ''}">${esc(pl.name)}</div>
+              <div class="live-player-champ">${esc(pl.champ)}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="tier" style="color:${tierColor(pl.tier)}">${pl.tier.slice(0, 1) + pl.tier.slice(1).toLowerCase()} ${pl.div}</div>
+              ${pl.flag ? h`<div class="chip bad" style="margin-top:3px">${esc(pl.flag)}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+        return h`<div class="live-team"><div class="live-team-label">${label}</div>${rows}</div>`;
+      };
+
+      return h`<div class="card live-card section-gap">
+        <div class="live-head">
+          <div class="live-who">
+            ${avatar(game.who)}
+            <div>
+              <div style="font-weight:600">${esc(game.who)} is in game</div>
+              <div class="mrow-sub">${game.champ} · ${ROLE_GLYPH[game.role]} · ${game.queue}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="chip accent"><span class="live-dot"></span>${game.elapsed}</span>
+            <span class="chip">Spectate</span>
+          </div>
+        </div>
+        <div class="live-teams">
+          ${side(game.allies, 'Allies')}
+          ${side(game.enemies, 'Enemies')}
+        </div>
+      </div>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Live · refreshed 20 seconds ago</div>
+        <h1>Who's playing right now</h1>
+        <p class="page-sub">Pulled from the spectator endpoint. Every player in the lobby is
+          resolved to their rank, recent form and anything that looks like a smurf account.</p>
+      </div>
+      ${cards}
+      <div class="note">
+        <b>Smurf flags</b> come from the mismatch between account level, current rank and champion
+        mastery — a level 42 account in Diamond with 900k points on one champion is not a new player.
+      </div>
+    </div>`;
+  };
+
+  pages.champions = function () {
+    var rows = CHAMPIONS.map(function (c) {
+      var wr = winRate(c.w, c.games - c.w);
+      return h`<tr>
+        <td><div style="display:flex;align-items:center;gap:10px">${avatar(c.champ, 'sm')}<b>${esc(c.champ)}</b></div></td>
+        <td class="num">${c.games}</td>
+        <td class="num" style="color:${wr >= 55 ? 'var(--good)' : wr < 45 ? 'var(--bad)' : 'inherit'}">${wr}%</td>
+        <td class="num">${c.w}–${c.games - c.w}</td>
+        <td class="num">${c.kda.toFixed(2)}</td>
+        <td class="num">${c.csm.toFixed(1)}</td>
+        <td class="num" style="color:${perfColor(c.perf)}">${c.perf.toFixed(1)}</td>
+        <td><a href="#/player/${c.top}" style="color:var(--muted)">${esc(c.top)}</a></td>
+      </tr>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Champion pool · all members</div>
+        <h1>What the group actually plays</h1>
+        <p class="page-sub">Aggregated across every tracked account. Sorted by games played —
+          the honest measure of what your group is committed to, for better or worse.</p>
+      </div>
+
+      <div class="toolbar">
+        <div class="seg">
+          <button aria-pressed="true">All roles</button>
+          <button aria-pressed="false">Top</button>
+          <button aria-pressed="false">Jungle</button>
+          <button aria-pressed="false">Mid</button>
+          <button aria-pressed="false">ADC</button>
+          <button aria-pressed="false">Support</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Most played</div>
+          <div class="card-note">minimum 5 games</div>
+        </div>
+        <div class="scroll-x">
+          <table>
+            <thead><tr>
+              <th>Champion</th><th>Games</th><th>Win rate</th><th>Record</th>
+              <th>KDA</th><th>CS/min</th><th>Avg score</th><th>Best pilot</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  pages.duos = function () {
+    var ids = PLAYERS.map(function (p) { return p.id; });
+    var lookup = {};
+    DUOS.forEach(function (d) {
+      lookup[d[0] + '|' + d[1]] = { w: d[2], l: d[3] };
+      lookup[d[1] + '|' + d[0]] = { w: d[2], l: d[3] };
+    });
+
+    var header = ids.map(function (id) {
+      return h`<th title="${esc(id)}">${esc(id.slice(0, 4))}</th>`;
+    }).join('');
+
+    var body = ids.map(function (rowId) {
+      var cells = ids.map(function (colId) {
+        if (rowId === colId) return '<td><div class="cell empty">—</div></td>';
+        var pair = lookup[rowId + '|' + colId];
+        if (!pair) return '<td><div class="cell empty" title="No games together">·</div></td>';
+        var wr = winRate(pair.w, pair.l);
+        // Intensity tracks how far the pair sits from a coin flip.
+        var strength = Math.min(1, Math.abs(wr - 50) / 25);
+        var hue = wr >= 50 ? 'var(--good)' : 'var(--bad)';
+        var bg = wr >= 50
+          ? 'rgba(63,207,142,' + (0.08 + strength * 0.3).toFixed(2) + ')'
+          : 'rgba(240,87,106,' + (0.08 + strength * 0.3).toFixed(2) + ')';
+        return h`<td><div class="cell" style="background:${bg};color:${hue}"
+          title="${esc(rowId)} + ${esc(colId)}: ${pair.w}W ${pair.l}L">
+          ${wr}%<small>${pair.w}–${pair.l}</small></div></td>`;
+      }).join('');
+      return h`<tr><th class="rowhead">${esc(rowId)}</th>${cells}</tr>`;
+    }).join('');
+
+    return h`<div class="page">
+      <div class="page-head">
+        <div class="eyebrow">Synergy</div>
+        <h1>Who you should actually duo with</h1>
+        <p class="page-sub">Win rate for every pair that has queued together. Colour intensity
+          tracks distance from a coin flip, so the real signal stands out from the noise.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Pair win rate</div>
+          <div class="card-note">minimum 5 games together</div>
+        </div>
+        <div class="scroll-x" style="padding:14px">
+          <table class="matrix">
+            <thead><tr><th></th>${header}</tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid grid-3 section-gap">
+        <div class="card stat"><div class="stat-label">Best pair</div>
+          <div class="stat-value" style="font-size:17px;color:var(--good)">sami + yousef</div>
+          <div class="stat-foot">27–9 · 75% over 36 games</div></div>
+        <div class="card stat"><div class="stat-label">Worst pair</div>
+          <div class="stat-value" style="font-size:17px;color:var(--bad)">sami + bilal</div>
+          <div class="stat-foot">8–14 · 36% over 22 games</div></div>
+        <div class="card stat"><div class="stat-label">Most queued</div>
+          <div class="stat-value" style="font-size:17px">wail + sami</div>
+          <div class="stat-foot">49 games — nobody else is close</div></div>
+      </div>
+    </div>`;
+  };
+
+  // ============================================================
+  // Router
+  // ============================================================
+
+  var NAV = [
+    { href: '#/', glyph: '▤', label: 'Standings', short: 'Rank' },
+    { href: '#/live', glyph: '◉', label: 'Live now', short: 'Live' },
+    { href: '#/awards', glyph: '★', label: 'Weekly awards', short: 'Awards' },
+    { href: '#/h2h', glyph: '⇄', label: 'Head to head', short: 'H2H' },
+    { href: '#/champions', glyph: '◈', label: 'Champions', short: 'Champs' },
+    { href: '#/duos', glyph: '⊞', label: 'Duo synergy', short: 'Duos' }
+  ];
+
+  function routeKey() {
+    var hash = location.hash.replace(/^#\/?/, '');
+    if (!hash) return { page: 'standings' };
+    var parts = hash.split('/');
+    if (parts[0] === 'player') return { page: 'player', arg: parts[1] };
+    if (parts[0] === 'match') return { page: 'match', arg: parts[1] };
+    return { page: pages[parts[0]] ? parts[0] : 'standings' };
+  }
+
+  function navHref(key) {
+    if (key.page === 'standings') return '#/';
+    return '#/' + key.page;
+  }
+
+  function renderNav(key) {
+    var current = navHref(key);
+    document.getElementById('nav').innerHTML =
+      '<div class="nav-label">Group</div>' +
+      NAV.slice(0, 3).map(function (item) {
+        return h`<a class="nav-item" href="${item.href}"${item.href === current ? ' aria-current="page"' : ''}>
+          <span class="nav-glyph">${item.glyph}</span>${item.label}</a>`;
+      }).join('') +
+      '<div class="nav-label">Analysis</div>' +
+      NAV.slice(3).map(function (item) {
+        return h`<a class="nav-item" href="${item.href}"${item.href === current ? ' aria-current="page"' : ''}>
+          <span class="nav-glyph">${item.glyph}</span>${item.label}</a>`;
+      }).join('');
+
+    document.getElementById('tabbar').innerHTML = NAV.map(function (item) {
+      return h`<a href="${item.href}"${item.href === current ? ' aria-current="page"' : ''}>
+        <span class="nav-glyph">${item.glyph}</span>${item.short}</a>`;
+    }).join('');
+  }
+
+  function render() {
+    var key = routeKey();
+    renderNav(key);
+    document.getElementById('main').innerHTML = pages[key.page](key.arg);
+    window.scrollTo(0, 0);
+  }
+
+  window.addEventListener('hashchange', render);
+  render();
+})();
+</script>
