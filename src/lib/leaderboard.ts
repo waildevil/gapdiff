@@ -78,6 +78,8 @@ export interface StatBoardRow {
   /** False when below the games threshold — shown, but can't hold the title. */
   eligible: boolean;
   holdsTitle: boolean;
+  /** Set when this holder took the title off somebody else last month. */
+  takenFrom: string | null;
 }
 
 export interface StatBoardResult {
@@ -207,23 +209,28 @@ export async function getGroupStandings(
     }
   }
 
+  /**
+   * Everything on this page describes the selected month, not the season.
+   * Browsing to June should show June's standings — a season-wide score sitting
+   * above a month's titles would be two different stories on one page.
+   */
   type Bucket = {
-    scores: number[];
     wins: number;
     losses: number;
-    /** Season totals, pooled so one deathless game can't produce infinite KDA. */
+    /** Pooled so one deathless game can't produce an infinite KDA. */
     kills: number;
     deaths: number;
     assists: number;
-    /** Only games inside the title window. */
     windowRows: (typeof rows)[number][];
     windowScores: number[];
+    /** The month before, used only to work out who lost a title. */
+    prevRows: (typeof rows)[number][];
+    prevScores: number[];
   };
 
   const byPlayer = new Map<string, Bucket>();
   for (const puuid of puuids) {
     byPlayer.set(puuid, {
-      scores: [],
       wins: 0,
       losses: 0,
       kills: 0,
@@ -231,28 +238,36 @@ export async function getGroupStandings(
       assists: 0,
       windowRows: [],
       windowScores: [],
+      prevRows: [],
+      prevScores: [],
     });
   }
 
+  const previous = period.index > 0 ? periodWindow(period.index - 1) : null;
   let windowGames = 0;
 
   for (const row of rows) {
     const bucket = byPlayer.get(row.puuid);
     if (!bucket) continue;
-    if (row.score !== null) bucket.scores.push(row.score);
-    if (row.win) bucket.wins++;
-    else bucket.losses++;
-
-    bucket.kills += row.kills;
-    bucket.deaths += row.deaths;
-    bucket.assists += row.assists;
 
     // Bounded at both ends, otherwise browsing to an old month would still
     // count newer games.
     if (row.playedAt >= period.start && row.playedAt < period.end) {
       bucket.windowRows.push(row);
       if (row.score !== null) bucket.windowScores.push(row.score);
+      if (row.win) bucket.wins++;
+      else bucket.losses++;
+      bucket.kills += row.kills;
+      bucket.deaths += row.deaths;
+      bucket.assists += row.assists;
       windowGames++;
+    } else if (
+      previous &&
+      row.playedAt >= previous.start &&
+      row.playedAt < previous.end
+    ) {
+      bucket.prevRows.push(row);
+      if (row.score !== null) bucket.prevScores.push(row.score);
     }
   }
 
@@ -265,7 +280,25 @@ export async function getGroupStandings(
   }
 
   const awards = assignTitles([...statsByPlayer.values()]);
-  const boards = buildStatBoards(members, statsByPlayer, awards);
+
+  // Last month's holders, so a title can say who it was taken from.
+  const previousHolders = new Map<string, string>();
+  if (previous) {
+    const prevStats = members.map((member) => {
+      const bucket = byPlayer.get(member.puuid)!;
+      return toTitleStats(member.puuid, {
+        windowRows: bucket.prevRows,
+        windowScores: bucket.prevScores,
+      });
+    });
+    for (const [puuid, award] of assignTitles(prevStats)) {
+      const name = members.find((m) => m.puuid === puuid)?.gameName;
+      if (!name) continue;
+      for (const title of award.titles) previousHolders.set(title.id, name);
+    }
+  }
+
+  const boards = buildStatBoards(members, statsByPlayer, awards, previousHolders);
 
   const ranked = buildLeaderboard(
     members.map((member) => {
@@ -287,13 +320,13 @@ export async function getGroupStandings(
               ? bucket.kills + bucket.assists
               : (bucket.kills + bucket.assists) / bucket.deaths,
           rank: latestRank.get(member.puuid) ?? null,
-          form: bucket.scores,
+          form: bucket.windowScores,
           titles: award?.titles ?? [],
           title: award?.primary ?? null,
           windowGames: bucket.windowRows.length,
         } satisfies LeaderboardPlayer,
         input: {
-          scores: bucket.scores,
+          scores: bucket.windowScores,
           wins: bucket.wins,
           losses: bucket.losses,
           rank: latestRank.get(member.puuid) ?? null,
@@ -305,7 +338,7 @@ export async function getGroupStandings(
   return {
     group: { slug: group.slug, name: group.name },
     entries: ranked,
-    totalGames: rows.length,
+    totalGames: windowGames,
     period: { ...period, games: windowGames, latestIndex },
     boards,
   };
@@ -319,13 +352,28 @@ function buildStatBoards(
   members: { puuid: string; gameName: string; tagLine: string; platform: string }[],
   stats: Map<string, TitleStats>,
   awards: Map<string, { titles: HeldTitle[] }>,
+  previousHolders: Map<string, string>,
 ): StatBoardResult[] {
   return STAT_BOARDS.map((board: StatBoard) => {
+    const holderName = members.find((m) =>
+      board.titleId !== undefined
+        ? (awards.get(m.puuid)?.titles ?? []).some((t) => t.id === board.titleId)
+        : false,
+    )?.gameName;
+
+    const previousHolder = board.titleId ? previousHolders.get(board.titleId) : undefined;
+    const changedHands =
+      previousHolder !== undefined && holderName !== undefined && previousHolder !== holderName;
+
     const rows = members
       .map((member) => {
         const playerStats = stats.get(member.puuid)!;
         const value = board.value(playerStats);
         const eligible = playerStats.games >= MIN_GAMES_FOR_TITLE;
+        const holdsTitle =
+          board.titleId !== undefined &&
+          (awards.get(member.puuid)?.titles ?? []).some((t) => t.id === board.titleId);
+
         return {
           puuid: member.puuid,
           gameName: member.gameName,
@@ -336,13 +384,18 @@ function buildStatBoards(
           formatted: board.format(value),
           games: playerStats.games,
           eligible,
-          holdsTitle:
-            board.titleId !== undefined &&
-            (awards.get(member.puuid)?.titles ?? []).some((t) => t.id === board.titleId),
+          holdsTitle,
+          takenFrom: holdsTitle && changedHands ? (previousHolder ?? null) : null,
         };
       })
-      // Players with no games in the window sort last whatever the metric.
+      /*
+       * Anyone short of the games threshold sorts below everyone eligible,
+       * whatever their number. Two games at 9.4 deaths is noise, and showing it
+       * above someone who played thirty makes the board look wrong even though
+       * the title itself was awarded correctly.
+       */
       .sort((a, b) => {
+        if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
         if (a.games === 0 !== (b.games === 0)) return a.games === 0 ? 1 : -1;
         return board.direction === 'max' ? b.value - a.value : a.value - b.value;
       })
