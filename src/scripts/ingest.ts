@@ -14,6 +14,7 @@ import { regionForPlatform, type Platform } from '@/lib/riot/routing';
 import { RATED_QUEUES, type Match } from '@/lib/riot/types';
 import { isScorable, matchDurationSeconds } from '@/lib/rating/metrics';
 import { scoreMatch } from '@/lib/rating/score';
+import { indexMatchParticipants } from '@/lib/playerIndex';
 import { rankPoints } from '@/lib/rating/rating';
 
 /**
@@ -39,6 +40,9 @@ function parseDays(): number {
 async function storeMatch(match: Match, platform: string): Promise<void> {
   const scorable = isScorable(match);
   const duration = matchDurationSeconds(match);
+
+  // Everyone in the lobby goes into the search index, tracked or not.
+  await indexMatchParticipants(match);
 
   await db
     .insert(matches)

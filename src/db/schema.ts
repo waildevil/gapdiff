@@ -197,6 +197,35 @@ export const accounts = pgTable(
 );
 
 /**
+ * Every Riot ID we have ever seen in a match, whether tracked or not.
+ *
+ * Riot has no search endpoint — ACCOUNT-V1 needs an exact name *and* tag — so
+ * "type anvil, see the matching players" can only be answered from an index we
+ * build ourselves. We already store all ten participants of every match, so
+ * this is thousands of real players for free.
+ *
+ * Separate from `accounts`, which means "an account we actively track" and
+ * carries claims, rank history and sync state. Mixing five thousand strangers
+ * into that table would blur what it means.
+ */
+export const knownPlayers = pgTable(
+  'known_players',
+  {
+    puuid: varchar('puuid', { length: 78 }).primaryKey(),
+    gameName: text('game_name').notNull(),
+    tagLine: varchar('tag_line', { length: 8 }).notNull(),
+    platform: varchar('platform', { length: 8 }).notNull(),
+    /** How often we've seen them. Doubles as a relevance ranking. */
+    gamesSeen: integer('games_seen').notNull().default(1),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('known_players_name_idx').on(table.gameName),
+    index('known_players_seen_idx').on(table.gamesSeen),
+  ],
+);
+
+/**
  * The Riot accounts a group shows on its leaderboard.
  *
  * Separate from `group_memberships` on purpose: a person can track several

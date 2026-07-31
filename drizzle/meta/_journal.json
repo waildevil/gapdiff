@@ -8,6 +8,13 @@
       "when": 1785491634569,
       "tag": "0000_purple_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785510697854,
+      "tag": "0001_player_index",
+      "breakpoints": true
     }
   ]
 }

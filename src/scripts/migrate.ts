@@ -34,6 +34,7 @@ const EXPECTED_TABLES = [
   'groups',
   'icon_challenges',
   'invites',
+  'known_players',
   'match_participants',
   'matches',
   'rank_snapshots',

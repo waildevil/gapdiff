@@ -15,6 +15,7 @@
     "db:reset": "tsx src/scripts/db-reset.ts",
     "audit": "tsx src/scripts/audit-player.ts",
     "grant-owner": "tsx src/scripts/grant-owner.ts",
+    "build-index": "tsx src/scripts/build-index.ts",
     "check-key": "tsx src/scripts/check-key.ts",
     "seed": "tsx src/scripts/seed-group.ts",
     "ingest": "tsx src/scripts/ingest.ts"

@@ -1,10 +1,15 @@
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
 .form {
   display: flex;
   gap: 8px;
   width: 100%;
 }
 
-.form.large {
+.large {
   max-width: 560px;
 }
 
@@ -76,7 +81,7 @@
 
 .submit:hover {
   background: var(--amber);
-  color: #06090b;
+  color: var(--surface);
 }
 
 .submit:disabled {
@@ -96,4 +101,72 @@
   margin-top: 10px;
   font-size: 12px;
   color: var(--bad);
+}
+
+/* ---------- suggestions ---------- */
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 4px;
+  z-index: 50;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+}
+
+.option:hover,
+.active {
+  background: var(--surface-2);
+}
+
+.optionName {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.optionTag {
+  color: var(--faint);
+}
+
+.match {
+  color: var(--amber);
+  font-weight: 650;
+}
+
+.optionMeta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.menuNote {
+  padding: 9px 11px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  border-top: 1px solid var(--line-soft);
+  margin-top: 4px;
+  line-height: 1.5;
 }
