@@ -2,9 +2,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
 import { checkGroupAccess } from '@/lib/access';
-import { GapMarker, StandingsRow, UnrankedDivider } from '@/components/StandingsRow';
+import {
+  GapMarker,
+  StandingsHeader,
+  StandingsRow,
+  UnrankedDivider,
+} from '@/components/StandingsRow';
 import { PeriodPicker } from '@/components/PeriodPicker';
+import { ScoreBreakdown } from '@/components/ScoreBreakdown';
 import { StatBoards } from '@/components/StatBoards';
+import { latestVersion } from '@/lib/ddragon';
 import { getGroupStandings } from '@/lib/leaderboard';
 
 interface PageProps {
@@ -28,10 +35,10 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
   }
 
   const requested = Number.parseInt(monthParam ?? '', 10);
-  const standings = await getGroupStandings(
-    slug,
-    Number.isFinite(requested) ? requested : undefined,
-  );
+  const [standings, version] = await Promise.all([
+    getGroupStandings(slug, Number.isFinite(requested) ? requested : undefined),
+    latestVersion(),
+  ]);
 
   if (!standings) notFound();
 
@@ -83,6 +90,8 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
               isCurrent={period.isCurrent}
             />
 
+            <StandingsHeader />
+
             <div>
               {entries.map((entry, index) => {
                 const above = index > 0 ? entries[index - 1] : undefined;
@@ -100,7 +109,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
                     ) : above ? (
                       <GapMarker delta={entry.gapToNext} />
                     ) : null}
-                    <StandingsRow entry={entry} />
+                    <StandingsRow entry={entry} version={version} />
                   </div>
                 );
               })}
@@ -117,14 +126,14 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
             <StatBoards boards={boards} />
           </div>
 
-          <div className="note">
-            <b>Why the order isn&apos;t just LP.</b> Rank is only 40% of the score.
-            Performance measures how you played against the nine other people in each
-            lobby, and consistency penalises players whose games swing wildly — so a
-            higher-ranked player with volatile games can sit below a steadier one.
-            {entries.length === 1
-              ? ' Add more friends to config/group.json to make this a race.'
-              : ''}
+          <div className="section-gap">
+            <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
+              <div className="eyebrow">How the Gap Score is built</div>
+              <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
+                Three pillars, weighted
+              </h2>
+            </div>
+            <ScoreBreakdown />
           </div>
         </>
       )}

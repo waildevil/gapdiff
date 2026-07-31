@@ -1,12 +1,14 @@
-import { and, desc, eq, gte, inArray } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
 import { db } from '@/db';
 import {
+  accountClaims,
   accounts,
   trackedAccounts,
   groups,
   matchParticipants,
   matches,
   rankSnapshots,
+  users,
 } from '@/db/schema';
 import { buildLeaderboard, type Rating } from './rating/rating';
 import {
@@ -39,6 +41,12 @@ export interface LeaderboardPlayer {
   /** Manual override; when set it wins over the earned title. */
   nickname: string | null;
   profileIconId: number | null;
+  /** Discord avatar, only when somebody has *proved* they own this account. */
+  ownerImage: string | null;
+  ownerName: string | null;
+  verified: boolean;
+  /** Pooled across the season: (kills + assists) / deaths. */
+  kda: number;
   rank: { tier: string; division: string; leaguePoints: number } | null;
   /** Per-game performance scores, most recent first. */
   form: number[];
@@ -98,6 +106,9 @@ export async function getGroupStandings(
   const latestIndex = currentPeriodIndex();
   const period = periodWindow(periodIndex ?? latestIndex);
 
+  // Left joins, not inner: an account can sit on the board with nobody
+  // attached, which is how somebody who has stopped playing stays in the
+  // standings. Only a *verified* claim earns the Discord avatar.
   const members = await db
     .select({
       puuid: accounts.puuid,
@@ -106,9 +117,20 @@ export async function getGroupStandings(
       platform: accounts.platform,
       profileIconId: accounts.profileIconId,
       nickname: trackedAccounts.nickname,
+      verifiedAt: accountClaims.verifiedAt,
+      ownerName: users.name,
+      ownerImage: users.image,
     })
     .from(trackedAccounts)
     .innerJoin(accounts, eq(accounts.puuid, trackedAccounts.puuid))
+    .leftJoin(
+      accountClaims,
+      and(
+        eq(accountClaims.puuid, trackedAccounts.puuid),
+        isNotNull(accountClaims.verifiedAt),
+      ),
+    )
+    .leftJoin(users, eq(users.id, accountClaims.userId))
     .where(eq(trackedAccounts.groupId, group.id));
 
   if (members.length === 0) {
@@ -189,6 +211,10 @@ export async function getGroupStandings(
     scores: number[];
     wins: number;
     losses: number;
+    /** Season totals, pooled so one deathless game can't produce infinite KDA. */
+    kills: number;
+    deaths: number;
+    assists: number;
     /** Only games inside the title window. */
     windowRows: (typeof rows)[number][];
     windowScores: number[];
@@ -200,6 +226,9 @@ export async function getGroupStandings(
       scores: [],
       wins: 0,
       losses: 0,
+      kills: 0,
+      deaths: 0,
+      assists: 0,
       windowRows: [],
       windowScores: [],
     });
@@ -213,6 +242,10 @@ export async function getGroupStandings(
     if (row.score !== null) bucket.scores.push(row.score);
     if (row.win) bucket.wins++;
     else bucket.losses++;
+
+    bucket.kills += row.kills;
+    bucket.deaths += row.deaths;
+    bucket.assists += row.assists;
 
     // Bounded at both ends, otherwise browsing to an old month would still
     // count newer games.
@@ -246,6 +279,13 @@ export async function getGroupStandings(
           platform: member.platform,
           nickname: member.nickname,
           profileIconId: member.profileIconId,
+          ownerImage: member.verifiedAt ? member.ownerImage : null,
+          ownerName: member.verifiedAt ? member.ownerName : null,
+          verified: member.verifiedAt !== null,
+          kda:
+            bucket.deaths === 0
+              ? bucket.kills + bucket.assists
+              : (bucket.kills + bucket.assists) / bucket.deaths,
           rank: latestRank.get(member.puuid) ?? null,
           form: bucket.scores,
           titles: award?.titles ?? [],

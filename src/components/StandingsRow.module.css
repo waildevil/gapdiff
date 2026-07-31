@@ -1,6 +1,6 @@
 .row {
   display: grid;
-  grid-template-columns: 40px 34px minmax(150px, 1.2fr) 96px minmax(140px, 1fr) 104px 82px;
+  grid-template-columns: 34px 36px minmax(150px, 1.15fr) 86px minmax(150px, 1fr) 118px 78px;
   align-items: center;
   gap: 14px;
   padding: 13px 16px;
@@ -12,9 +12,29 @@
   background: var(--surface-2);
 }
 
-.row:last-of-type {
-  border-bottom: none;
+/* ---------- header ---------- */
+
+.header {
+  padding-top: 9px;
+  padding-bottom: 9px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--faint);
 }
+
+.header:hover {
+  background: var(--surface-2);
+}
+
+.right {
+  text-align: right;
+}
+
+/* ---------- identity ---------- */
 
 .position {
   font-family: var(--mono);
@@ -29,10 +49,20 @@
   color: var(--amber);
 }
 
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+  flex: 0 0 auto;
+  object-fit: cover;
+}
+
 .identity {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -87,6 +117,8 @@
   letter-spacing: 0;
 }
 
+/* ---------- numbers ---------- */
+
 .scoreCell {
   text-align: right;
 }
@@ -97,25 +129,59 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.scoreSub {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  margin-top: 2px;
 }
 
 .record {
   text-align: right;
+}
+
+.kda {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 15px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.kda span {
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--faint);
 }
 
 .recordSub {
+  font-family: var(--mono);
   font-size: 10.5px;
   color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
 }
 
 .trend {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 5px;
+  gap: 3px;
+}
+
+.trendLabel {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--faint);
 }
 
 /*
@@ -147,6 +213,12 @@
   letter-spacing: 0.04em;
 }
 
+.gapValue span {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
+}
+
 .boundary {
   display: flex;
   align-items: center;
@@ -172,9 +244,11 @@
   white-space: nowrap;
 }
 
-@media (max-width: 940px) {
+/* ---------- responsive ---------- */
+
+@media (max-width: 1040px) {
   .row {
-    grid-template-columns: 34px 30px minmax(110px, 1fr) 76px 88px 68px;
+    grid-template-columns: 30px 34px minmax(120px, 1fr) 80px 108px 68px;
   }
 
   .pillarCell {
@@ -182,14 +256,14 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 620px) {
   .row {
-    grid-template-columns: 28px 28px minmax(80px, 1fr) 64px 62px;
-    gap: 9px;
+    grid-template-columns: 26px 30px minmax(84px, 1fr) 70px 92px;
+    gap: 10px;
     padding: 11px 12px;
   }
 
-  .record {
+  .trend {
     display: none;
   }
 

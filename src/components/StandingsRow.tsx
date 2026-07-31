@@ -2,16 +2,34 @@ import Link from 'next/link';
 import { Avatar } from './Avatar';
 import { PillarBar } from './PillarBar';
 import { Sparkline } from './Sparkline';
+import { profileIcon } from '@/lib/ddragon';
 import { tierColor, tierLabel, winRate } from '@/lib/format';
 import type { LeaderboardEntry } from '@/lib/leaderboard';
 import styles from './StandingsRow.module.css';
 
+/** Column labels, so no number on the board is unexplained. */
+export function StandingsHeader() {
+  return (
+    <div className={`${styles.row} ${styles.header}`} aria-hidden="true">
+      <div>#</div>
+      <div />
+      <div>Player</div>
+      <div className={styles.right}>Gap Score</div>
+      <div className={styles.pillarCell}>Score breakdown</div>
+      <div className={styles.right}>KDA · win rate</div>
+      <div className={styles.right}>Form</div>
+    </div>
+  );
+}
+
 /** The distance to the player above — rendered between rows, not inside them. */
 export function GapMarker({ delta }: { delta: number }) {
   return (
-    <div className={styles.gapMarker} aria-hidden="true">
+    <div className={styles.gapMarker}>
       <div className={styles.gapLine} />
-      <div className={styles.gapValue}>−{Math.abs(delta).toFixed(1)}</div>
+      <div className={styles.gapValue}>
+        {Math.abs(delta).toFixed(1)} <span>behind</span>
+      </div>
     </div>
   );
 }
@@ -30,13 +48,21 @@ export function UnrankedDivider() {
   );
 }
 
-export function StandingsRow({ entry }: { entry: LeaderboardEntry }) {
+export function StandingsRow({
+  entry,
+  version,
+}: {
+  entry: LeaderboardEntry;
+  version: string;
+}) {
   const { player, rating, position } = entry;
+  const games = rating.wins + rating.losses;
 
   return (
     <div className={`${styles.row} ${position === 1 ? styles.lead : ''}`}>
       <div className={styles.position}>{position}</div>
-      <Avatar name={player.gameName} />
+
+      <PlayerAvatar player={player} version={version} />
 
       <div className={styles.identity}>
         <Link
@@ -49,7 +75,6 @@ export function StandingsRow({ entry }: { entry: LeaderboardEntry }) {
           <span className="tier" style={{ color: tierColor(player.rank?.tier ?? 'UNRANKED') }}>
             {tierLabel(player.rank)}
           </span>
-          {/* A manual nickname overrides the earned title. */}
           {player.nickname ? (
             <span className={styles.nickname}>{player.nickname}</span>
           ) : player.title ? (
@@ -57,10 +82,7 @@ export function StandingsRow({ entry }: { entry: LeaderboardEntry }) {
               className={styles.title}
               title={`${player.title.label} — ${player.title.detail}${
                 player.titles.length > 1
-                  ? `. Also holds ${player.titles
-                      .slice(1)
-                      .map((t) => t.label)
-                      .join(', ')}.`
+                  ? `. Also holds ${player.titles.slice(1).map((t) => t.label).join(', ')}.`
                   : ''
               }`}
             >
@@ -75,6 +97,7 @@ export function StandingsRow({ entry }: { entry: LeaderboardEntry }) {
 
       <div className={styles.scoreCell}>
         <div className={styles.score}>{rating.gapScore.toFixed(1)}</div>
+        <div className={styles.scoreSub}>out of 100</div>
       </div>
 
       <div className={styles.pillarCell}>
@@ -86,15 +109,60 @@ export function StandingsRow({ entry }: { entry: LeaderboardEntry }) {
       </div>
 
       <div className={styles.record}>
-        {rating.wins}–{rating.losses}
+        <div className={styles.kda}>
+          {player.kda.toFixed(2)} <span>KDA</span>
+        </div>
         <div className={styles.recordSub}>
-          {winRate(rating.wins, rating.losses)}% · {rating.games} scored
+          {winRate(rating.wins, rating.losses)}% of {games} games
+        </div>
+        <div className={styles.recordSub}>
+          {rating.wins}W {rating.losses}L
         </div>
       </div>
 
       <div className={styles.trend}>
         <Sparkline values={player.form.slice(0, 12)} seed={player.puuid.slice(0, 8)} />
+        <div className={styles.trendLabel}>last {Math.min(12, player.form.length)}</div>
       </div>
     </div>
   );
+}
+
+/**
+ * Discord avatar when somebody has proved they own the account, the League
+ * profile icon otherwise, and generated initials only as a last resort.
+ */
+function PlayerAvatar({
+  player,
+  version,
+}: {
+  player: LeaderboardEntry['player'];
+  version: string;
+}) {
+  if (player.ownerImage) {
+    return (
+      <img
+        className={styles.avatar}
+        src={player.ownerImage}
+        alt=""
+        width={36}
+        height={36}
+        title={`Verified as ${player.ownerName ?? 'a member'}`}
+      />
+    );
+  }
+
+  if (player.profileIconId !== null) {
+    return (
+      <img
+        className={styles.avatar}
+        src={profileIcon(version, player.profileIconId)}
+        alt=""
+        width={36}
+        height={36}
+      />
+    );
+  }
+
+  return <Avatar name={player.gameName} />;
 }
