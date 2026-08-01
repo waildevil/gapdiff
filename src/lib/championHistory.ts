@@ -1,4 +1,5 @@
-import { and, eq, gte } from 'drizzle-orm';
+import { and, eq, gte, ne } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db';
 import { matchParticipants, matches } from '@/db/schema';
 import type { ChampionQueueRow } from './champions';
@@ -81,4 +82,71 @@ export async function getChampionHistory(puuid: string): Promise<ChampionHistory
   }
 
   return { rows: [...byKey.values()], since };
+}
+
+/** One lane matchup: this champion against the champion that shared its role. */
+export interface ChampionMatchup {
+  championName: string;
+  opponent: string;
+  queueId: number;
+  games: number;
+  wins: number;
+}
+
+/**
+ * Who this player actually laned against, per champion.
+ *
+ * The opponent is the participant on the other team carrying the same role,
+ * which is the same pairing the scorer uses for its lane-delta bonus. Roles are
+ * blank on queues Riot doesn't infer them for, and those rows are dropped
+ * rather than matched arbitrarily.
+ */
+export async function getChampionMatchups(puuid: string): Promise<ChampionMatchup[]> {
+  const mine = alias(matchParticipants, 'mine');
+  const theirs = alias(matchParticipants, 'theirs');
+
+  const rows = await db
+    .select({
+      championName: mine.championName,
+      opponent: theirs.championName,
+      queueId: matches.queueId,
+      win: mine.win,
+    })
+    .from(mine)
+    .innerJoin(
+      theirs,
+      and(
+        eq(theirs.matchId, mine.matchId),
+        ne(theirs.teamId, mine.teamId),
+        eq(theirs.role, mine.role),
+      ),
+    )
+    .innerJoin(matches, eq(matches.matchId, mine.matchId))
+    .where(
+      and(
+        eq(mine.puuid, puuid),
+        ne(mine.role, ''),
+        gte(matches.gameCreation, seasonStart()),
+      ),
+    );
+
+  const byKey = new Map<string, ChampionMatchup>();
+  for (const row of rows) {
+    const key = `${row.championName}|${row.opponent}|${row.queueId}`;
+    let bucket = byKey.get(key);
+    if (!bucket) {
+      bucket = {
+        championName: row.championName,
+        opponent: row.opponent,
+        queueId: row.queueId,
+        games: 0,
+        wins: 0,
+      };
+      byKey.set(key, bucket);
+    }
+    bucket.games += 1;
+    if (row.win) bucket.wins += 1;
+  }
+
+  return [...byKey.values()];
 }

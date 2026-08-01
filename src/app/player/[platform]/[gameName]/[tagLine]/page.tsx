@@ -37,6 +37,7 @@ export default async function PlayerPage({ params }: PageProps) {
   }
 
   const platform = platformParam as Platform;
+  const profileHref = `/player/${platform}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 
   try {
     const [profile, version] = await Promise.all([
@@ -57,7 +58,17 @@ export default async function PlayerPage({ params }: PageProps) {
           <ChampionSidebar
             history={championHistory.rows}
             since={championHistory.since?.toISOString() ?? null}
+            profileHref={profileHref}
             matches={profile.matches}
+            version={version}
+          />
+
+          {/* Tallied over the first page only, so it stays put while the tabs
+              in the main column swap the match list. */}
+          <RecentlyPlayedWith
+            teammates={profile.teammates}
+            platform={platform}
+            games={profile.recent.games}
             version={version}
           />
         </div>
@@ -88,17 +99,6 @@ export default async function PlayerPage({ params }: PageProps) {
               <RankCard label="Ranked Flex" entry={profile.flex} />
             </div>
           </div>
-        </div>
-
-        {/* Tallied over the first page only, so it stays put while the tabs
-            below swap the match list underneath it. */}
-        <div className="section-gap">
-          <RecentlyPlayedWith
-            teammates={profile.teammates}
-            platform={platform}
-            games={profile.recent.games}
-            version={version}
-          />
         </div>
 
         {/* Owns the queue tabs, so the summary tiles reflect the active tab. */}

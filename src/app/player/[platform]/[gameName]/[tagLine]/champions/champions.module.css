@@ -1,0 +1,37 @@
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+}
+
+.back {
+  color: var(--amber);
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  padding: 28px 20px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.empty p {
+  margin: 8px 0 16px;
+  max-width: 520px;
+}
+
+.link {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--amber);
+}
+
+@media (max-width: 860px) {
+  .wrap {
+    padding: 16px 16px 64px;
+  }
+}

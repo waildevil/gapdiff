@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { championIcon } from '@/lib/ddragon';
 import {
@@ -20,6 +21,8 @@ interface ChampionSidebarProps {
    * season, so the caption reports coverage rather than implying completeness.
    */
   since: string | null;
+  /** Link base for the full-pool page. */
+  profileHref: string;
   /** The ten live matches, used only when there is no stored history. */
   matches: ProfileMatch[];
   version: string;
@@ -41,11 +44,11 @@ function formatSince(iso: string): string {
 export function ChampionSidebar({
   history,
   since,
+  profileHref,
   matches,
   version,
 }: ChampionSidebarProps) {
   const [filterId, setFilterId] = useState('all');
-  const [expanded, setExpanded] = useState(false);
 
   const stored = history.length > 0;
 
@@ -68,7 +71,7 @@ export function ChampionSidebar({
     );
   }, [history]);
 
-  const visible = expanded ? champs : champs.slice(0, SHOWN);
+  const visible = champs.slice(0, SHOWN);
   const games = champs.reduce((sum, c) => sum + c.games, 0);
 
   return (
@@ -154,14 +157,12 @@ export function ChampionSidebar({
             ))}
           </div>
 
+          {/* The full pool lives on its own page, where there is room for the
+              lane matchups behind each champion. */}
           {champs.length > SHOWN ? (
-            <button
-              type="button"
-              className={styles.more}
-              onClick={() => setExpanded((open) => !open)}
-            >
-              {expanded ? 'Show less' : `Show all ${champs.length}`}
-            </button>
+            <Link className={styles.more} href={`${profileHref}/champions`}>
+              Show all {champs.length} →
+            </Link>
           ) : null}
         </>
       )}

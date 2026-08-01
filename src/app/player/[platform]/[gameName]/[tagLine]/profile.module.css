@@ -8,11 +8,14 @@
   align-items: start;
 }
 
+/* Scrolls with the page rather than sticking: champions plus team-mates is
+   taller than most viewports, and a sticky column that scrolls internally
+   fights the page scroll. */
 .sidebar {
-  position: sticky;
-  top: 24px;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
 }
 
 .main {
@@ -243,10 +246,6 @@
     gap: 16px;
   }
 
-  .sidebar {
-    position: static;
-    max-height: none;
-  }
 }
 
 @media (max-width: 860px) {
