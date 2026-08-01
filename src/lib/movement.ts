@@ -1,6 +1,14 @@
-import { and, desc, eq, gte, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db';
-import { accounts, groups, rankSnapshots, trackedAccounts } from '@/db/schema';
+import {
+  accounts,
+  groups,
+  matchParticipants,
+  matches,
+  rankSnapshots,
+  trackedAccounts,
+} from '@/db/schema';
 import { getGroupStandings } from './leaderboard';
 import { rankPoints } from './rating/rating';
 
@@ -37,6 +45,29 @@ export interface PlayerMovement {
   games: number;
 }
 
+/** A single game worth mentioning by name. */
+export interface NotableGame {
+  gameName: string;
+  championName: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  score: number;
+  win: boolean;
+  soloKills: number;
+  /** Rank within that lobby, 1 = best of the ten. */
+  placement: number;
+}
+
+export interface Highlights {
+  /** Best score in the window, if anybody actually played well. */
+  best: NotableGame | null;
+  /** Worst score, if anybody actually played badly. */
+  worst: NotableGame | null;
+  /** Top of the lobby and still lost — the most quotable outcome there is. */
+  carried: NotableGame | null;
+}
+
 export interface TitleChange {
   titleId: string;
   label: string;
@@ -63,6 +94,8 @@ export interface GroupMovement {
   comparedFrom: Date;
   players: PlayerMovement[];
   titleChanges: TitleChange[];
+  /** Individual games worth talking about, which is what people actually read. */
+  highlights: Highlights;
 }
 
 /**
@@ -117,6 +150,101 @@ async function lpDeltas(puuids: string[], since: Date): Promise<Map<string, numb
   return deltas;
 }
 
+/**
+ * A game only earns a mention if it was genuinely good or genuinely bad. The
+ * best game of a mediocre evening is not news, and calling it out would make
+ * the digest read like a participation award.
+ */
+const GOOD_ENOUGH = 70;
+const BAD_ENOUGH = 30;
+
+/**
+ * The games worth naming.
+ *
+ * Placement comes from the same scored lobby the board uses, so "top of the
+ * lobby and still lost" is a claim the match page will back up rather than a
+ * separate opinion.
+ */
+async function getHighlights(puuids: string[], since: Date): Promise<Highlights> {
+  const empty: Highlights = { best: null, worst: null, carried: null };
+  if (puuids.length === 0) return empty;
+
+  const mine = alias(matchParticipants, 'mine');
+  const rows = await db
+    .select({
+      puuid: mine.puuid,
+      gameName: accounts.gameName,
+      nickname: trackedAccounts.nickname,
+      matchId: mine.matchId,
+      championName: mine.championName,
+      kills: mine.kills,
+      deaths: mine.deaths,
+      assists: mine.assists,
+      score: mine.performanceScore,
+      win: mine.win,
+      soloKills: mine.soloKills,
+    })
+    .from(mine)
+    .innerJoin(matches, eq(matches.matchId, mine.matchId))
+    .innerJoin(accounts, eq(accounts.puuid, mine.puuid))
+    .innerJoin(trackedAccounts, eq(trackedAccounts.puuid, mine.puuid))
+    .where(
+      and(
+        inArray(mine.puuid, puuids),
+        eq(matches.scorable, true),
+        gte(matches.gameCreation, since),
+        isNotNull(mine.performanceScore),
+      ),
+    )
+    .orderBy(desc(mine.performanceScore));
+
+  if (rows.length === 0) return empty;
+
+  // Placement needs the whole lobby, so it is fetched only for the handful of
+  // matches that are actually going to be quoted.
+  const candidates = [rows[0]!, rows[rows.length - 1]!, rows.find((r) => !r.win)].filter(
+    (r): r is (typeof rows)[number] => r !== undefined,
+  );
+
+  const placements = new Map<string, number>();
+  for (const row of candidates) {
+    if (placements.has(`${row.matchId}|${row.puuid}`)) continue;
+    const lobby = await db
+      .select({ puuid: matchParticipants.puuid, score: matchParticipants.performanceScore })
+      .from(matchParticipants)
+      .where(eq(matchParticipants.matchId, row.matchId))
+      .orderBy(desc(matchParticipants.performanceScore));
+    const index = lobby.findIndex((p) => p.puuid === row.puuid);
+    if (index >= 0) placements.set(`${row.matchId}|${row.puuid}`, index + 1);
+  }
+
+  const toGame = (row: (typeof rows)[number]): NotableGame => ({
+    gameName: row.nickname ?? row.gameName,
+    championName: row.championName,
+    kills: row.kills,
+    deaths: row.deaths,
+    assists: row.assists,
+    score: Math.round(row.score!),
+    win: row.win,
+    soloKills: row.soloKills,
+    placement: placements.get(`${row.matchId}|${row.puuid}`) ?? 0,
+  });
+
+  const top = rows[0]!;
+  const bottom = rows[rows.length - 1]!;
+  const bestLoss = rows.find((r) => !r.win);
+
+  return {
+    best: top.score! >= GOOD_ENOUGH ? toGame(top) : null,
+    worst: bottom.score! <= BAD_ENOUGH ? toGame(bottom) : null,
+    // Only interesting when it isn't already the best game of the window.
+    carried:
+      bestLoss && bestLoss.score! >= GOOD_ENOUGH && bestLoss.matchId !== top.matchId
+        ? toGame(bestLoss)
+        : null,
+  };
+}
+
 export async function getGroupMovement(
   slug: string,
   windowDays = DEFAULT_WINDOW_DAYS,
@@ -147,10 +275,11 @@ export async function getGroupMovement(
     .innerJoin(groups, eq(groups.id, trackedAccounts.groupId))
     .where(eq(groups.slug, slug));
 
-  const lp = await lpDeltas(
-    memberPuuids.map((m) => m.puuid),
-    since,
-  );
+  const puuidList = memberPuuids.map((m) => m.puuid);
+  const [lp, highlights] = await Promise.all([
+    lpDeltas(puuidList, since),
+    getHighlights(puuidList, since),
+  ]);
 
   const players: PlayerMovement[] = now.entries.map((entry) => {
     const wasAt = previousPosition.get(entry.player.puuid) ?? null;
@@ -201,6 +330,7 @@ export async function getGroupMovement(
     comparedFrom,
     players,
     titleChanges,
+    highlights,
   };
 }
 
@@ -210,6 +340,8 @@ export function hasNews(movement: GroupMovement): boolean {
     movement.titleChanges.length > 0 ||
     movement.players.some(
       (p) => (p.positionDelta ?? 0) !== 0 || (p.lpDelta ?? 0) !== 0,
-    )
+    ) ||
+    movement.highlights.best !== null ||
+    movement.highlights.worst !== null
   );
 }

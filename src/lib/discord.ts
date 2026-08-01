@@ -1,5 +1,6 @@
+import { ordinal } from './format';
 import type { GroupStandings } from './leaderboard';
-import type { GroupMovement } from './movement';
+import type { GroupMovement, Highlights, NotableGame } from './movement';
 
 /**
  * Rendering group news as Discord messages.
@@ -83,12 +84,44 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
   });
 
   // A code fence is the only way Discord keeps columns lined up.
+  const table = '```\n' + lines.join('\n') + '\n```';
+  const stories = highlightLines(movement.highlights);
+
   return envelope(
     `${movement.groupName} — what changed`,
     movement.slug,
-    '```\n' + lines.join('\n') + '\n```',
+    stories.length ? `${table}\n${stories.join('\n')}` : table,
     'LP is ranked solo. Positions reset each month.',
   );
+}
+
+/** The games worth a sentence. Numbers alone are a spreadsheet, not banter. */
+function highlightLines(highlights: Highlights): string[] {
+  const lines: string[] = [];
+  const kda = (g: NotableGame) => `${g.kills}/${g.deaths}/${g.assists} ${g.championName}`;
+
+  if (highlights.best) {
+    const g = highlights.best;
+    const solo = g.soloKills >= 3 ? `, ${g.soloKills} solo kills` : '';
+    const top = g.placement === 1 ? ', best in the lobby' : '';
+    lines.push(`🔥 **${g.gameName}** ${kda(g)} — ${g.score}${top}${solo}`);
+  }
+
+  if (highlights.carried) {
+    const g = highlights.carried;
+    const how =
+      g.placement === 1
+        ? 'top of the lobby and still lost'
+        : `${ordinal(g.placement)} in the lobby, still lost`;
+    lines.push(`😤 **${g.gameName}** ${kda(g)} — ${g.score}, ${how}`);
+  }
+
+  if (highlights.worst) {
+    const g = highlights.worst;
+    lines.push(`💀 **${g.gameName}** ${kda(g)} — ${g.score}`);
+  }
+
+  return lines;
 }
 
 /**
