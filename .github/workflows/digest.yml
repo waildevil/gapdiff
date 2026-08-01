@@ -43,9 +43,22 @@ jobs:
       - name: Post
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           SEASON_START: ${{ vars.SEASON_START }}
           TITLE_WINDOW_START: ${{ vars.TITLE_WINDOW_START }}
+
+          # Webhook URLs are bearer credentials — anyone holding one can post to
+          # that channel as anybody — so they live here rather than in the
+          # database. One per group, named after its slug; a group without one is
+          # skipped rather than failing the run.
+          #
+          # Adding a board means adding a line. Actions cannot expand secrets
+          # dynamically, and having to name each one is the honest cost of
+          # keeping them out of application storage.
+          DISCORD_WEBHOOK_ARCMERCY: ${{ secrets.DISCORD_WEBHOOK_ARCMERCY }}
+          DISCORD_WEBHOOK_ANTAKIGANG: ${{ secrets.DISCORD_WEBHOOK_ANTAKIGANG }}
+          DISCORD_WEBHOOK_THE_BOYS: ${{ secrets.DISCORD_WEBHOOK_THE_BOYS }}
+          # Fallback for any group without its own.
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::DATABASE_URL secret is not set."
@@ -59,9 +72,6 @@ jobs:
           fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             args="$args --dry-run"
-          elif [ -z "$DISCORD_WEBHOOK_URL" ]; then
-            echo "::error::DISCORD_WEBHOOK_URL secret is not set."
-            exit 1
           fi
 
           npx tsx src/scripts/post-digest.ts $args

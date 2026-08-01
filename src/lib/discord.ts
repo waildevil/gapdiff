@@ -170,13 +170,42 @@ export function monthlyPayload(
   );
 }
 
+/**
+ * The environment variable carrying a group's webhook.
+ *
+ * Webhook URLs stay out of the database entirely. The token in one is a bearer
+ * credential — anyone holding it can post to that channel as anybody — and a
+ * database is the wrong place for that when the alternative is a secret store
+ * we already use for the Riot key. One secret per group, resolved by slug.
+ *
+ * The trade is that adding a group means adding a secret rather than filling in
+ * a form. With a handful of private boards owned by one person that is not a
+ * cost worth writing an encryption layer to avoid.
+ */
+export function webhookEnvName(slug: string): string {
+  return `DISCORD_WEBHOOK_${slug.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
+}
+
+/** A group's own webhook, or the shared one, or nothing. */
+export function webhookFor(slug: string): string | null {
+  return process.env[webhookEnvName(slug)] ?? process.env.DISCORD_WEBHOOK_URL ?? null;
+}
+
 /** Posts a payload, throwing with Discord's own message when it rejects it. */
 export async function postToDiscord(url: string, payload: WebhookPayload): Promise<void> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    // Deliberately does not include the URL. A network error surfacing in CI
+    // logs must never be the thing that leaks the credential.
+    throw new Error(`Discord webhook request failed: ${(error as Error).message}`);
+  }
 
   if (!response.ok) {
     const body = await response.text().catch(() => '<unreadable>');

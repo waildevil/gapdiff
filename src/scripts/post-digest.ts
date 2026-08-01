@@ -14,7 +14,13 @@ import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import { groups } from '@/db/schema';
-import { digestPayload, monthlyPayload, postToDiscord } from '@/lib/discord';
+import {
+  digestPayload,
+  monthlyPayload,
+  postToDiscord,
+  webhookEnvName,
+  webhookFor,
+} from '@/lib/discord';
 import { getGroupStandings } from '@/lib/leaderboard';
 import { getGroupMovement } from '@/lib/movement';
 import { currentPeriodIndex, periodWindow } from '@/lib/titles';
@@ -26,11 +32,6 @@ async function main() {
   const only = argv.find((a) => a.startsWith('--group='))?.split('=')[1];
   const daysArg = argv.find((a) => a.startsWith('--days='));
   const days = daysArg ? Number.parseInt(daysArg.split('=')[1] ?? '', 10) : 1;
-
-  const webhook = process.env.DISCORD_WEBHOOK_URL;
-  if (!webhook && !dryRun) {
-    throw new Error('DISCORD_WEBHOOK_URL is not set. Use --dry-run to render without posting.');
-  }
 
   const boards = only
     ? await db.select({ slug: groups.slug }).from(groups).where(eq(groups.slug, only))
@@ -46,6 +47,7 @@ async function main() {
   const previous = periodWindow(previousIndex);
 
   let posted = 0;
+  let unconfigured = 0;
 
   for (const { slug } of boards) {
     const payload = monthly
@@ -71,12 +73,35 @@ async function main() {
       continue;
     }
 
-    await postToDiscord(webhook!, payload);
+    /*
+     * Each board posts to its own server. A group without a webhook is skipped
+     * rather than treated as an error — a board nobody wired up to Discord is a
+     * legitimate state, and failing the run would make the other groups noisy
+     * about somebody else's missing configuration.
+     */
+    const webhook = webhookFor(slug);
+    if (!webhook) {
+      unconfigured++;
+      console.log(`  ${slug}: no webhook (set ${webhookEnvName(slug)}), skipping`);
+      continue;
+    }
+
+    await postToDiscord(webhook, payload);
     posted++;
     console.log(`  ${slug}: posted`);
   }
 
-  if (!dryRun) console.log(`\nDone. ${posted} message(s) posted.`);
+  if (dryRun) return;
+
+  console.log(`\nDone. ${posted} message(s) posted.`);
+
+  // Something to say and nowhere to say it is a misconfiguration, not silence.
+  if (posted === 0 && unconfigured > 0) {
+    const text = `${unconfigured} group(s) had news but no webhook configured.`;
+    console.error(
+      process.env.GITHUB_ACTIONS === 'true' ? `::warning::${text}` : `WARNING: ${text}`,
+    );
+  }
 }
 
 void runScript(main);
