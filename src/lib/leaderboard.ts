@@ -123,15 +123,26 @@ export interface GroupStandings {
   pairings: PairRecord[];
 }
 
+/**
+ * @param asOf Compute the board as it stood at this instant, ignoring anything
+ *   later. Every match is stored, so a past standing is reproduced exactly
+ *   rather than approximated — which is what makes "up two places since last
+ *   week" answerable without keeping a table of daily positions.
+ */
 export async function getGroupStandings(
   slug: string,
   periodIndex?: number,
+  asOf?: Date,
 ): Promise<GroupStandings | null> {
   const [group] = await db.select().from(groups).where(eq(groups.slug, slug)).limit(1);
   if (!group) return null;
 
   const latestIndex = currentPeriodIndex();
   const period = periodWindow(periodIndex ?? latestIndex);
+
+  // An asOf inside the period truncates it; one after it changes nothing.
+  const cutoff =
+    asOf && asOf < period.end ? asOf : period.end;
 
   // Left joins, not inner: an account can sit on the board with nobody
   // attached, which is how somebody who has stopped playing stays in the
@@ -205,6 +216,7 @@ export async function getGroupStandings(
         inArray(matchParticipants.puuid, puuids),
         eq(matches.scorable, true),
         gte(matches.gameCreation, since),
+        lt(matches.gameCreation, cutoff),
       ),
     )
     .orderBy(desc(matches.gameCreation));
@@ -254,7 +266,7 @@ export async function getGroupStandings(
       division: snapshot.division,
       leaguePoints: snapshot.leaguePoints,
     };
-    if (snapshot.capturedAt < period.end && !rankInPeriod.has(snapshot.puuid)) {
+    if (snapshot.capturedAt < cutoff && !rankInPeriod.has(snapshot.puuid)) {
       rankInPeriod.set(snapshot.puuid, value);
     }
     oldestKnown.set(snapshot.puuid, value);
@@ -306,7 +318,7 @@ export async function getGroupStandings(
 
     // Bounded at both ends, otherwise browsing to an old month would still
     // count newer games.
-    if (row.playedAt >= period.start && row.playedAt < period.end) {
+    if (row.playedAt >= period.start && row.playedAt < cutoff) {
       bucket.windowRows.push(row);
       if (row.score !== null) bucket.windowScores.push(row.score);
       if (row.win) bucket.wins++;
@@ -356,7 +368,7 @@ export async function getGroupStandings(
 
   // Scoped to the selected period like everything else on the page, so browsing
   // to June shows June's pairings rather than a season total under June titles.
-  const pairings = await getPairings(puuids, period.start, period.end);
+  const pairings = await getPairings(puuids, period.start, cutoff);
 
   const ranked = buildLeaderboard(
     members.map((member) => {
