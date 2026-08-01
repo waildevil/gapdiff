@@ -227,16 +227,41 @@ export async function getGroupStandings(
     )
     .orderBy(desc(rankSnapshots.capturedAt));
 
-  const latestRank = new Map<string, { tier: string; division: string; leaguePoints: number }>();
+  /*
+   * Rank as it stood at the end of the period being viewed, not as it stands
+   * today.
+   *
+   * Everything else on this page is scoped to the selected month, but the rank
+   * pillar used the newest snapshot regardless — so June's board showed June's
+   * performance beside August's LP, and a climb in July retroactively lifted
+   * every earlier month.
+   *
+   * Snapshots only began accumulating on 2026-07-31, so months before that have
+   * nothing in range. Those fall back to the oldest snapshot on record rather
+   * than to null: reporting a whole group as unranked would drop the rank
+   * pillar entirely and rewrite the standings, which is a worse lie than a
+   * slightly stale rank. As history accumulates the fallback stops being hit.
+   */
+  type Snapshot = { tier: string; division: string; leaguePoints: number };
+  const rankInPeriod = new Map<string, Snapshot>();
+  const oldestKnown = new Map<string, Snapshot>();
+
+  // Ordered newest first, so the first hit in range is the one that period
+  // ended on, and the final write to oldestKnown is the earliest on record.
   for (const snapshot of snapshots) {
-    if (!latestRank.has(snapshot.puuid)) {
-      latestRank.set(snapshot.puuid, {
-        tier: snapshot.tier,
-        division: snapshot.division,
-        leaguePoints: snapshot.leaguePoints,
-      });
+    const value: Snapshot = {
+      tier: snapshot.tier,
+      division: snapshot.division,
+      leaguePoints: snapshot.leaguePoints,
+    };
+    if (snapshot.capturedAt < period.end && !rankInPeriod.has(snapshot.puuid)) {
+      rankInPeriod.set(snapshot.puuid, value);
     }
+    oldestKnown.set(snapshot.puuid, value);
   }
+
+  const rankFor = (puuid: string): Snapshot | null =>
+    rankInPeriod.get(puuid) ?? oldestKnown.get(puuid) ?? null;
 
   /**
    * Everything on this page describes the selected month, not the season.
@@ -352,7 +377,7 @@ export async function getGroupStandings(
             bucket.deaths === 0
               ? bucket.kills + bucket.assists
               : (bucket.kills + bucket.assists) / bucket.deaths,
-          rank: latestRank.get(member.puuid) ?? null,
+          rank: rankFor(member.puuid),
           form: bucket.windowScores,
           titles: award?.titles ?? [],
           title: award?.primary ?? null,
@@ -362,7 +387,7 @@ export async function getGroupStandings(
           scores: bucket.windowScores,
           wins: bucket.wins,
           losses: bucket.losses,
-          rank: latestRank.get(member.puuid) ?? null,
+          rank: rankFor(member.puuid),
         },
       };
     }),
