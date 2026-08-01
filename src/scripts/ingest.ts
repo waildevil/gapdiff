@@ -16,14 +16,14 @@ import { isScorable, matchDurationSeconds } from '@/lib/rating/metrics';
 import { scoreMatch } from '@/lib/rating/score';
 import { indexMatchParticipants } from '@/lib/playerIndex';
 import { rankPoints } from '@/lib/rating/rating';
-import { currentPeriodIndex, periodWindow } from '@/lib/titles';
+import { currentPeriodIndex, periodWindow, seasonStart } from '@/lib/titles';
 
 /**
  * Pulls new matches for tracked accounts and scores them.
  *
  *   npm run ingest                      everyone, only what's new since last time
  *   npm run ingest -- --player anvil    one account, so adding somebody is quick
- *   npm run ingest -- --backfill        full history window, for a new account
+ *   npm run ingest -- --backfill        back to SEASON_START, for a new account
  *   npm run ingest -- --days=90         explicit window, implies --backfill
  *
  * Incremental by default. An account that has already been backfilled is only
@@ -157,9 +157,21 @@ async function syncAccount(
     .where(eq(syncState.puuid, account.puuid))
     .limit(1);
 
+  /*
+   * A backfill — asked for with --backfill, or forced because this account has
+   * never had one — reaches back to the season, not to the current month.
+   *
+   * It used to use the incremental window for both, so a backfill covered two
+   * days, set backfill_complete, and left the account permanently short of
+   * everything before that. An explicit --days still wins over either.
+   */
+  const isBackfill = options.backfill || !state?.backfillComplete;
+
   const windowStart = options.days
     ? new Date(Date.now() - options.days * 24 * 60 * 60 * 1000)
-    : defaultWindowStart();
+    : isBackfill
+      ? seasonStart()
+      : defaultWindowStart();
 
   /*
    * The whole optimisation: an account that has already been backfilled only
@@ -169,7 +181,7 @@ async function syncAccount(
   let since: Date;
   let mode: SyncResult['mode'];
 
-  if (options.backfill || !state?.backfillComplete) {
+  if (isBackfill) {
     since = windowStart;
     mode = state?.backfillComplete ? 'backfill' : 'first run';
   } else {
@@ -306,9 +318,13 @@ async function main() {
     return;
   }
 
+  // Accounts that have never been backfilled widen to the season on their own,
+  // so this is the floor for an already-synced account rather than a promise.
   const window = options.days
     ? `last ${options.days} days`
-    : `since ${defaultWindowStart().toISOString().slice(0, 10)}`;
+    : options.backfill
+      ? `since ${seasonStart().toISOString().slice(0, 10)}`
+      : `since ${defaultWindowStart().toISOString().slice(0, 10)}`;
   console.log(
     `Ingesting ${tracked.length} account(s), ${window}` +
       `${options.backfill ? ' (backfill)' : ''}\n`,
