@@ -12,6 +12,9 @@ import { perfColor, winRate } from '@/lib/format';
 import { QUEUE_FILTERS } from '@/lib/profile';
 import styles from './ChampionTable.module.css';
 
+/** Matchups revealed per click. Five fits without burying the next champion. */
+const MATCHUP_PAGE = 5;
+
 interface ChampionTableProps {
   history: ChampionQueueRow[];
   matchups: ChampionMatchup[];
@@ -28,6 +31,13 @@ interface ChampionTableProps {
 export function ChampionTable({ history, matchups, version }: ChampionTableProps) {
   const [filterId, setFilterId] = useState('all');
   const [open, setOpen] = useState<string | null>(null);
+  /** Reset whenever a different champion opens, so each starts at five. */
+  const [shownMatchups, setShownMatchups] = useState(MATCHUP_PAGE);
+
+  function toggle(championName: string) {
+    setOpen((current) => (current === championName ? null : championName));
+    setShownMatchups(MATCHUP_PAGE);
+  }
 
   const tabs = useMemo(() => {
     const queueIds = [...new Set(history.map((row) => row.queueId))];
@@ -123,7 +133,7 @@ export function ChampionTable({ history, matchups, version }: ChampionTableProps
                 <button
                   type="button"
                   className={`${styles.row} ${isOpen ? styles.rowOpen : ''}`}
-                  onClick={() => setOpen(isOpen ? null : champ.championName)}
+                  onClick={() => toggle(champ.championName)}
                   aria-expanded={isOpen}
                 >
                   <div className={styles.pos}>{index + 1}</div>
@@ -186,7 +196,7 @@ export function ChampionTable({ history, matchups, version }: ChampionTableProps
                         infers roles on Summoner&apos;s Rift queues.
                       </div>
                     ) : (
-                      openMatchups.map((m) => {
+                      openMatchups.slice(0, shownMatchups).map((m) => {
                         const losses = m.games - m.wins;
                         const rate = winRate(m.wins, losses);
                         return (
@@ -210,6 +220,19 @@ export function ChampionTable({ history, matchups, version }: ChampionTableProps
                         );
                       })
                     )}
+
+                    {openMatchups.length > shownMatchups ? (
+                      <button
+                        type="button"
+                        className={styles.loadMore}
+                        onClick={() =>
+                          setShownMatchups((count) => count + MATCHUP_PAGE)
+                        }
+                      >
+                        Load {Math.min(MATCHUP_PAGE, openMatchups.length - shownMatchups)}{' '}
+                        more · {openMatchups.length - shownMatchups} left
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

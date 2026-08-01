@@ -209,3 +209,22 @@
   font-size: 12.5px;
   color: var(--faint);
 }
+
+.loadMore {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.loadMore:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+}
