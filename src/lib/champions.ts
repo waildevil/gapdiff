@@ -1,5 +1,5 @@
 import { winRate } from './format';
-import type { ProfileMatch } from './profile';
+import { queueFilter, type ProfileMatch } from './profile';
 
 export interface ChampionStats {
   championName: string;
@@ -14,6 +14,82 @@ export interface ChampionStats {
   csPerMin: number;
   visionScore: number;
   avgGapScore: number | null;
+}
+
+/**
+ * One champion in one queue, as stored. Kept unaggregated across queues so the
+ * sidebar can re-total for whichever tab is selected without another query.
+ */
+export interface ChampionQueueRow {
+  championName: string;
+  queueId: number;
+  games: number;
+  wins: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  csPerMinTotal: number;
+  visionTotal: number;
+  scoreTotal: number;
+  scoredGames: number;
+}
+
+/** Does a stored queue id belong to the tab the user has selected? */
+export function queueMatchesFilter(filterId: string, queueId: number): boolean {
+  const filter = queueFilter(filterId);
+  if (filter.id === 'all') return true;
+  if (filter.includeQueues) return filter.includeQueues.includes(queueId);
+  if (filter.queue !== undefined) return queueId === filter.queue;
+  return true;
+}
+
+/** Re-totals stored rows for one queue tab. */
+export function championsFromHistory(
+  rows: ChampionQueueRow[],
+  filterId: string,
+): ChampionStats[] {
+  const byChamp = new Map<string, ChampionQueueRow>();
+
+  for (const row of rows) {
+    if (!queueMatchesFilter(filterId, row.queueId)) continue;
+
+    const existing = byChamp.get(row.championName);
+    if (!existing) {
+      byChamp.set(row.championName, { ...row });
+      continue;
+    }
+
+    existing.games += row.games;
+    existing.wins += row.wins;
+    existing.kills += row.kills;
+    existing.deaths += row.deaths;
+    existing.assists += row.assists;
+    existing.csPerMinTotal += row.csPerMinTotal;
+    existing.visionTotal += row.visionTotal;
+    existing.scoreTotal += row.scoreTotal;
+    existing.scoredGames += row.scoredGames;
+  }
+
+  return [...byChamp.values()]
+    .map((row) => ({
+      championName: row.championName,
+      games: row.games,
+      wins: row.wins,
+      losses: row.games - row.wins,
+      winRate: winRate(row.wins, row.games - row.wins),
+      // Pooled, so one deathless game can't produce an infinite KDA.
+      kda:
+        row.deaths === 0
+          ? row.kills + row.assists
+          : (row.kills + row.assists) / row.deaths,
+      kills: row.kills,
+      deaths: row.deaths,
+      assists: row.assists,
+      csPerMin: row.games ? row.csPerMinTotal / row.games : 0,
+      visionScore: row.games ? row.visionTotal / row.games : 0,
+      avgGapScore: row.scoredGames ? row.scoreTotal / row.scoredGames : null,
+    }))
+    .sort((a, b) => b.games - a.games);
 }
 
 export function summariseChampions(matches: ProfileMatch[]): ChampionStats[] {

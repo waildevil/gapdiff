@@ -6,6 +6,7 @@ import { formatRank } from '@/lib/rating/rating';
 import { tierColor, winRate } from '@/lib/format';
 import { RiotApiError } from '@/lib/riot/client';
 import { ChampionSidebar } from '@/components/ChampionSidebar';
+import { getChampionHistory } from '@/lib/championHistory';
 import { MatchSection } from '@/components/MatchSection';
 import { RecentlyPlayedWith } from '@/components/RecentlyPlayedWith';
 import styles from './profile.module.css';
@@ -43,10 +44,18 @@ export default async function PlayerPage({ params }: PageProps) {
       latestVersion(),
     ]);
 
+    // Empty for anybody the ingester doesn't track, which the sidebar handles
+    // by falling back to the ten live matches.
+    const championHistory = await getChampionHistory(profile.puuid).catch(() => []);
+
     return (
       <div className={styles.wrap}>
         <div className={styles.sidebar}>
-          <ChampionSidebar matches={profile.matches} version={version} />
+          <ChampionSidebar
+            history={championHistory}
+            matches={profile.matches}
+            version={version}
+          />
         </div>
 
         <div className={styles.main}>
