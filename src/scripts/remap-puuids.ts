@@ -98,15 +98,29 @@ async function main() {
     if (!apply) continue;
 
     /*
-     * accounts first: the child tables reference it, so inserting the new row
-     * before repointing children keeps every foreign key satisfied at each
-     * step. The old row is removed last, once nothing points at it.
+     * The old and new rows have to coexist while the children are repointed —
+     * deleting the old one first would cascade straight through rank_snapshots,
+     * which is the data this migration exists to save. But accounts is unique
+     * on (game_name, tag_line, platform), so two rows for the same player
+     * collide.
+     *
+     * So the old row's name is parked under a sentinel for the duration. Only
+     * game_name is touched because it is the one `text` column of the three;
+     * tag_line and platform are varchar(8) with no room for a suffix.
      */
     await db.transaction(async (tx) => {
       await tx.execute(sql`
+        UPDATE accounts SET game_name = game_name || '~migrating'
+        WHERE puuid = ${account.puuid}
+      `);
+
+      // summoner_id is encrypted per key too, so the stored one is as dead as
+      // the PUUID. Nulling it makes the client re-resolve rather than retry a
+      // value that can only 400.
+      await tx.execute(sql`
         INSERT INTO accounts (puuid, game_name, tag_line, platform, summoner_id,
                               profile_icon_id, summoner_level, created_at, updated_at)
-        SELECT ${fresh}, game_name, tag_line, platform, summoner_id,
+        SELECT ${fresh}, ${account.game_name}, tag_line, platform, NULL,
                profile_icon_id, summoner_level, created_at, now()
         FROM accounts WHERE puuid = ${account.puuid}
       `);
