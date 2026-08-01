@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import {
   accounts,
@@ -16,25 +16,55 @@ import { isScorable, matchDurationSeconds } from '@/lib/rating/metrics';
 import { scoreMatch } from '@/lib/rating/score';
 import { indexMatchParticipants } from '@/lib/playerIndex';
 import { rankPoints } from '@/lib/rating/rating';
+import { currentPeriodIndex, periodWindow } from '@/lib/titles';
 
 /**
- * Pulls new matches for every tracked account and scores them.
+ * Pulls new matches for tracked accounts and scores them.
  *
- *   npm run ingest              recent games only
- *   npm run ingest -- --days=90 reach further back
+ *   npm run ingest                      everyone, only what's new since last time
+ *   npm run ingest -- --player anvil    one account, so adding somebody is quick
+ *   npm run ingest -- --backfill        full history window, for a new account
+ *   npm run ingest -- --days=90         explicit window, implies --backfill
  *
- * Safe to re-run and safe to interrupt: matches already stored are skipped, and
- * sync state only advances after a successful pass for that account.
+ * Incremental by default. An account that has already been backfilled is only
+ * asked for matches since its last sync, which is usually a single page rather
+ * than four — the expensive part is per-match fetches, and a match is never
+ * fetched twice.
  */
 
-const DEFAULT_DAYS = 30;
 /** Riot caps match-id pages at 100. */
 const PAGE_SIZE = 100;
+/** Re-check a little before the last sync, in case a game landed mid-run. */
+const OVERLAP_MS = 60 * 60 * 1000;
 
-function parseDays(): number {
-  const arg = process.argv.find((a) => a.startsWith('--days='));
-  const value = arg ? Number.parseInt(arg.split('=')[1] ?? '', 10) : NaN;
-  return Number.isFinite(value) && value > 0 ? value : DEFAULT_DAYS;
+interface Options {
+  days: number | null;
+  backfill: boolean;
+  player: string | null;
+}
+
+function parseOptions(): Options {
+  const argv = process.argv.slice(2);
+  const daysArg = argv.find((a) => a.startsWith('--days='));
+  const parsedDays = daysArg ? Number.parseInt(daysArg.split('=')[1] ?? '', 10) : NaN;
+  const playerArg = argv.find((a) => a.startsWith('--player='));
+
+  return {
+    days: Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : null,
+    // An explicit window is a backfill request by definition.
+    backfill: argv.includes('--backfill') || Number.isFinite(parsedDays),
+    player: playerArg ? (playerArg.split('=')[1] ?? null) : null,
+  };
+}
+
+/**
+ * The default window is the current month, because the standings are scored per
+ * month — anything older only matters if somebody browses back to it, and that
+ * is what --backfill is for.
+ */
+function defaultWindowStart(): Date {
+  const monthStart = periodWindow(currentPeriodIndex()).start;
+  return new Date(monthStart.getTime() - 2 * 24 * 60 * 60 * 1000);
 }
 
 async function storeMatch(match: Match, platform: string): Promise<void> {
@@ -99,17 +129,65 @@ async function storeMatch(match: Match, platform: string): Promise<void> {
     .onConflictDoNothing();
 }
 
+interface SyncResult {
+  added: number;
+  seen: number;
+  calls: number;
+  mode: 'incremental' | 'backfill' | 'first run';
+}
+
 async function syncAccount(
   riot: RiotClient,
-  account: { puuid: string; platform: string; gameName: string; tagLine: string; summonerId: string | null },
-  since: number,
-): Promise<{ added: number }> {
+  account: {
+    puuid: string;
+    platform: string;
+    gameName: string;
+    tagLine: string;
+    summonerId: string | null;
+  },
+  options: Options,
+): Promise<SyncResult> {
   const platform = account.platform as Platform;
   const region = regionForPlatform(platform);
   const label = `${account.gameName}#${account.tagLine}`;
 
+  const [state] = await db
+    .select()
+    .from(syncState)
+    .where(eq(syncState.puuid, account.puuid))
+    .limit(1);
+
+  const windowStart = options.days
+    ? new Date(Date.now() - options.days * 24 * 60 * 60 * 1000)
+    : defaultWindowStart();
+
+  /*
+   * The whole optimisation: an account that has already been backfilled only
+   * needs what has happened since. Rescanning the full window every run cost
+   * four wasted id pages per person to discover one new game.
+   */
+  let since: Date;
+  let mode: SyncResult['mode'];
+
+  if (options.backfill || !state?.backfillComplete) {
+    since = windowStart;
+    mode = state?.backfillComplete ? 'backfill' : 'first run';
+  } else {
+    const last = state.lastSyncedAt ?? windowStart;
+    since = new Date(Math.max(last.getTime() - OVERLAP_MS, windowStart.getTime()));
+    mode = 'incremental';
+  }
+
+  let calls = 0;
+
   // Ranked standing first — it's one call and it drives 40% of the Gap Score.
-  const leagues = await riot.getLeagueEntries(platform, account.puuid, account.summonerId ?? undefined);
+  const leagues = await riot.getLeagueEntries(
+    platform,
+    account.puuid,
+    account.summonerId ?? undefined,
+  );
+  calls++;
+
   for (const entry of leagues) {
     if (!entry.tier) continue;
     await db.insert(rankSnapshots).values({
@@ -125,7 +203,7 @@ async function syncAccount(
   }
 
   // Riot expects epoch *seconds* here. Milliseconds silently returns nothing.
-  const startTime = Math.floor(since / 1000);
+  const startTime = Math.floor(since.getTime() / 1000);
   const collected: string[] = [];
 
   for (let start = 0; ; start += PAGE_SIZE) {
@@ -134,43 +212,79 @@ async function syncAccount(
       count: PAGE_SIZE,
       startTime,
     });
+    calls++;
     collected.push(...page);
     if (page.length < PAGE_SIZE) break;
   }
 
-  if (collected.length === 0) {
-    console.log(`  ${label}: no matches in window`);
-    return { added: 0 };
-  }
-
-  const known = await db
-    .select({ matchId: matches.matchId })
-    .from(matches)
-    .where(inArray(matches.matchId, collected));
-  const knownIds = new Set(known.map((row) => row.matchId));
-  const missing = collected.filter((id) => !knownIds.has(id));
-
   let added = 0;
-  for (const matchId of missing) {
-    const match = await riot.getMatch(region, matchId);
-    if (!RATED_QUEUES.includes(match.info.queueId)) continue;
-    await storeMatch(match, platform);
-    added++;
+
+  if (collected.length > 0) {
+    // Matches shared with somebody already tracked are already here — a friend
+    // group that duos a lot makes each extra member much cheaper than the first.
+    const known = await db
+      .select({ matchId: matches.matchId })
+      .from(matches)
+      .where(inArray(matches.matchId, collected));
+    const knownIds = new Set(known.map((row) => row.matchId));
+
+    for (const matchId of collected) {
+      if (knownIds.has(matchId)) continue;
+      const match = await riot.getMatch(region, matchId);
+      calls++;
+      if (!RATED_QUEUES.includes(match.info.queueId)) continue;
+      await storeMatch(match, platform);
+      added++;
+    }
   }
+
+  // Only ever widen the backfilled range. Computed here rather than in SQL:
+  // postgres-js can't bind a JS Date inside a raw expression.
+  const earliestCovered =
+    state?.backfilledThrough && state.backfilledThrough < since
+      ? state.backfilledThrough
+      : since;
 
   await db
-    .update(syncState)
-    .set({ lastSyncedAt: new Date(), lastError: null })
-    .where(eq(syncState.puuid, account.puuid));
+    .insert(syncState)
+    .values({
+      puuid: account.puuid,
+      lastSyncedAt: new Date(),
+      backfilledThrough: earliestCovered,
+      backfillComplete: true,
+      lastError: null,
+    })
+    .onConflictDoUpdate({
+      target: syncState.puuid,
+      set: {
+        lastSyncedAt: new Date(),
+        backfilledThrough: earliestCovered,
+        backfillComplete: true,
+        lastError: null,
+      },
+    });
 
-  console.log(`  ${label}: ${added} new of ${collected.length} seen`);
-  return { added };
+  console.log(
+    `  ${label.padEnd(22)} ${String(added).padStart(3)} new of ${String(collected.length).padStart(3)} seen` +
+      `  (${mode}, ${calls} API calls)`,
+  );
+
+  return { added, seen: collected.length, calls, mode };
 }
 
 async function main() {
-  const days = parseDays();
-  const since = Date.now() - days * 24 * 60 * 60 * 1000;
+  const options = parseOptions();
   const riot = new RiotClient({ apiKey: process.env.RIOT_API_KEY ?? '' });
+
+  const where = options.player
+    ? and(
+        eq(trackedAccounts.puuid, accounts.puuid),
+        or(
+          sql`lower(${accounts.gameName}) = lower(${options.player})`,
+          sql`lower(${accounts.gameName} || '#' || ${accounts.tagLine}) = lower(${options.player})`,
+        ),
+      )
+    : eq(trackedAccounts.puuid, accounts.puuid);
 
   const tracked = await db
     .selectDistinct({
@@ -181,31 +295,44 @@ async function main() {
       summonerId: accounts.summonerId,
     })
     .from(accounts)
-    .innerJoin(trackedAccounts, eq(trackedAccounts.puuid, accounts.puuid));
+    .innerJoin(trackedAccounts, where);
 
   if (tracked.length === 0) {
-    console.log('No tracked accounts. Run `npm run seed` first.');
+    console.log(
+      options.player
+        ? `No tracked account matching "${options.player}".`
+        : 'No tracked accounts. Run `npm run seed` first.',
+    );
     return;
   }
 
-  console.log(`Ingesting ${tracked.length} accounts, last ${days} days\n`);
+  const window = options.days
+    ? `last ${options.days} days`
+    : `since ${defaultWindowStart().toISOString().slice(0, 10)}`;
+  console.log(
+    `Ingesting ${tracked.length} account(s), ${window}` +
+      `${options.backfill ? ' (backfill)' : ''}\n`,
+  );
 
   let total = 0;
+  let calls = 0;
+
   for (const account of tracked) {
     try {
-      const { added } = await syncAccount(riot, account, since);
-      total += added;
+      const result = await syncAccount(riot, account, options);
+      total += result.added;
+      calls += result.calls;
     } catch (error) {
       const message = (error as Error).message;
       console.error(`  ${account.gameName}#${account.tagLine}: ${message}`);
       await db
-        .update(syncState)
-        .set({ lastError: message })
-        .where(eq(syncState.puuid, account.puuid));
+        .insert(syncState)
+        .values({ puuid: account.puuid, lastError: message })
+        .onConflictDoUpdate({ target: syncState.puuid, set: { lastError: message } });
     }
   }
 
-  console.log(`\nDone. ${total} new matches stored.`);
+  console.log(`\nDone. ${total} new matches stored, ${calls} API calls.`);
 }
 
 void runScript(main);
