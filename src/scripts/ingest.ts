@@ -133,6 +133,8 @@ interface SyncResult {
   added: number;
   seen: number;
   calls: number;
+  /** Rank rows written. The one thing here that cannot be backfilled later. */
+  snapshots: number;
   mode: 'incremental' | 'backfill' | 'first run';
 }
 
@@ -200,8 +202,10 @@ async function syncAccount(
   );
   calls++;
 
+  let snapshots = 0;
   for (const entry of leagues) {
     if (!entry.tier) continue;
+    snapshots++;
     await db.insert(rankSnapshots).values({
       puuid: account.puuid,
       queueType: entry.queueType,
@@ -281,7 +285,7 @@ async function syncAccount(
       `  (${mode}, ${calls} API calls)`,
   );
 
-  return { added, seen: collected.length, calls, mode };
+  return { added, seen: collected.length, calls, snapshots, mode };
 }
 
 async function main() {
@@ -333,14 +337,20 @@ async function main() {
   let total = 0;
   let calls = 0;
 
+  const failed: { label: string; message: string }[] = [];
+  let snapshots = 0;
+
   for (const account of tracked) {
+    const label = `${account.gameName}#${account.tagLine}`;
     try {
       const result = await syncAccount(riot, account, options);
       total += result.added;
       calls += result.calls;
+      snapshots += result.snapshots;
     } catch (error) {
       const message = (error as Error).message;
-      console.error(`  ${account.gameName}#${account.tagLine}: ${message}`);
+      console.error(`  ${label}: ${message}`);
+      failed.push({ label, message });
       await db
         .insert(syncState)
         .values({ puuid: account.puuid, lastError: message })
@@ -348,7 +358,39 @@ async function main() {
     }
   }
 
-  console.log(`\nDone. ${total} new matches stored, ${calls} API calls.`);
+  console.log(
+    `\nDone. ${total} new matches stored, ${snapshots} rank snapshots, ${calls} API calls.`,
+  );
+
+  /*
+   * Exit non-zero when anybody failed.
+   *
+   * This used to log the failure, record it on sync_state and exit 0, so a run
+   * where every single account 400'd still showed a green tick in Actions and
+   * nobody noticed for hours. One account failing matters just as much: it is
+   * the case that hides, because the other six keep the summary looking normal
+   * while that player's history quietly stops advancing.
+   *
+   * The successful accounts are already committed — a non-zero exit reports
+   * what happened, it doesn't undo them.
+   */
+  const ci = process.env.GITHUB_ACTIONS === 'true';
+  const problem = (text: string) => console.error(ci ? `::error::${text}` : `ERROR: ${text}`);
+
+  if (snapshots === 0 && failed.length === 0 && tracked.length > 0) {
+    // Not fatal: a group where nobody is placed legitimately has none.
+    const text =
+      'No rank snapshots were captured. If anybody is ranked this is a silent failure, ' +
+      'and rank history is the one thing here that cannot be backfilled later.';
+    console.error(ci ? `::warning::${text}` : `WARNING: ${text}`);
+  }
+
+  if (failed.length > 0) {
+    for (const f of failed) problem(`${f.label} did not sync: ${f.message}`);
+    throw new Error(
+      `${failed.length} of ${tracked.length} account(s) failed to sync — see above.`,
+    );
+  }
 }
 
 void runScript(main);
