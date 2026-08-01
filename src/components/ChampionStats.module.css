@@ -1,0 +1,105 @@
+.table {
+  overflow-x: auto;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 24px 1fr 60px 50px 60px 70px 70px 80px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 24px 1fr 60px 50px 60px 70px 70px 80px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.rank {
+  text-align: center;
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.champ {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-width: 0;
+}
+
+.games {
+  text-align: right;
+  color: var(--muted);
+}
+
+.wr {
+  text-align: right;
+  font-weight: 650;
+}
+
+.good {
+  color: var(--good);
+}
+
+.bad {
+  color: var(--bad);
+}
+
+.kda {
+  text-align: right;
+  color: var(--muted);
+}
+
+.cs {
+  text-align: right;
+  color: var(--muted);
+}
+
+.vision {
+  text-align: right;
+  color: var(--muted);
+}
+
+.score {
+  text-align: right;
+  font-weight: 650;
+}
+
+.empty {
+  padding: 16px;
+  font-size: 12.5px;
+  color: var(--faint);
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .header,
+  .row {
+    grid-template-columns: 20px 1fr 50px 45px 55px 60px 60px 70px;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .champ {
+    font-size: 11px;
+  }
+}
