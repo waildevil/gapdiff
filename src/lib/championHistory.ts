@@ -17,7 +17,13 @@ import { seasonStart } from './titles';
  * anything it imports is bundled for the browser, and the database driver
  * reaches for `node:path`.
  */
-export async function getChampionHistory(puuid: string): Promise<ChampionQueueRow[]> {
+export interface ChampionHistory {
+  rows: ChampionQueueRow[];
+  /** Oldest stored game, so the caller can say what the numbers actually cover. */
+  since: Date | null;
+}
+
+export async function getChampionHistory(puuid: string): Promise<ChampionHistory> {
   const rows = await db
     .select({
       championName: matchParticipants.championName,
@@ -29,6 +35,7 @@ export async function getChampionHistory(puuid: string): Promise<ChampionQueueRo
       csPerMin: matchParticipants.csPerMin,
       visionScore: matchParticipants.visionScore,
       score: matchParticipants.performanceScore,
+      playedAt: matches.gameCreation,
     })
     .from(matchParticipants)
     .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
@@ -37,8 +44,10 @@ export async function getChampionHistory(puuid: string): Promise<ChampionQueueRo
     );
 
   const byKey = new Map<string, ChampionQueueRow>();
+  let since: Date | null = null;
 
   for (const row of rows) {
+    if (since === null || row.playedAt < since) since = row.playedAt;
     const key = `${row.championName}|${row.queueId}`;
     let bucket = byKey.get(key);
     if (!bucket) {
@@ -71,5 +80,5 @@ export async function getChampionHistory(puuid: string): Promise<ChampionQueueRo
     }
   }
 
-  return [...byKey.values()];
+  return { rows: [...byKey.values()], since };
 }

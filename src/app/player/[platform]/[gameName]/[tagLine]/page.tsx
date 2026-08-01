@@ -46,13 +46,17 @@ export default async function PlayerPage({ params }: PageProps) {
 
     // Empty for anybody the ingester doesn't track, which the sidebar handles
     // by falling back to the ten live matches.
-    const championHistory = await getChampionHistory(profile.puuid).catch(() => []);
+    const championHistory = await getChampionHistory(profile.puuid).catch(() => ({
+      rows: [],
+      since: null,
+    }));
 
     return (
       <div className={styles.wrap}>
         <div className={styles.sidebar}>
           <ChampionSidebar
-            history={championHistory}
+            history={championHistory.rows}
+            since={championHistory.since?.toISOString() ?? null}
             matches={profile.matches}
             version={version}
           />

@@ -13,14 +13,23 @@ import { QUEUE_FILTERS, type ProfileMatch } from '@/lib/profile';
 import styles from './ChampionSidebar.module.css';
 
 interface ChampionSidebarProps {
-  /** Season history from the database. Empty for untracked accounts. */
+  /** Stored history from the database. Empty for untracked accounts. */
   history: ChampionQueueRow[];
+  /**
+   * Oldest stored game. The ingester's window is a setting, not the whole
+   * season, so the caption reports coverage rather than implying completeness.
+   */
+  since: string | null;
   /** The ten live matches, used only when there is no stored history. */
   matches: ProfileMatch[];
   version: string;
 }
 
 const SHOWN = 8;
+
+function formatSince(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 /**
  * Champion pool, in the left column where op.gg puts it.
@@ -29,7 +38,12 @@ const SHOWN = 8;
  * falls back to the ten matches the profile already fetched, which is thin
  * enough that the caption says so rather than pretending otherwise.
  */
-export function ChampionSidebar({ history, matches, version }: ChampionSidebarProps) {
+export function ChampionSidebar({
+  history,
+  since,
+  matches,
+  version,
+}: ChampionSidebarProps) {
   const [filterId, setFilterId] = useState('all');
   const [expanded, setExpanded] = useState(false);
 
@@ -62,7 +76,9 @@ export function ChampionSidebar({ history, matches, version }: ChampionSidebarPr
       <div className={styles.head}>
         <div className={styles.label}>Champions</div>
         <div className={styles.caption}>
-          {stored ? `${games} games this season` : `last ${matches.length} games`}
+          {stored
+            ? `${games} games ingested${since ? ` since ${formatSince(since)}` : ''}`
+            : `last ${matches.length} games`}
         </div>
       </div>
 
