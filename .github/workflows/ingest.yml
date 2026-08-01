@@ -1,0 +1,65 @@
+name: Ingest
+
+# Rank history is the reason this runs on a schedule. Riot's league-v4 returns
+# the *current* standing and nothing else — there is no historical LP endpoint —
+# so a day nobody records a snapshot is a day of LP history that cannot be
+# recovered later. Match history has no such problem: it can always be pulled
+# retroactively with --days.
+on:
+  schedule:
+    # 03:00 UTC, after European late-night games have settled.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: 'Reach back to SEASON_START instead of syncing incrementally'
+        type: boolean
+        default: false
+      player:
+        description: 'Limit to one Riot ID (e.g. anvil), blank for everybody'
+        type: string
+        default: ''
+
+# A slow backfill overlapping the next nightly run would double the API rate.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Sync matches and capture rank snapshots
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEASON_START: ${{ vars.SEASON_START }}
+          TITLE_WINDOW_START: ${{ vars.TITLE_WINDOW_START }}
+        run: |
+          if [ -z "$RIOT_API_KEY" ]; then
+            echo "::error::RIOT_API_KEY secret is not set."
+            exit 1
+          fi
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set. Without it the ingest"
+            echo "::error::falls back to a local PGlite folder that is thrown away"
+            echo "::error::with the runner, so it would silently write nowhere."
+            exit 1
+          fi
+
+          args=""
+          if [ "${{ inputs.backfill }}" = "true" ]; then args="$args --backfill"; fi
+          if [ -n "${{ inputs.player }}" ]; then args="$args --player=${{ inputs.player }}"; fi
+
+          npm run ingest -- $args
