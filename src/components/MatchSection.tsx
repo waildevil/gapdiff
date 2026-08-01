@@ -5,7 +5,6 @@ import { fetchMatches } from '@/app/player/[platform]/[gameName]/[tagLine]/actio
 import { QUEUE_FILTERS, queueFilter, type ProfileMatch } from '@/lib/profile';
 import { perfColor } from '@/lib/format';
 import type { Platform } from '@/lib/riot/routing';
-import { ChampionStats } from './ChampionStats';
 import { MatchCard } from './MatchCard';
 import styles from './MatchSection.module.css';
 
@@ -98,10 +97,6 @@ export function MatchSection({
           foot={stats.avgScore === null ? 'this queue is not scored' : '0–100, versus each lobby'}
           color={stats.avgScore === null ? undefined : perfColor(stats.avgScore)}
         />
-      </div>
-
-      <div className="section-gap">
-        <ChampionStats matches={matches} />
       </div>
 
       <div className="card section-gap">

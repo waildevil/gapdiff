@@ -5,6 +5,7 @@ import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank } from '@/lib/rating/rating';
 import { tierColor, winRate } from '@/lib/format';
 import { RiotApiError } from '@/lib/riot/client';
+import { ChampionSidebar } from '@/components/ChampionSidebar';
 import { MatchSection } from '@/components/MatchSection';
 import { RecentlyPlayedWith } from '@/components/RecentlyPlayedWith';
 import styles from './profile.module.css';
@@ -44,8 +45,13 @@ export default async function PlayerPage({ params }: PageProps) {
 
     return (
       <div className={styles.wrap}>
-        <div className="card">
-          <div className={styles.identity}>
+        <div className={styles.sidebar}>
+          <ChampionSidebar matches={profile.matches} version={version} />
+        </div>
+
+        <div className={styles.main}>
+          <div className="card">
+            <div className={styles.identity}>
             <img
               className={styles.icon}
               src={profileIcon(version, profile.profileIconId)}
@@ -98,6 +104,7 @@ export default async function PlayerPage({ params }: PageProps) {
           exact match, weighted by role, then squashed to 0–100. Beating your direct lane
           opponent counts extra. Remakes score nothing. Click any game to see the full
           scoreboard with every player scored the same way.
+        </div>
         </div>
       </div>
     );

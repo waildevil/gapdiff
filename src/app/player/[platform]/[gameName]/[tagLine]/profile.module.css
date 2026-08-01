@@ -1,7 +1,23 @@
 .wrap {
-  max-width: 1180px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 24px 24px 80px;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.main {
+  min-width: 0;
+  padding-bottom: 80px;
 }
 
 /* ---------- identity ---------- */
@@ -221,9 +237,21 @@
   text-align: left;
 }
 
+@media (max-width: 1000px) {
+  .wrap {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
 @media (max-width: 860px) {
   .wrap {
-    padding: 16px 16px 64px;
+    padding: 16px;
   }
 
   .matchRow {

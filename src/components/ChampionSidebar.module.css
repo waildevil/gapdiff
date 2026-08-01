@@ -1,0 +1,97 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 0 4px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  transition: background 0.15s;
+}
+
+.row:hover {
+  background: var(--surface-3);
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+}
+
+.info {
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.good {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.bad {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.dot {
+  opacity: 0.5;
+}
+
+.score {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 650;
+  flex: 0 0 auto;
+}
+
+.empty {
+  padding: 12px 0;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 4px;
+}
