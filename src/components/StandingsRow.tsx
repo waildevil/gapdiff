@@ -3,7 +3,8 @@ import { Avatar } from './Avatar';
 import { PillarBar } from './PillarBar';
 import { Sparkline } from './Sparkline';
 import { profileIcon } from '@/lib/ddragon';
-import { tierColor, tierLabel, winRate } from '@/lib/format';
+import { winRate } from '@/lib/format';
+import { RankBadge } from './RankBadge';
 import type { LeaderboardEntry } from '@/lib/leaderboard';
 import styles from './StandingsRow.module.css';
 
@@ -83,9 +84,7 @@ export function StandingsRow({
           {player.gameName}
         </Link>
         <div className={styles.meta}>
-          <span className="tier" style={{ color: tierColor(player.rank?.tier ?? 'UNRANKED') }}>
-            {tierLabel(player.rank)}
-          </span>
+          <RankBadge rank={player.rank} />
           {player.nickname ? (
             <span className={styles.nickname}>{player.nickname}</span>
           ) : player.title ? (

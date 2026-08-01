@@ -1,0 +1,28 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.crest {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.md .crest {
+  width: 22px;
+  height: 22px;
+}
+
+.md .label {
+  font-size: 13px;
+}
