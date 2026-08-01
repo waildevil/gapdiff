@@ -55,11 +55,25 @@
 }
 
 .rank {
+  display: flex;
+  align-items: center;
+  gap: 11px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 10px 14px;
-  min-width: 150px;
+  /* Widened for the crest, so the tier line still fits on one row. */
+  min-width: 196px;
   background: var(--surface-2);
+}
+
+.rankEmblem {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+}
+
+.rankText {
+  min-width: 0;
 }
 
 .rankQueue {

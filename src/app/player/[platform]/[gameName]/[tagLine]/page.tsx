@@ -1,9 +1,9 @@
 ﻿import Link from 'next/link';
-import { latestVersion, profileIcon } from '@/lib/ddragon';
+import { latestVersion, profileIcon, rankEmblem } from '@/lib/ddragon';
 import { getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank } from '@/lib/rating/rating';
-import { tierColor } from '@/lib/format';
+import { tierColor, winRate } from '@/lib/format';
 import { RiotApiError } from '@/lib/riot/client';
 import { MatchSection } from '@/components/MatchSection';
 import { RecentlyPlayedWith } from '@/components/RecentlyPlayedWith';
@@ -190,28 +190,30 @@ function RankCard({
   label: string;
   entry: { tier: string; rank: string; leaguePoints: number; wins: number; losses: number } | null;
 }) {
-  if (!entry) {
-    return (
-      <div className={styles.rank}>
-        <div className={styles.rankQueue}>{label}</div>
-        <div className={styles.rankTier} style={{ color: 'var(--faint)' }}>
-          Unranked
-        </div>
-      </div>
-    );
-  }
-
-  const total = entry.wins + entry.losses;
-  const winRate = total > 0 ? Math.round((entry.wins / total) * 100) : 0;
+  const tier = entry?.tier ?? 'UNRANKED';
 
   return (
     <div className={styles.rank}>
-      <div className={styles.rankQueue}>{label}</div>
-      <div className={styles.rankTier} style={{ color: tierColor(entry.tier) }}>
-        {formatRank(entry.tier, entry.rank, entry.leaguePoints)}
-      </div>
-      <div className={styles.rankRecord}>
-        {entry.wins}W {entry.losses}L · {winRate}%
+      {/* Community Dragon carries a crest for every tier including unranked,
+          so the card keeps its shape whether or not the queue is placed. */}
+      <img
+        className={styles.rankEmblem}
+        src={rankEmblem(tier)}
+        alt=""
+        width={44}
+        height={44}
+      />
+
+      <div className={styles.rankText}>
+        <div className={styles.rankQueue}>{label}</div>
+        <div className={styles.rankTier} style={{ color: tierColor(tier) }}>
+          {entry ? formatRank(entry.tier, entry.rank, entry.leaguePoints) : 'Unranked'}
+        </div>
+        {entry ? (
+          <div className={styles.rankRecord}>
+            {entry.wins}W {entry.losses}L · {winRate(entry.wins, entry.losses)}%
+          </div>
+        ) : null}
       </div>
     </div>
   );
