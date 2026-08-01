@@ -9,6 +9,7 @@ import {
   UnrankedDivider,
   UnratedDivider,
 } from '@/components/StandingsRow';
+import { Pairings } from '@/components/Pairings';
 import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
@@ -48,7 +49,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
 
   if (!standings) notFound();
 
-  const { group, entries, totalGames, period, boards } = standings;
+  const { group, entries, totalGames, period, boards, pairings } = standings;
   const scored = entries.filter((entry) => entry.rating.games > 0);
 
   return (
@@ -145,6 +146,20 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
               </h2>
             </div>
             <StatBoards boards={boards} />
+          </div>
+
+          <div className="section-gap">
+            <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
+              <div className="eyebrow">Who queues with whom</div>
+              <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
+                Duos
+              </h2>
+            </div>
+            <Pairings
+              pairs={pairings}
+              players={entries.map((entry) => entry.player)}
+              periodLabel={period.label}
+            />
           </div>
 
           <div className="section-gap">

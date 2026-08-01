@@ -118,6 +118,10 @@ export interface TitleStats {
   kda: number;
   soloKillsPerGame: number;
   scoreStdDev: number;
+  /** Games where somebody on the other team shared this player's role. */
+  laneDuels: number;
+  /** Share of those duels this player scored higher in, 0-1. */
+  laneWinRate: number;
 }
 
 export interface TitleDefinition {
@@ -131,8 +135,8 @@ export interface TitleDefinition {
 }
 
 /**
- * Two titles for now. More can be added here without touching anything else —
- * each one only needs a metric and a direction.
+ * More can be added here without touching anything else — each one only needs
+ * a metric and a direction.
  */
 export const TITLES: TitleDefinition[] = [
   {
@@ -150,6 +154,14 @@ export const TITLES: TitleDefinition[] = [
     value: (s) => s.deathsPerGame,
     direction: 'max',
     describe: (s) => `${s.deathsPerGame.toFixed(1)} deaths per game over ${s.games} games`,
+  },
+  {
+    id: 'lane-bully',
+    label: 'Lane Bully',
+    value: (s) => s.laneWinRate,
+    direction: 'max',
+    describe: (s) =>
+      `outscored their opposite number in ${Math.round(s.laneWinRate * 100)}% of ${s.laneDuels} duels`,
   },
 ];
 
@@ -194,6 +206,15 @@ export const STAT_BOARDS: StatBoard[] = [
     direction: 'max',
     format: (v) => v.toFixed(1),
     titleId: 'int-merchant',
+  },
+  {
+    id: 'lane',
+    label: 'Lane Bully',
+    metricLabel: 'duels won vs same role',
+    value: (s) => s.laneWinRate,
+    direction: 'max',
+    format: (v) => `${Math.round(v * 100)}%`,
+    titleId: 'lane-bully',
   },
 ];
 

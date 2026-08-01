@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lt } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db';
 import {
   accountClaims,
@@ -89,6 +90,28 @@ export interface StatBoardResult {
   rows: StatBoardRow[];
 }
 
+/**
+ * One pairing of group members. `a` is always the lexicographically smaller
+ * puuid, so a pair has exactly one row whichever way round it is found.
+ *
+ * Both directions are counted because a friend group generates almost entirely
+ * `together` rows — you queue with each other, so the draw rarely puts you on
+ * opposite sides. `against` stays for when it does.
+ */
+export interface PairRecord {
+  aPuuid: string;
+  bPuuid: string;
+  /** Same team. Wins are shared, so one counter covers both players. */
+  togetherGames: number;
+  togetherWins: number;
+  /** Opposite teams. */
+  againstGames: number;
+  againstAWins: number;
+  /** Mean gap score while on the same team; null if none were scored. */
+  aScore: number | null;
+  bScore: number | null;
+}
+
 export interface GroupStandings {
   group: { slug: string; name: string };
   entries: LeaderboardEntry[];
@@ -96,6 +119,8 @@ export interface GroupStandings {
   /** Standings cover the season; titles are contested one month at a time. */
   period: PeriodWindow & { games: number; latestIndex: number };
   boards: StatBoardResult[];
+  /** Member-with-member and member-vs-member games in the selected period. */
+  pairings: PairRecord[];
 }
 
 export async function getGroupStandings(
@@ -142,6 +167,7 @@ export async function getGroupStandings(
       totalGames: 0,
       period: { ...period, games: 0, latestIndex },
       boards: [],
+      pairings: [],
     };
   }
 
@@ -167,6 +193,9 @@ export async function getGroupStandings(
       kills: matchParticipants.kills,
       deaths: matchParticipants.deaths,
       assists: matchParticipants.assists,
+      // Pre-squash composites, the only pair directly comparable to each other.
+      performanceRaw: matchParticipants.performanceRaw,
+      opponentRaw: matchParticipants.opponentRaw,
       playedAt: matches.gameCreation,
     })
     .from(matchParticipants)
@@ -300,6 +329,10 @@ export async function getGroupStandings(
 
   const boards = buildStatBoards(members, statsByPlayer, awards, previousHolders);
 
+  // Scoped to the selected period like everything else on the page, so browsing
+  // to June shows June's pairings rather than a season total under June titles.
+  const pairings = await getPairings(puuids, period.start, period.end);
+
   const ranked = buildLeaderboard(
     members.map((member) => {
       const bucket = byPlayer.get(member.puuid)!;
@@ -341,6 +374,7 @@ export async function getGroupStandings(
     totalGames: windowGames,
     period: { ...period, games: windowGames, latestIndex },
     boards,
+    pairings,
   };
 }
 
@@ -405,6 +439,103 @@ function buildStatBoards(
   });
 }
 
+/**
+ * Every time two members of the same group landed in one lobby, on either side.
+ *
+ * Only possible because the ingester stores all ten participants of a match
+ * rather than just the tracked ones — the pairing is discovered from the lobby,
+ * not from anybody declaring a duo.
+ */
+async function getPairings(
+  puuids: string[],
+  from: Date,
+  to: Date,
+): Promise<PairRecord[]> {
+  if (puuids.length < 2) return [];
+
+  const mine = alias(matchParticipants, 'mine');
+  const theirs = alias(matchParticipants, 'theirs');
+
+  const rows = await db
+    .select({
+      aPuuid: mine.puuid,
+      bPuuid: theirs.puuid,
+      aTeam: mine.teamId,
+      bTeam: theirs.teamId,
+      aWin: mine.win,
+      aScore: mine.performanceScore,
+      bScore: theirs.performanceScore,
+    })
+    .from(mine)
+    .innerJoin(
+      theirs,
+      and(
+        eq(theirs.matchId, mine.matchId),
+        // Each meeting satisfies the join twice, once from either side. Keeping
+        // a single ordering halves the rows and makes every pair canonical.
+        lt(mine.puuid, theirs.puuid),
+      ),
+    )
+    .innerJoin(matches, eq(matches.matchId, mine.matchId))
+    .where(
+      and(
+        inArray(mine.puuid, puuids),
+        inArray(theirs.puuid, puuids),
+        eq(matches.scorable, true),
+        gte(matches.gameCreation, from),
+        lt(matches.gameCreation, to),
+      ),
+    );
+
+  const pairs = new Map<string, PairRecord & { aScores: number[]; bScores: number[] }>();
+
+  for (const row of rows) {
+    const key = `${row.aPuuid}|${row.bPuuid}`;
+    let pair = pairs.get(key);
+    if (!pair) {
+      pair = {
+        aPuuid: row.aPuuid,
+        bPuuid: row.bPuuid,
+        togetherGames: 0,
+        togetherWins: 0,
+        againstGames: 0,
+        againstAWins: 0,
+        aScore: null,
+        bScore: null,
+        aScores: [],
+        bScores: [],
+      };
+      pairs.set(key, pair);
+    }
+
+    if (row.aTeam === row.bTeam) {
+      pair.togetherGames += 1;
+      if (row.aWin) pair.togetherWins += 1;
+      // Scores are only averaged over shared games, where the comparison is
+      // like for like: same team, same match, same result.
+      if (row.aScore !== null) pair.aScores.push(row.aScore);
+      if (row.bScore !== null) pair.bScores.push(row.bScore);
+    } else {
+      pair.againstGames += 1;
+      if (row.aWin) pair.againstAWins += 1;
+    }
+  }
+
+  const average = (values: number[]) =>
+    values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null;
+
+  return [...pairs.values()]
+    .map(({ aScores, bScores, ...pair }) => ({
+      ...pair,
+      aScore: average(aScores),
+      bScore: average(bScores),
+    }))
+    .sort(
+      (x, y) =>
+        y.togetherGames + y.againstGames - (x.togetherGames + x.againstGames),
+    );
+}
+
 /** Titles run on the month window, not the whole season. */
 function toTitleStats(
   puuid: string,
@@ -423,6 +554,8 @@ function toTitleStats(
       kills: number;
       deaths: number;
       assists: number;
+      performanceRaw: number | null;
+      opponentRaw: number | null;
     }[];
   },
 ): TitleStats {
@@ -440,6 +573,14 @@ function toTitleStats(
           scores.reduce((sum, s) => sum + (s - scoreMean) ** 2, 0) / (scores.length - 1),
         )
       : 0;
+
+  // Only games that actually had an opposite number count as duels; a lobby
+  // where role inference failed on one side has nobody to compare against.
+  const duels = rows.filter(
+    (row): row is typeof row & { performanceRaw: number; opponentRaw: number } =>
+      row.performanceRaw !== null && row.opponentRaw !== null,
+  );
+  const laneWins = duels.filter((row) => row.performanceRaw > row.opponentRaw).length;
 
   const totals = rows.reduce(
     (acc, row) => ({
@@ -472,6 +613,8 @@ function toTitleStats(
         : (totals.kills + totals.assists) / totals.deaths,
     soloKillsPerGame: mean((r) => r.soloKills),
     scoreStdDev,
+    laneDuels: duels.length,
+    laneWinRate: duels.length ? laneWins / duels.length : 0,
   };
 }
 
