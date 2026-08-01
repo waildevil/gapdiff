@@ -1,0 +1,67 @@
+name: Discord digest
+
+# Separate from the ingest on purpose. Ingest runs at 03:00 UTC because that is
+# when the night's games have settled; nobody reads Discord at 05:00 local. This
+# posts in the evening, when the group is actually around to argue about it.
+on:
+  schedule:
+    # 18:00 UTC = 20:00 in Aachen while CEST is in effect. Cron has no notion of
+    # daylight saving, so this drifts to 19:00 local over winter.
+    - cron: '0 18 * * *'
+    # 18:05 on the 1st: the month that just ended, once its titles are settled.
+    - cron: '5 18 1 * *'
+  workflow_dispatch:
+    inputs:
+      monthly:
+        description: 'Post last month''s final results instead of the daily digest'
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Render to the log without posting to Discord'
+        type: boolean
+        default: true
+
+concurrency:
+  group: digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Post
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SEASON_START: ${{ vars.SEASON_START }}
+          TITLE_WINDOW_START: ${{ vars.TITLE_WINDOW_START }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set."
+            exit 1
+          fi
+
+          args=""
+          # The monthly cron fires on the 1st; a manual run can force it.
+          if [ "${{ github.event.schedule }}" = "5 18 1 * *" ] || [ "${{ inputs.monthly }}" = "true" ]; then
+            args="--monthly"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args="$args --dry-run"
+          elif [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "::error::DISCORD_WEBHOOK_URL secret is not set."
+            exit 1
+          fi
+
+          npx tsx src/scripts/post-digest.ts $args
