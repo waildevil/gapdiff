@@ -121,6 +121,21 @@ export interface ProfileMatch {
   playedAt: Date;
   queueId: number;
   performanceScore: number | null;
+  /** Rank among the scored players in this lobby, 1 = best. Null when unscored. */
+  placement: number | null;
+  /** How many players were ranked, so "3rd" can say "of 10". */
+  placementOf: number;
+  /** Best score on the winning team. */
+  mvp: boolean;
+  /** Best score on the losing team — the carry who still lost. */
+  ace: boolean;
+  /** 2 = double, 3 = triple, 4 = quadra, 5 = penta. 0 when there wasn't one. */
+  largestMultiKill: number;
+  /**
+   * Share of the lane's first-10-minute CS that was yours, 0-1. Null whenever
+   * either side is missing the challenge field or there was no role opponent.
+   */
+  laneShare: number | null;
   /** All ten players, sorted blue team then red. */
   lobby: LobbyPlayer[];
   teams: TeamSummary[];
@@ -239,6 +254,54 @@ function buildMatch(match: Match, puuid: string): ProfileMatch | null {
   const myCs = me.totalMinionsKilled + me.neutralMinionsKilled;
   const myTeamKills = teamKills.get(me.teamId) ?? 0;
 
+  /*
+   * Badges, all derived from scores this function already computed.
+   *
+   * Placement only counts players who were actually scored — an unrated queue
+   * scores nobody, and ranking somebody "1st of 0" would be worse than
+   * showing nothing.
+   */
+  const ranked = lobby
+    .filter((p) => p.performanceScore !== null)
+    .sort((a, b) => b.performanceScore! - a.performanceScore!);
+
+  const myIndex = ranked.findIndex((p) => p.puuid === puuid);
+  const placement = myIndex < 0 ? null : myIndex + 1;
+
+  // MVP is the best score on the winning side, ACE the best on the losing one,
+  // which is the carry who lost anyway — worth its own badge.
+  const bestOnMyTeam = ranked.find((p) => p.teamId === me.teamId);
+  const leadsTeam = bestOnMyTeam?.puuid === puuid;
+
+  /*
+   * Laning share from first-ten-minute CS. A real laning number wants gold and
+   * XP at 14 minutes, which lives in the timeline endpoint and would cost an
+   * extra API call per match; this approximates it from the challenges block
+   * Riot already ships with the match. The field comes and goes across patches
+   * and queues, so anything missing on either side means no badge at all
+   * rather than a number computed against a zero.
+   */
+  /*
+   * Only for roles that actually farm a lane. A jungler's lane-minion count is
+   * whatever they picked up passing through, so Rengar reading "Laning 0:100"
+   * says nothing about the game — and supports don't take minions at all.
+   */
+  const myRole = rated ? roleFor(puuid) : '';
+  const farmsALane = myRole === 'TOP' || myRole === 'MIDDLE' || myRole === 'BOTTOM';
+  const laneOpponent = farmsALane
+    ? match.info.participants.find(
+        (p) => p.teamId !== me.teamId && roleFor(p.puuid) === myRole,
+      )
+    : undefined;
+
+  const myLaneCs = me.challenges?.laneMinionsFirst10Minutes;
+  const oppLaneCs = laneOpponent?.challenges?.laneMinionsFirst10Minutes;
+  const laneTotal = (myLaneCs ?? 0) + (oppLaneCs ?? 0);
+  const laneShare =
+    myLaneCs === undefined || oppLaneCs === undefined || laneTotal <= 0
+      ? null
+      : myLaneCs / laneTotal;
+
   return {
     matchId: match.metadata.matchId,
     championName: me.championName,
@@ -262,6 +325,12 @@ function buildMatch(match: Match, puuid: string): ProfileMatch | null {
     playedAt: new Date(match.info.gameStartTimestamp),
     queueId: match.info.queueId,
     performanceScore: scoreFor(puuid),
+    placement,
+    placementOf: ranked.length,
+    mvp: leadsTeam && me.win,
+    ace: leadsTeam && !me.win,
+    largestMultiKill: me.largestMultiKill,
+    laneShare,
     lobby,
     teams,
     maxDamageDealt: Math.max(...lobby.map((p) => p.damageDealt), 1),

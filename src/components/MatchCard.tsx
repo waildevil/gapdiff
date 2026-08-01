@@ -11,7 +11,7 @@ import {
   type ProfileMatch,
   type TeamSummary,
 } from '@/lib/profile';
-import { perfBackground, perfColor, ROLE_LABEL } from '@/lib/format';
+import { ordinal, perfBackground, perfColor, ROLE_LABEL } from '@/lib/format';
 import type { Platform } from '@/lib/riot/routing';
 import styles from './MatchCard.module.css';
 
@@ -74,6 +74,7 @@ export function MatchCard({ match, version, platform }: MatchCardProps) {
           <div className={styles.sub}>
             {queueName(match.queueId)} · {timeAgo(match.playedAt)}
           </div>
+          <MatchBadges match={match} />
         </div>
 
         <div className={styles.kda}>
@@ -137,6 +138,61 @@ export function MatchCard({ match, version, platform }: MatchCardProps) {
             </div>
           </div>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+const MULTIKILL_LABEL: Record<number, string> = {
+  2: 'Double kill',
+  3: 'Triple kill',
+  4: 'Quadra kill',
+  5: 'Penta kill',
+};
+
+/**
+ * The things worth noticing about a game at a glance.
+ *
+ * All of it falls out of scores already computed for the scoreboard, so the
+ * strip costs nothing extra — and unlike a public site's version, the placement
+ * opens into the same breakdown that produced it.
+ */
+function MatchBadges({ match }: { match: ProfileMatch }) {
+  const multikill = MULTIKILL_LABEL[match.largestMultiKill];
+  const lane = match.laneShare === null ? null : Math.round(match.laneShare * 100);
+
+  // Remakes score nothing, so a badge strip on one would be inventing signal.
+  if (match.remake) return null;
+
+  const nothingToShow =
+    match.placement === null && !multikill && lane === null && !match.mvp && !match.ace;
+  if (nothingToShow) return null;
+
+  return (
+    <div className={styles.badges}>
+      {match.mvp ? <span className={`${styles.badge} ${styles.badgeMvp}`}>MVP</span> : null}
+      {match.ace ? <span className={`${styles.badge} ${styles.badgeAce}`}>ACE</span> : null}
+
+      {match.placement !== null ? (
+        <span
+          className={`${styles.badge} ${match.placement <= 3 ? styles.badgeTop : ''}`}
+          title={`${ordinal(match.placement)} of ${match.placementOf} players scored in this lobby`}
+        >
+          {ordinal(match.placement)}/{match.placementOf}
+        </span>
+      ) : null}
+
+      {multikill ? (
+        <span className={`${styles.badge} ${styles.badgeKill}`}>{multikill}</span>
+      ) : null}
+
+      {lane !== null ? (
+        <span
+          className={`${styles.badge} ${lane >= 55 ? styles.badgeTop : lane <= 45 ? styles.badgeDown : ''}`}
+          title="Share of the lane's CS in the first 10 minutes, against your direct role opponent"
+        >
+          Laning {lane}:{100 - lane}
+        </span>
       ) : null}
     </div>
   );
