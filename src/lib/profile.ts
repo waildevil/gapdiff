@@ -3,6 +3,7 @@ import { regionForPlatform, type Platform } from './riot/routing';
 import { RATED_QUEUES, type LeagueEntry, type Match } from './riot/types';
 import { scoreMatch } from './rating/score';
 import { matchDurationSeconds } from './rating/metrics';
+import { summariseTeammates, type Teammate } from './teammates';
 
 /**
  * Everything the profile page needs, fetched live from Riot.
@@ -53,6 +54,8 @@ export interface LobbyPlayer {
   puuid: string;
   gameName: string;
   tagLine: string;
+  /** 0 when Riot omits it; callers fall back to generated art. */
+  profileIconId: number;
   teamId: number;
   win: boolean;
 
@@ -139,6 +142,8 @@ export interface Profile {
   /** False once Riot stops returning full pages. */
   hasMore: boolean;
   nextStart: number;
+  /** Repeat team-mates across `matches`, best-known first. */
+  teammates: Teammate[];
   recent: {
     games: number;
     wins: number;
@@ -187,6 +192,7 @@ function buildMatch(match: Match, puuid: string): ProfileMatch | null {
         puuid: p.puuid,
         gameName: p.riotIdGameName ?? 'Unknown',
         tagLine: p.riotIdTagline ?? '',
+        profileIconId: p.profileIcon ?? 0,
         teamId: p.teamId,
         win: p.win,
         championName: p.championName,
@@ -346,6 +352,7 @@ export async function getProfile(
     matches,
     hasMore,
     nextStart,
+    teammates: summariseTeammates(matches, account.puuid),
     recent: {
       games: matches.length,
       wins,

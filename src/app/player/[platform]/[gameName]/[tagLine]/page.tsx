@@ -6,6 +6,7 @@ import { formatRank } from '@/lib/rating/rating';
 import { tierColor } from '@/lib/format';
 import { RiotApiError } from '@/lib/riot/client';
 import { MatchSection } from '@/components/MatchSection';
+import { RecentlyPlayedWith } from '@/components/RecentlyPlayedWith';
 import styles from './profile.module.css';
 
 interface PageProps {
@@ -68,6 +69,17 @@ export default async function PlayerPage({ params }: PageProps) {
               <RankCard label="Ranked Flex" entry={profile.flex} />
             </div>
           </div>
+        </div>
+
+        {/* Tallied over the first page only, so it stays put while the tabs
+            below swap the match list underneath it. */}
+        <div className="section-gap">
+          <RecentlyPlayedWith
+            teammates={profile.teammates}
+            platform={platform}
+            games={profile.recent.games}
+            version={version}
+          />
         </div>
 
         {/* Owns the queue tabs, so the summary tiles reflect the active tab. */}

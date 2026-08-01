@@ -1,0 +1,95 @@
+.head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.caption {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--faint);
+  margin-top: 3px;
+}
+
+/* Collapses to one column inside a sidebar without a second breakpoint. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  color: inherit;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.row:hover .name {
+  color: var(--amber);
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+  display: block;
+}
+
+.who {
+  min-width: 0;
+}
+
+.name {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.games {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.wins {
+  color: var(--good);
+}
+
+.losses {
+  color: var(--bad);
+}
+
+.rate {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.empty {
+  padding: 16px;
+  font-size: 12.5px;
+  color: var(--faint);
+  line-height: 1.6;
+}

@@ -45,6 +45,8 @@ export interface MatchParticipant {
   puuid: string;
   riotIdGameName?: string;
   riotIdTagline?: string;
+  /** Icon worn at the time of the match, so it can drift from the live profile. */
+  profileIcon?: number;
   participantId: number;
   teamId: number;
   win: boolean;
