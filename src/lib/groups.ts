@@ -2,6 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { and, count, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
+  decryptSecret,
+  encryptSecret,
+  hasSecretKey,
+  validateWebhookUrl,
+} from './secrets';
+import {
   accountClaims,
   accounts,
   groupMemberships,
@@ -533,4 +539,86 @@ export async function listUnclaimedAccounts(groupId: number) {
     .innerJoin(accounts, eq(accounts.puuid, trackedAccounts.puuid))
     .leftJoin(accountClaims, eq(accountClaims.puuid, trackedAccounts.puuid))
     .where(and(eq(trackedAccounts.groupId, groupId), isNull(accountClaims.puuid)));
+}
+
+// --- Discord connection ---------------------------------------------------
+
+export interface DiscordConnection {
+  connected: boolean;
+  /** Masked, e.g. "…/webhooks/123/••••". Null when nothing is stored. */
+  hint: string | null;
+  /**
+   * True when a webhook is stored but cannot be decrypted — SECRET_KEY missing
+   * or changed. Surfaced so the owner is told to reconnect rather than left
+   * wondering why a connected-looking group never posts.
+   */
+  unreadable: boolean;
+}
+
+export async function getDiscordConnection(groupId: number): Promise<DiscordConnection> {
+  const [row] = await db
+    .select({ blob: groups.discordWebhook, hint: groups.discordWebhookHint })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
+  if (!row?.blob) return { connected: false, hint: null, unreadable: false };
+
+  return {
+    connected: true,
+    hint: row.hint,
+    unreadable: decryptSecret(row.blob) === null,
+  };
+}
+
+/**
+ * Stores a group's webhook, encrypted.
+ *
+ * Owner only. The URL is validated before it is ever stored: without that check
+ * an owner could point the group at any address and the nightly job would POST
+ * to it from our infrastructure, which turns the scheduler into a request
+ * forwarder rather than merely leaking one channel.
+ */
+export async function setGroupWebhook(
+  groupId: number,
+  userId: string,
+  url: string,
+): Promise<string> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can connect Discord.');
+  }
+  if (!hasSecretKey()) {
+    throw new GroupError('The server has no encryption key configured, so this cannot be stored.');
+  }
+
+  const check = validateWebhookUrl(url);
+  if (!check.ok) throw new GroupError(check.error ?? 'That webhook URL is not valid.');
+
+  await db
+    .update(groups)
+    .set({ discordWebhook: encryptSecret(url.trim()), discordWebhookHint: check.display })
+    .where(eq(groups.id, groupId));
+
+  return check.display!;
+}
+
+export async function clearGroupWebhook(groupId: number, userId: string): Promise<void> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can disconnect Discord.');
+  }
+  await db
+    .update(groups)
+    .set({ discordWebhook: null, discordWebhookHint: null })
+    .where(eq(groups.id, groupId));
+}
+
+/** The decrypted webhook, for the poster. Never send this to a browser. */
+export async function getGroupWebhookUrl(slug: string): Promise<string | null> {
+  const [row] = await db
+    .select({ blob: groups.discordWebhook })
+    .from(groups)
+    .where(eq(groups.slug, slug))
+    .limit(1);
+
+  return row?.blob ? decryptSecret(row.blob) : null;
 }

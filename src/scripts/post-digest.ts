@@ -21,6 +21,7 @@ import {
   webhookEnvName,
   webhookFor,
 } from '@/lib/discord';
+import { getGroupWebhookUrl } from '@/lib/groups';
 import { getGroupStandings } from '@/lib/leaderboard';
 import { getGroupMovement } from '@/lib/movement';
 import { currentPeriodIndex, periodWindow } from '@/lib/titles';
@@ -79,10 +80,12 @@ async function main() {
      * legitimate state, and failing the run would make the other groups noisy
      * about somebody else's missing configuration.
      */
-    const webhook = webhookFor(slug);
+    // The group's own connection first; the environment is the fallback for
+    // boards wired up before owners could connect Discord themselves.
+    const webhook = (await getGroupWebhookUrl(slug)) ?? webhookFor(slug);
     if (!webhook) {
       unconfigured++;
-      console.log(`  ${slug}: no webhook (set ${webhookEnvName(slug)}), skipping`);
+      console.log(`  ${slug}: no Discord connected (or set ${webhookEnvName(slug)}), skipping`);
       continue;
     }
 

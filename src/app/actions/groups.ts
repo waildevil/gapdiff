@@ -4,12 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import {
   addAccountToBoard,
+  clearGroupWebhook,
   createGroup,
   createInvite,
   GroupError,
   joinGroupByInvite,
   removeAccountFromBoard,
   revokeInvite,
+  setGroupWebhook,
 } from '@/lib/groups';
 
 async function requireUserId(): Promise<string> {
@@ -98,5 +100,36 @@ export async function joinGroupAction(code: string): Promise<JoinResultAction> {
     return { ok: true, ...result };
   } catch (error) {
     return { ok: false, error: message(error, 'Could not join that group.') };
+  }
+}
+
+export type WebhookResult = { ok: true; hint: string | null } | { ok: false; error: string };
+
+export async function connectDiscordAction(
+  groupId: number,
+  slug: string,
+  url: string,
+): Promise<WebhookResult> {
+  try {
+    const userId = await requireUserId();
+    const hint = await setGroupWebhook(groupId, userId, url);
+    revalidatePath(`/groups/${slug}/manage`);
+    return { ok: true, hint };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not save that webhook.') };
+  }
+}
+
+export async function disconnectDiscordAction(
+  groupId: number,
+  slug: string,
+): Promise<WebhookResult> {
+  try {
+    const userId = await requireUserId();
+    await clearGroupWebhook(groupId, userId);
+    revalidatePath(`/groups/${slug}/manage`);
+    return { ok: true, hint: null };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not disconnect Discord.') };
   }
 }

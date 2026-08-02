@@ -43,6 +43,8 @@ jobs:
       - name: Post
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Decrypts the webhook each group connected for itself.
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
           SEASON_START: ${{ vars.SEASON_START }}
           TITLE_WINDOW_START: ${{ vars.TITLE_WINDOW_START }}
 

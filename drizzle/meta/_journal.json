@@ -15,6 +15,20 @@
       "when": 1785510697854,
       "tag": "0001_player_index",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785616821712,
+      "tag": "0002_perpetual_stone_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785616833726,
+      "tag": "0003_clever_skrulls",
+      "breakpoints": true
     }
   ]
 }

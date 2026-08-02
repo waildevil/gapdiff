@@ -4,8 +4,15 @@ import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db } from '@/db';
 import { groups } from '@/db/schema';
+import { DiscordConnect } from '@/components/DiscordConnect';
 import { InviteManager } from '@/components/InviteManager';
-import { isOwner, listInvites, listMembers, listUnclaimedAccounts } from '@/lib/groups';
+import {
+  getDiscordConnection,
+  isOwner,
+  listInvites,
+  listMembers,
+  listUnclaimedAccounts,
+} from '@/lib/groups';
 import styles from '../../groups.module.css';
 
 export const dynamic = 'force-dynamic';
@@ -38,10 +45,11 @@ export default async function ManageGroupPage({ params }: PageProps) {
     );
   }
 
-  const [invites, members, unclaimed] = await Promise.all([
+  const [invites, members, unclaimed, discord] = await Promise.all([
     listInvites(group.id),
     listMembers(group.id),
     listUnclaimedAccounts(group.id),
+    getDiscordConnection(group.id),
   ]);
 
   return (
@@ -57,6 +65,10 @@ export default async function ManageGroupPage({ params }: PageProps) {
 
       <div className={styles.stack}>
         <InviteManager groupId={group.id} slug={slug} invites={invites} />
+
+        <div className="section-gap">
+          <DiscordConnect groupId={group.id} slug={slug} connection={discord} />
+        </div>
 
         <div className="card">
           <div className="card-head">

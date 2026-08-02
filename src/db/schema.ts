@@ -89,7 +89,17 @@ export const groups = pgTable('groups', {
   isPrivate: boolean('is_private').notNull().default(true),
   /** Null for groups seeded from config before authentication existed. */
   ownerId: text('owner_id').references(() => users.id, { onDelete: 'set null' }),
-  discordWebhookUrl: text('discord_webhook_url'),
+  /**
+   * The group's Discord webhook, encrypted with SECRET_KEY.
+   *
+   * Never stored in the clear: the token in a webhook URL lets anybody post to
+   * that channel as anybody, so a database dump should yield ciphertext rather
+   * than a working credential. Replaces an earlier plaintext column of the same
+   * purpose that was declared but never used.
+   */
+  discordWebhook: text('discord_webhook'),
+  /** Masked form, e.g. "…/webhooks/123/••••", so the UI never decrypts to render. */
+  discordWebhookHint: text('discord_webhook_hint'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
