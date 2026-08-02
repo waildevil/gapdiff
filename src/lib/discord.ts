@@ -45,8 +45,6 @@ function envelope(title: string, slug: string, description: string, footer?: str
   };
 }
 
-const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
-
 /**
  * The daily digest: who moved.
  *
@@ -74,24 +72,51 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
       (Math.abs(a.lpDelta ?? 0) + Math.abs(a.positionDelta ?? 0) * 25),
   );
 
-  const lines = moved.map((p) => {
-    const arrow = (p.positionDelta ?? 0) > 0 ? '▲' : (p.positionDelta ?? 0) < 0 ? '▼' : ' ';
-    const place = p.position === null ? ' —' : `${p.position}`.padStart(2);
-    const shift = p.positionDelta ? ` (${signed(p.positionDelta)})` : '';
-    const lp = p.lpDelta === null ? '' : `  ${signed(p.lpDelta)} LP`;
-    const games = p.games ? `  ${p.games}g` : '';
-    return `${arrow} ${place}. ${p.gameName.padEnd(16)}${lp}${shift}${games}`;
-  });
-
-  // A code fence is the only way Discord keeps columns lined up.
-  const table = '```\n' + lines.join('\n') + '\n```';
+  /*
+   * Games first, standings second.
+   *
+   * The first version led with a table of LP deltas, which is a spreadsheet:
+   * accurate, and nothing anybody replies to. What gets a reaction is a named
+   * game, and what gets a click is knowing somebody is holding a title you
+   * might take off them.
+   */
   const stories = highlightLines(movement.highlights);
+
+  const movers = moved
+    .map((p) => {
+      const arrow = (p.positionDelta ?? 0) > 0 ? '▲' : (p.positionDelta ?? 0) < 0 ? '▼' : '';
+      const shift = p.positionDelta ? `${arrow}${Math.abs(p.positionDelta)}` : '';
+      const place = p.position === null ? '' : `${ordinal(p.position)}`;
+      return `**${p.gameName}** ${[place, shift].filter(Boolean).join(' ')}`.trim();
+    })
+    .join(' · ');
+
+  /*
+   * Deliberately a standing, not an announcement. Titles are decided at month
+   * end — mid-month one flips on a handful of games and flips back two days
+   * later — so this says who is holding them right now and points at the board
+   * rather than declaring anybody the winner.
+   */
+  const titles = movement.currentTitles
+    .slice(0, 3)
+    .map((t) => `**${t.label}** ${t.holder}`)
+    .join(' · ');
+
+  const sections = [
+    stories.join('\n'),
+    movers ? `Moved today — ${movers}` : '',
+    titles
+      ? movement.titlesFrom === 'current'
+        ? `Holding the titles right now — ${titles}`
+        : `${movement.titlesPeriodLabel} titles — ${titles}`
+      : '',
+  ].filter(Boolean);
 
   return envelope(
     `${movement.groupName} — what changed`,
     movement.slug,
-    stories.length ? `${table}\n${stories.join('\n')}` : table,
-    'LP is ranked solo. Positions reset each month.',
+    sections.join('\n\n'),
+    'Titles are provisional until the month ends. Tap the title to see the board.',
   );
 }
 

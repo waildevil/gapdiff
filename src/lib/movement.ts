@@ -94,6 +94,19 @@ export interface GroupMovement {
   comparedFrom: Date;
   players: PlayerMovement[];
   titleChanges: TitleChange[];
+  /**
+   * Who leads each title as it stands. Provisional by nature — a title can flip
+   * on a handful of games mid-month — so this is a teaser pointing at the board,
+   * never a claim that somebody has won anything.
+   */
+  currentTitles: { label: string; holder: string }[];
+  /**
+   * Whether those holders come from this month or the last finished one. Nobody
+   * qualifies in the first days of a month, and an empty section then would be
+   * exactly when the nudge to go look is most useful.
+   */
+  titlesFrom: 'current' | 'previous';
+  titlesPeriodLabel: string;
   /** Individual games worth talking about, which is what people actually read. */
   highlights: Highlights;
 }
@@ -309,9 +322,13 @@ export async function getGroupMovement(
    * recomputing the previous month — so this reads what the board computed
    * rather than deriving it again.
    */
+  const currentTitles: { label: string; holder: string }[] = [];
   const titleChanges: TitleChange[] = [];
   for (const board of now.boards) {
     for (const row of board.rows) {
+      if (row.holdsTitle) {
+        currentTitles.push({ label: board.label, holder: row.gameName });
+      }
       if (row.holdsTitle && row.takenFrom) {
         titleChanges.push({
           titleId: board.id,
@@ -323,6 +340,27 @@ export async function getGroupMovement(
     }
   }
 
+  /*
+   * Nobody holds a title until they clear the games threshold, so a board a few
+   * days into a month has none. Falling back to the month that just finished
+   * keeps the section useful instead of blank, provided it says which it is.
+   */
+  let titlesFrom: 'current' | 'previous' = 'current';
+  let titlesPeriodLabel = now.period.label;
+
+  if (currentTitles.length === 0) {
+    const last = await getGroupStandings(slug, now.period.index - 1);
+    for (const board of last?.boards ?? []) {
+      for (const row of board.rows) {
+        if (row.holdsTitle) currentTitles.push({ label: board.label, holder: row.gameName });
+      }
+    }
+    if (currentTitles.length > 0) {
+      titlesFrom = 'previous';
+      titlesPeriodLabel = last!.period.label;
+    }
+  }
+
   return {
     slug,
     groupName: now.group.name,
@@ -330,6 +368,9 @@ export async function getGroupMovement(
     comparedFrom,
     players,
     titleChanges,
+    currentTitles,
+    titlesFrom,
+    titlesPeriodLabel,
     highlights,
   };
 }
