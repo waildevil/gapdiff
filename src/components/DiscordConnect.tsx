@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { connectDiscordAction, disconnectDiscordAction } from '@/app/actions/groups';
+import {
+  connectDiscordAction,
+  disconnectDiscordAction,
+  type WebhookResult,
+} from '@/app/actions/groups';
 import type { DiscordConnection } from '@/lib/groups';
 import styles from './DiscordConnect.module.css';
 
@@ -24,29 +28,43 @@ export function DiscordConnect({ groupId, slug, connection }: DiscordConnectProp
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function save() {
+  /*
+   * A rejected server action inside a transition is an unhandled rejection, and
+   * React turns that into the blank "a client-side exception has occurred"
+   * screen with the real reason hidden in production. Catching it here means a
+   * failure is something the owner can read and act on instead.
+   */
+  function run(action: () => Promise<WebhookResult>, apply: (result: WebhookResult) => void) {
     setError(null);
     startTransition(async () => {
-      const result = await connectDiscordAction(groupId, slug, url);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await action();
+        if (!result?.ok) {
+          setError(result?.error ?? 'The server did not answer. Try again.');
+          return;
+        }
+        apply(result);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Something went wrong saving that.');
       }
-      setUrl('');
-      setState({ connected: true, hint: result.hint, unreadable: false });
     });
   }
 
+  function save() {
+    run(
+      () => connectDiscordAction(groupId, slug, url),
+      (result) => {
+        setUrl('');
+        setState({ connected: true, hint: result.ok ? result.hint : null, unreadable: false });
+      },
+    );
+  }
+
   function disconnect() {
-    setError(null);
-    startTransition(async () => {
-      const result = await disconnectDiscordAction(groupId, slug);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setState({ connected: false, hint: null, unreadable: false });
-    });
+    run(
+      () => disconnectDiscordAction(groupId, slug),
+      () => setState({ connected: false, hint: null, unreadable: false }),
+    );
   }
 
   return (
