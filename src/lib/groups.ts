@@ -478,11 +478,21 @@ export interface GroupMemberView {
   name: string | null;
   image: string | null;
   role: string;
+  /** Created the group. Can manage, and can never be demoted by anybody. */
+  isFounder: boolean;
+  /** Manages the group — the founder, or anybody they promoted. */
+  canManage: boolean;
   joinedAt: Date;
   accounts: { puuid: string; gameName: string; tagLine: string; verified: boolean }[];
 }
 
 export async function listMembers(groupId: number): Promise<GroupMemberView[]> {
+  const [group] = await db
+    .select({ ownerId: groups.ownerId })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
   const people = await db
     .select({
       userId: groupMemberships.userId,
@@ -515,8 +525,12 @@ export async function listMembers(groupId: number): Promise<GroupMemberView[]> {
         )
         .where(eq(trackedAccounts.groupId, groupId));
 
+      const isFounder = group?.ownerId !== null && group?.ownerId === person.userId;
+
       return {
         ...person,
+        isFounder,
+        canManage: isFounder || person.role === MANAGER_ROLE,
         accounts: owned.map((a) => ({
           puuid: a.puuid,
           gameName: a.gameName,
@@ -643,4 +657,62 @@ export async function getGroupWebhookUrl(slug: string): Promise<string | null> {
     .limit(1);
 
   return row?.blob ? decryptSecret(row.blob) : null;
+}
+
+// --- co-managers ----------------------------------------------------------
+
+/**
+ * The single management role.
+ *
+ * One role rather than a hierarchy: a co-manager can do everything the founder
+ * can, including promoting others. The founder is the one exception, and it is
+ * enforced on the row rather than by role — see setMemberRole.
+ */
+export const MANAGER_ROLE = 'owner';
+
+/**
+ * Promotes or demotes a member.
+ *
+ * The founder can never be demoted, by anybody, including themselves. Roles are
+ * symmetric here — a co-manager can promote and demote other co-managers — so
+ * without that rule two people could remove each other and a group could end up
+ * with nobody able to manage it, or somebody could quietly lock the creator out
+ * of the board they made.
+ */
+export async function setMemberRole(
+  groupId: number,
+  actingUserId: string,
+  targetUserId: string,
+  makeManager: boolean,
+): Promise<void> {
+  if (!(await isOwner(groupId, actingUserId))) {
+    throw new GroupError('Only a manager can change who manages this group.');
+  }
+
+  const [group] = await db
+    .select({ ownerId: groups.ownerId })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
+  if (!makeManager && group?.ownerId === targetUserId) {
+    throw new GroupError('The person who created the group always manages it.');
+  }
+
+  const [membership] = await db
+    .select({ userId: groupMemberships.userId })
+    .from(groupMemberships)
+    .where(
+      and(eq(groupMemberships.groupId, groupId), eq(groupMemberships.userId, targetUserId)),
+    )
+    .limit(1);
+
+  if (!membership) throw new GroupError('That person is not in this group.');
+
+  await db
+    .update(groupMemberships)
+    .set({ role: makeManager ? MANAGER_ROLE : 'member' })
+    .where(
+      and(eq(groupMemberships.groupId, groupId), eq(groupMemberships.userId, targetUserId)),
+    );
 }

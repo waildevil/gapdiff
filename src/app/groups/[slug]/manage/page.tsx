@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { db } from '@/db';
 import { groups } from '@/db/schema';
 import { DiscordConnect } from '@/components/DiscordConnect';
+import { MemberRole } from '@/components/MemberRole';
 import { InviteManager } from '@/components/InviteManager';
 import {
   getDiscordConnection,
@@ -99,7 +100,15 @@ export default async function ManageGroupPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {member.role === 'owner' ? <span className={styles.tag}>Owner</span> : null}
+              <MemberRole
+                groupId={group.id}
+                slug={slug}
+                userId={member.userId}
+                name={member.name ?? 'They'}
+                isFounder={member.isFounder}
+                canManage={member.canManage}
+                viewerCanManage
+              />
             </div>
           ))}
         </div>

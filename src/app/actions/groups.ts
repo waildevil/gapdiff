@@ -11,6 +11,7 @@ import {
   joinGroupByInvite,
   removeAccountFromBoard,
   revokeInvite,
+  setMemberRole,
   setGroupWebhook,
 } from '@/lib/groups';
 
@@ -131,5 +132,23 @@ export async function disconnectDiscordAction(
     return { ok: true, hint: null };
   } catch (error) {
     return { ok: false, error: message(error, 'Could not disconnect Discord.') };
+  }
+}
+
+export type RoleResult = { ok: true } | { ok: false; error: string };
+
+export async function setMemberRoleAction(
+  groupId: number,
+  slug: string,
+  targetUserId: string,
+  makeManager: boolean,
+): Promise<RoleResult> {
+  try {
+    const userId = await requireUserId();
+    await setMemberRole(groupId, userId, targetUserId, makeManager);
+    revalidatePath(`/groups/${slug}/manage`);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not change that role.') };
   }
 }
