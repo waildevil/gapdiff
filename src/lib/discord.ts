@@ -63,7 +63,18 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
   const moved = movement.players.filter(
     (p) => p.games > 0 && ((p.positionDelta ?? 0) !== 0 || (p.lpDelta ?? 0) !== 0),
   );
-  if (moved.length === 0) return null;
+
+  const stories = highlightLines(movement.highlights);
+
+  /*
+   * Movement is not the only news.
+   *
+   * This used to bail here when nobody's position or LP had moved, which
+   * silenced a board where somebody went 26/0/2 with eleven solo kills — the
+   * single most postworthy thing the scoring has ever produced. Standings shift
+   * slowly; individual games are the part worth interrupting people for.
+   */
+  if (moved.length === 0 && stories.length === 0) return null;
 
   // Biggest movers first — that is the bit people read.
   moved.sort(
@@ -73,15 +84,9 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
   );
 
   /*
-   * Games first, standings second.
-   *
-   * The first version led with a table of LP deltas, which is a spreadsheet:
-   * accurate, and nothing anybody replies to. What gets a reaction is a named
-   * game, and what gets a click is knowing somebody is holding a title you
-   * might take off them.
+   * Games first, standings second: a named game gets a reaction, a table of
+   * numbers does not.
    */
-  const stories = highlightLines(movement.highlights);
-
   const movers = moved
     .map((p) => {
       const arrow = (p.positionDelta ?? 0) > 0 ? '▲' : (p.positionDelta ?? 0) < 0 ? '▼' : '';
@@ -236,4 +241,22 @@ export async function postToDiscord(url: string, payload: WebhookPayload): Promi
     const body = await response.text().catch(() => '<unreadable>');
     throw new Error(`Discord webhook ${response.status}: ${body.slice(0, 200)}`);
   }
+}
+
+/**
+ * Sent the moment a group connects, so the owner sees it land.
+ *
+ * Without this a webhook cannot be verified until the board happens to have
+ * news, which on a quiet group can be days — and "did I paste the right URL?"
+ * is exactly the question you want answered while you still have the settings
+ * page open.
+ */
+export function connectedPayload(groupName: string, slug: string): WebhookPayload {
+  return envelope(
+    `${groupName} — connected`,
+    slug,
+    'This channel will get the evening digest and the monthly results. ' +
+      'Quiet days post nothing, so silence here means nothing happened rather ' +
+      'than something broken.',
+  );
 }

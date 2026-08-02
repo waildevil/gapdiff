@@ -16,6 +16,10 @@ on:
         description: 'Post last month''s final results instead of the daily digest'
         type: boolean
         default: false
+      days:
+        description: 'How many days back to look (daily digest only)'
+        type: string
+        default: '1'
       dry_run:
         description: 'Render to the log without posting to Discord'
         type: boolean
@@ -71,6 +75,9 @@ jobs:
           # The monthly cron fires on the 1st; a manual run can force it.
           if [ "${{ github.event.schedule }}" = "5 18 1 * *" ] || [ "${{ inputs.monthly }}" = "true" ]; then
             args="--monthly"
+          fi
+          if [ -n "${{ inputs.days }}" ] && [ "${{ inputs.days }}" != "1" ]; then
+            args="$args --days=${{ inputs.days }}"
           fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             args="$args --dry-run"

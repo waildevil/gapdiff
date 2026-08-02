@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { and, count, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
+import { connectedPayload, postToDiscord } from './discord';
 import {
   decryptSecret,
   encryptSecret,
@@ -594,9 +595,30 @@ export async function setGroupWebhook(
   const check = validateWebhookUrl(url);
   if (!check.ok) throw new GroupError(check.error ?? 'That webhook URL is not valid.');
 
+  const trimmed = url.trim();
+
+  /*
+   * Prove it works before keeping it. A webhook that stores cleanly but cannot
+   * post is indistinguishable from a quiet group, and the owner would only find
+   * out days later when the digest never arrived.
+   */
+  const [group] = await db
+    .select({ name: groups.name, slug: groups.slug })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
+  try {
+    await postToDiscord(trimmed, connectedPayload(group?.name ?? 'This group', group?.slug ?? ''));
+  } catch (cause) {
+    throw new GroupError(
+      `Discord refused that webhook, so it was not saved. ${(cause as Error).message}`,
+    );
+  }
+
   await db
     .update(groups)
-    .set({ discordWebhook: encryptSecret(url.trim()), discordWebhookHint: check.display })
+    .set({ discordWebhook: encryptSecret(trimmed), discordWebhookHint: check.display })
     .where(eq(groups.id, groupId));
 
   return check.display!;
