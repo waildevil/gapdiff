@@ -1,10 +1,12 @@
 /* ============================================================
    gapdiff — design tokens and shared component styles.
 
-   Ground: cool blue-biased slate. Signature: amber phosphor readout.
-   The chromatic work is done by LoL tier colours; amber marks interaction
-   and the leader. Page-specific styles live in CSS modules next to their
-   components; everything shared lives here.
+   Ground: near-black hextech blue. Signature: hextech gold + arcane teal,
+   the same duotone League's own client runs on — not a generic dev-tool
+   amber/slate. Gold marks interaction (buttons, focus, CTAs); teal marks
+   narrative emphasis (headline word, leaders). LoL tier colours carry the
+   rest of the chromatic work. Page-specific styles live in CSS modules
+   next to their components; everything shared lives here.
    ============================================================ */
 
 /* Dark is the default. An inline script in the layout resolves the viewer's
@@ -13,18 +15,21 @@
 :root {
   /* The canvas sits lighter than the cards, so panels read as inset wells
      rather than floating tiles. */
-  --bg: #2a363f;
-  --surface: #1e272f;
-  --surface-2: #26323c;
-  --surface-3: #303e4a;
-  --line: #38454f;
-  --line-soft: #2a353f;
-  --text: #e9eff3;
-  --muted: #93a9b6;
-  --faint: #6c8593;
-  --amber: #ffb020;
-  --amber-soft: rgba(255, 176, 32, 0.14);
-  --amber-line: rgba(255, 176, 32, 0.35);
+  --bg: #131a24;
+  --surface: #0d131b;
+  --surface-2: #141c27;
+  --surface-3: #1c2632;
+  --line: #26313f;
+  --line-soft: #1a2330;
+  --text: #eef2f7;
+  --muted: #8695a8;
+  --faint: #56708a;
+  --amber: #c8aa6e;
+  --amber-soft: rgba(200, 170, 110, 0.14);
+  --amber-line: rgba(200, 170, 110, 0.38);
+  --accent2: #0ac8b9;
+  --accent2-soft: rgba(10, 200, 185, 0.14);
+  --accent2-line: rgba(10, 200, 185, 0.38);
   --good: #3fcf8e;
   --bad: #f0576a;
   --good-soft: rgba(63, 207, 142, 0.13);
@@ -49,26 +54,29 @@
   --r-lg: 14px;
   --rail-w: 208px;
 
-  --surface-translucent: rgba(30, 39, 47, 0.72);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.16), 0 1px 1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.16);
+  --surface-translucent: rgba(13, 19, 27, 0.72);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 1px rgba(0, 0, 0, 0.16);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.24);
 }
 
-/* White canvas. Cards are white too and separate by border rather than by fill,
-   which keeps large data tables from turning into stripes of competing greys. */
+/* Warm ivory canvas — the parchment tone hextech UI panels run on, not a
+   flat white SaaS background. Cards separate by border rather than fill. */
 :root[data-theme="light"] {
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f3f6f8;
-  --surface-3: #e4ebef;
-  --line: #d5dee3;
-  --line-soft: #e8eef1;
-  --text: #0d1519;
-  --muted: #4e646f;
-  --faint: #7b909c;
-  --amber: #a86400;
-  --amber-soft: rgba(168, 100, 0, 0.1);
-  --amber-line: rgba(168, 100, 0, 0.3);
+  --bg: #f6f1e7;
+  --surface: #fffdf8;
+  --surface-2: #f1e9d8;
+  --surface-3: #e6d9bd;
+  --line: #ddcca4;
+  --line-soft: #ece2c9;
+  --text: #201a0e;
+  --muted: #6b5f47;
+  --faint: #8a7d5f;
+  --amber: #8a6317;
+  --amber-soft: rgba(138, 99, 23, 0.1);
+  --amber-line: rgba(138, 99, 23, 0.32);
+  --accent2: #007b72;
+  --accent2-soft: rgba(0, 123, 114, 0.1);
+  --accent2-line: rgba(0, 123, 114, 0.32);
   --good: #0f8a58;
   --bad: #c32e42;
   --good-soft: rgba(15, 138, 88, 0.1);
@@ -86,9 +94,9 @@
   --grandmaster: #c62233;
   --challenger: #8a6a00;
 
-  --surface-translucent: rgba(255, 255, 255, 0.72);
-  --shadow-sm: 0 1px 2px rgba(13, 21, 25, 0.06), 0 1px 1px rgba(13, 21, 25, 0.04);
-  --shadow-md: 0 8px 24px rgba(13, 21, 25, 0.1), 0 2px 8px rgba(13, 21, 25, 0.06);
+  --surface-translucent: rgba(255, 253, 248, 0.72);
+  --shadow-sm: 0 1px 2px rgba(32, 26, 14, 0.07), 0 1px 1px rgba(32, 26, 14, 0.05);
+  --shadow-md: 0 8px 24px rgba(32, 26, 14, 0.12), 0 2px 8px rgba(32, 26, 14, 0.07);
 }
 
 *,

@@ -13,12 +13,13 @@
 .hero::before {
   content: '';
   position: absolute;
-  top: -80px;
+  top: -100px;
   left: 50%;
-  width: 720px;
-  height: 420px;
+  width: 900px;
+  height: 460px;
   transform: translateX(-50%);
-  background: radial-gradient(closest-side, var(--amber-soft), transparent);
+  background: radial-gradient(closest-side at 32% 50%, var(--amber-soft), transparent 70%),
+    radial-gradient(closest-side at 68% 50%, var(--accent2-soft), transparent 70%);
   z-index: -1;
   pointer-events: none;
 }
@@ -33,7 +34,7 @@
 
 .title em {
   font-style: normal;
-  color: var(--amber);
+  color: var(--accent2);
 }
 
 .lede {
