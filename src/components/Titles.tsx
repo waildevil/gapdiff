@@ -79,13 +79,15 @@ export function Titles({ boards }: { boards: StatBoardResult[] }) {
                     >
                       {row.gameName}
                     </Link>
-                    <span className={`${styles.rankGames} ${row.eligible ? '' : styles.ineligible}`}>
-                      {row.games} {row.games === 1 ? 'game' : 'games'}
-                      {row.eligible ? '' : ` · needs ${MIN_GAMES_FOR_TITLE}`}
+                    <span className={styles.rankMeta}>
+                      <span className={`${styles.rankGames} ${row.eligible ? '' : styles.ineligible}`}>
+                        {row.games} {row.games === 1 ? 'game' : 'games'}
+                        {row.eligible ? '' : ` · needs ${MIN_GAMES_FOR_TITLE}`}
+                      </span>
+                      {row.holdsTitle && row.takenFrom ? (
+                        <span className={styles.crown}>from {row.takenFrom}</span>
+                      ) : null}
                     </span>
-                    {row.holdsTitle && row.takenFrom ? (
-                      <span className={styles.crown}>from {row.takenFrom}</span>
-                    ) : null}
                     <span className={styles.rankValue}>{row.games === 0 ? '—' : row.formatted}</span>
                   </div>
                 ))}

@@ -138,28 +138,30 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
             />
           ) : null}
 
-          <div className="section-gap">
-            <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
-              <div className="eyebrow">{period.label} · click a title for the full ranking</div>
-              <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
-                Who leads what
-              </h2>
+          <div className="section-gap grid grid-2">
+            <div>
+              <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
+                <div className="eyebrow">{period.label} · click a title for the full ranking</div>
+                <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
+                  Who leads what
+                </h2>
+              </div>
+              <Titles boards={boards} />
             </div>
-            <Titles boards={boards} />
-          </div>
 
-          <div className="section-gap">
-            <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
-              <div className="eyebrow">Who queues with whom</div>
-              <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
-                Duos
-              </h2>
+            <div>
+              <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
+                <div className="eyebrow">Who queues with whom</div>
+                <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
+                  Duos
+                </h2>
+              </div>
+              <Pairings
+                pairs={pairings}
+                players={entries.map((entry) => entry.player)}
+                periodLabel={period.label}
+              />
             </div>
-            <Pairings
-              pairs={pairings}
-              players={entries.map((entry) => entry.player)}
-              periodLabel={period.label}
-            />
           </div>
 
           <div className="section-gap">

@@ -127,6 +127,13 @@
   color: var(--accent);
 }
 
+.rankMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .rankGames {
   font-family: var(--mono);
   font-size: 9.5px;
