@@ -169,6 +169,7 @@ function AccountRow({ account, version }: { account: ClaimedAccount; version: st
       </div>
 
       <span className={`${styles.badge} ${account.verifiedAt ? styles.verified : styles.unverified}`}>
+        <span className={styles.badgeDot} />
         {account.verifiedAt ? 'Verified' : 'Unverified'}
       </span>
 
@@ -180,31 +181,63 @@ function AccountRow({ account, version }: { account: ClaimedAccount; version: st
 
       {!account.verifiedAt && account.pendingIconId !== null ? (
         <div className={styles.challenge}>
-          <img
-            className={styles.target}
-            src={profileIcon(version, account.pendingIconId)}
-            alt={`Profile icon ${account.pendingIconId}`}
-            width={72}
-            height={72}
-          />
+          <div className={styles.compare}>
+            <div className={styles.compareIcon}>
+              <img
+                className={styles.now}
+                src={profileIcon(version, account.profileIconId ?? 0)}
+                alt=""
+                width={40}
+                height={40}
+              />
+              <span className={styles.compareLabel}>Now</span>
+            </div>
+
+            <svg className={styles.arrow} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M4 12h15m0 0-5-5m5 5-5 5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+
+            <div className={styles.compareIcon}>
+              <img
+                className={`${styles.target} ${polling ? styles.targetPulse : ''}`}
+                src={profileIcon(version, account.pendingIconId)}
+                alt={`Profile icon ${account.pendingIconId}`}
+                width={64}
+                height={64}
+              />
+              <span className={styles.compareLabelAccent}>Set this</span>
+            </div>
+          </div>
+
           <div className={styles.instructions}>
-            <p className={styles.step}>
-              Open League, go to your profile, and set your icon to <strong>this one</strong>.
-              Then come back and hit Verify.
-            </p>
+            <ol className={styles.steps}>
+              <li>Open League and go to your profile.</li>
+              <li>
+                Set your icon to <strong>#{account.pendingIconId}</strong>, the one above.
+              </li>
+              <li>Come back and hit Verify — you can change it back after.</li>
+            </ol>
+
             <p className={styles.stepNote}>
-              Icon #{account.pendingIconId} · expires{' '}
+              Expires{' '}
               {account.pendingExpiresAt
                 ? account.pendingExpiresAt.toLocaleTimeString('en-GB', {
                     hour: '2-digit',
                     minute: '2-digit',
                   })
-                : 'soon'}{' '}
-              · you can change it back afterwards
+                : 'soon'}
             </p>
 
             <div className={styles.verifyRow}>
               <button className={styles.verify} onClick={handleVerify} disabled={isPending || polling}>
+                {polling || isPending ? <span className={styles.spinner} /> : null}
                 {polling ? 'Waiting for Riot…' : isPending ? 'Checking…' : 'Verify'}
               </button>
               {status ? (
