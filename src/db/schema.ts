@@ -364,6 +364,51 @@ export const syncState = pgTable('sync_state', {
   lastError: text('last_error'),
 });
 
+/**
+ * A friendly race: 2-4 tracked accounts, ranked LP snapshotted at creation and
+ * compared again whenever the page is opened.
+ *
+ * `code` is the public, unguessable id — a duel is viewable by link alone, same
+ * as an invite, because bragging rights only work if you can send the result to
+ * someone who isn't a group member.
+ */
+export const duels = pgTable(
+  'duels',
+  {
+    id: serial('id').primaryKey(),
+    code: varchar('code', { length: 32 }).notNull().unique(),
+    groupId: integer('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    startAt: timestamp('start_at', { withTimezone: true }).notNull().defaultNow(),
+    endAt: timestamp('end_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('duels_group_idx').on(table.groupId)],
+);
+
+/**
+ * One racer's starting line, ranked-solo only — that's the ladder people mean
+ * by "climbing". Null fields mean unranked at the start, so the climb is
+ * measured from zero rather than blocking the racer from entering.
+ */
+export const duelParticipants = pgTable(
+  'duel_participants',
+  {
+    duelId: integer('duel_id')
+      .notNull()
+      .references(() => duels.id, { onDelete: 'cascade' }),
+    puuid: varchar('puuid', { length: 78 })
+      .notNull()
+      .references(() => accounts.puuid, { onDelete: 'cascade' }),
+    startTier: varchar('start_tier', { length: 16 }),
+    startDivision: varchar('start_division', { length: 4 }),
+    startLeaguePoints: integer('start_league_points'),
+  },
+  (table) => [primaryKey({ columns: [table.duelId, table.puuid] })],
+);
+
 export const groupsRelations = relations(groups, ({ many, one }) => ({
   tracked: many(trackedAccounts),
   memberships: many(groupMemberships),
@@ -411,4 +456,14 @@ export const matchParticipantsRelations = relations(matchParticipants, ({ one })
     fields: [matchParticipants.matchId],
     references: [matches.matchId],
   }),
+}));
+
+export const duelsRelations = relations(duels, ({ many, one }) => ({
+  participants: many(duelParticipants),
+  group: one(groups, { fields: [duels.groupId], references: [groups.id] }),
+}));
+
+export const duelParticipantsRelations = relations(duelParticipants, ({ one }) => ({
+  duel: one(duels, { fields: [duelParticipants.duelId], references: [duels.id] }),
+  account: one(accounts, { fields: [duelParticipants.puuid], references: [accounts.puuid] }),
 }));

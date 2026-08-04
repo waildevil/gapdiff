@@ -13,8 +13,10 @@ import { Pairings } from '@/components/Pairings';
 import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
+import { StartDuel } from '@/components/StartDuel';
 import { Titles } from '@/components/Titles';
 import { latestVersion } from '@/lib/ddragon';
+import { listDuelCandidates } from '@/lib/duels';
 import { listMyAccountsForGroup } from '@/lib/groups';
 import { getGroupStandings } from '@/lib/leaderboard';
 
@@ -39,12 +41,13 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
   }
 
   const requested = Number.parseInt(monthParam ?? '', 10);
-  const [standings, version, myAccounts] = await Promise.all([
+  const [standings, version, myAccounts, duelCandidates] = await Promise.all([
     getGroupStandings(slug, Number.isFinite(requested) ? requested : undefined),
     latestVersion(),
     session?.user?.id
       ? listMyAccountsForGroup(access.group.id, session.user.id)
       : Promise.resolve([]),
+    access.isMember ? listDuelCandidates(access.group.id) : Promise.resolve([]),
   ]);
 
   if (!standings) notFound();
@@ -136,6 +139,10 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
               slug={group.slug}
               accounts={myAccounts}
             />
+          ) : null}
+
+          {access.isMember ? (
+            <StartDuel groupId={access.group.id} slug={group.slug} candidates={duelCandidates} />
           ) : null}
 
           <div className="section-gap grid grid-2">
