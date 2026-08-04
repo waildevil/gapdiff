@@ -163,6 +163,59 @@ export const TITLES: TitleDefinition[] = [
     describe: (s) =>
       `outscored their opposite number in ${Math.round(s.laneWinRate * 100)}% of ${s.laneDuels} duels`,
   },
+  {
+    id: 'ward-lord',
+    label: 'Ward Lord',
+    value: (s) => s.visionPerMin,
+    direction: 'max',
+    describe: (s) => `${s.visionPerMin.toFixed(1)} vision score per minute over ${s.games} games`,
+  },
+  {
+    id: 'main-character',
+    label: 'Main Character',
+    value: (s) => s.damageShare,
+    direction: 'max',
+    describe: (s) =>
+      `dealt ${Math.round(s.damageShare * 100)}% of the team's damage over ${s.games} games`,
+  },
+  {
+    id: 'tank',
+    label: 'Tank',
+    value: (s) => s.damageTakenShare,
+    direction: 'max',
+    describe: (s) =>
+      `soaked ${Math.round(s.damageTakenShare * 100)}% of the team's damage taken over ${s.games} games`,
+  },
+  {
+    id: 'objective-menace',
+    label: 'Objective Menace',
+    value: (s) => s.objectiveDamageShare,
+    direction: 'max',
+    describe: (s) =>
+      `did ${Math.round(s.objectiveDamageShare * 100)}% of the team's objective damage over ${s.games} games`,
+  },
+  {
+    id: 'solo-killer',
+    label: 'Solo Killer',
+    value: (s) => s.soloKillsPerGame,
+    direction: 'max',
+    describe: (s) => `${s.soloKillsPerGame.toFixed(2)} solo kills per game over ${s.games} games`,
+  },
+  {
+    id: 'team-player',
+    label: 'Team Player',
+    value: (s) => s.killParticipation,
+    direction: 'max',
+    describe: (s) =>
+      `involved in ${Math.round(s.killParticipation * 100)}% of the team's kills over ${s.games} games`,
+  },
+  {
+    id: 'mr-reliable',
+    label: 'Mr. Reliable',
+    value: (s) => s.scoreStdDev,
+    direction: 'min',
+    describe: (s) => `the steadiest performance in the group over ${s.games} games`,
+  },
 ];
 
 /**
@@ -215,6 +268,69 @@ export const STAT_BOARDS: StatBoard[] = [
     direction: 'max',
     format: (v) => `${Math.round(v * 100)}%`,
     titleId: 'lane-bully',
+  },
+  {
+    id: 'vision',
+    label: 'Ward Lord',
+    metricLabel: 'vision score per minute',
+    value: (s) => s.visionPerMin,
+    direction: 'max',
+    format: (v) => v.toFixed(1),
+    titleId: 'ward-lord',
+  },
+  {
+    id: 'damage-share',
+    label: 'Main Character',
+    metricLabel: 'share of team damage',
+    value: (s) => s.damageShare,
+    direction: 'max',
+    format: (v) => `${Math.round(v * 100)}%`,
+    titleId: 'main-character',
+  },
+  {
+    id: 'damage-taken-share',
+    label: 'Tank',
+    metricLabel: 'share of damage taken',
+    value: (s) => s.damageTakenShare,
+    direction: 'max',
+    format: (v) => `${Math.round(v * 100)}%`,
+    titleId: 'tank',
+  },
+  {
+    id: 'objective-share',
+    label: 'Objective Menace',
+    metricLabel: 'share of objective damage',
+    value: (s) => s.objectiveDamageShare,
+    direction: 'max',
+    format: (v) => `${Math.round(v * 100)}%`,
+    titleId: 'objective-menace',
+  },
+  {
+    id: 'solo-kills',
+    label: 'Solo Killer',
+    metricLabel: 'solo kills per game',
+    value: (s) => s.soloKillsPerGame,
+    direction: 'max',
+    format: (v) => v.toFixed(2),
+    titleId: 'solo-killer',
+  },
+  {
+    id: 'kill-participation',
+    label: 'Team Player',
+    metricLabel: 'kill participation',
+    value: (s) => s.killParticipation,
+    direction: 'max',
+    format: (v) => `${Math.round(v * 100)}%`,
+    titleId: 'team-player',
+  },
+  {
+    id: 'consistency',
+    label: 'Mr. Reliable',
+    metricLabel: 'score std-dev, lower is steadier',
+    value: (s) => s.scoreStdDev,
+    direction: 'min',
+    format: (v) => v.toFixed(1),
+    titleId: 'mr-reliable',
   },
 ];
 

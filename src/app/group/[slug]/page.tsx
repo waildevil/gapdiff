@@ -13,7 +13,7 @@ import { Pairings } from '@/components/Pairings';
 import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
-import { StatBoards } from '@/components/StatBoards';
+import { Titles } from '@/components/Titles';
 import { latestVersion } from '@/lib/ddragon';
 import { listMyAccountsForGroup } from '@/lib/groups';
 import { getGroupStandings } from '@/lib/leaderboard';
@@ -140,12 +140,12 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
 
           <div className="section-gap">
             <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
-              <div className="eyebrow">{period.label} · titles are contested here</div>
+              <div className="eyebrow">{period.label} · click a title for the full ranking</div>
               <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
                 Who leads what
               </h2>
             </div>
-            <StatBoards boards={boards} />
+            <Titles boards={boards} />
           </div>
 
           <div className="section-gap">
