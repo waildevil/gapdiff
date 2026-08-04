@@ -23,7 +23,7 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 
 .primary,
@@ -35,9 +35,9 @@
   padding: 8px 14px;
   border-radius: var(--r-sm);
   cursor: pointer;
-  border: 1px solid var(--amber);
+  border: 1px solid var(--accent);
   background: transparent;
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .secondary {

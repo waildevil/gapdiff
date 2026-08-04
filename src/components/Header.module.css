@@ -19,9 +19,15 @@
 
 .brand {
   display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+}
+
+.brandText {
+  display: flex;
   flex-direction: column;
   gap: 1px;
-  flex: 0 0 auto;
 }
 
 .mark {
@@ -33,7 +39,7 @@
 }
 
 .mark span {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .tagline {

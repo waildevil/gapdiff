@@ -26,7 +26,7 @@
 }
 
 .mark span {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .sub {
@@ -72,8 +72,8 @@
 }
 
 .item[aria-current='page'] {
-  background: var(--amber-soft);
-  border-left-color: var(--amber);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
   color: var(--text);
   font-weight: 600;
 }
@@ -87,7 +87,7 @@
 }
 
 .item[aria-current='page'] .glyph {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .foot {
@@ -157,7 +157,7 @@
   }
 
   .tab[aria-current='page'] {
-    color: var(--amber);
+    color: var(--accent);
   }
 
   .tab .glyph {

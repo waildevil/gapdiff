@@ -38,7 +38,7 @@
 }
 
 .leader {
-  background: var(--amber-soft);
+  background: var(--accent-soft);
 }
 
 .pos {
@@ -49,7 +49,7 @@
 }
 
 .leader .pos {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .who {
@@ -65,7 +65,7 @@
 }
 
 .name:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .games {
@@ -87,7 +87,7 @@
 }
 
 .leader .value {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .crown {
@@ -95,7 +95,7 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--amber);
+  color: var(--accent);
   display: block;
 }
 

@@ -43,7 +43,7 @@
 }
 
 .inputWrap:focus-within {
-  border-color: var(--amber-line);
+  border-color: var(--accent-line);
 }
 
 .input {
@@ -73,14 +73,14 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--amber);
-  background: var(--amber-soft);
+  color: var(--accent);
+  background: var(--accent-soft);
   border-left: 1px solid var(--line);
   border-radius: 0 var(--r-md) var(--r-md) 0;
 }
 
 .submit:hover {
-  background: var(--amber);
+  background: var(--accent);
   color: var(--surface);
 }
 
@@ -148,7 +148,7 @@
 }
 
 .match {
-  color: var(--amber);
+  color: var(--accent);
   font-weight: 650;
 }
 
@@ -165,13 +165,13 @@
   padding: 8px 11px;
   margin-bottom: 4px;
   border-radius: var(--r-sm);
-  background: var(--amber-soft);
-  border: 1px solid var(--amber-line);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   font-family: var(--mono);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--amber);
+  color: var(--accent);
   line-height: 1.4;
 }
 

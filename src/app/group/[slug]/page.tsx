@@ -191,7 +191,7 @@ function PrivateGroup({
   signedIn: boolean;
 }) {
   const linkStyle = {
-    color: 'var(--amber)',
+    color: 'var(--accent)',
     fontFamily: 'var(--mono)',
     fontSize: 12,
   } as const;
@@ -243,13 +243,13 @@ function EmptyState({
           border: '1px solid var(--line)',
           borderRadius: 'var(--r-sm)',
           padding: '7px 12px',
-          color: 'var(--amber)',
+          color: 'var(--accent)',
         }}
       >
         {command}
       </code>
       <p style={{ marginTop: 24 }}>
-        <Link href="/" style={{ color: 'var(--amber)', fontFamily: 'var(--mono)', fontSize: 12 }}>
+        <Link href="/" style={{ color: 'var(--accent)', fontFamily: 'var(--mono)', fontSize: 12 }}>
           ← Back to search
         </Link>
       </p>

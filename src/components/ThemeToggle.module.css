@@ -13,9 +13,9 @@
 }
 
 .toggle:hover {
-  color: var(--amber);
-  border-color: var(--amber-line);
-  background: var(--amber-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
 }
 
 .icon {

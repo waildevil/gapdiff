@@ -24,8 +24,8 @@
 }
 
 .tabOn {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .scroll {
@@ -225,6 +225,6 @@
 }
 
 .loadMore:hover {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
 }

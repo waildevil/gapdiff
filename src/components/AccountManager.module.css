@@ -40,7 +40,7 @@
 }
 
 .input:focus {
-  border-color: var(--amber-line);
+  border-color: var(--accent-line);
 }
 
 .input::placeholder {
@@ -52,16 +52,16 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--amber);
-  background: var(--amber-soft);
-  border: 1px solid var(--amber-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-md);
   padding: 0 18px;
   flex: 0 0 auto;
 }
 
 .submit:hover:not(:disabled) {
-  background: var(--amber);
+  background: var(--accent);
   color: var(--surface);
 }
 
@@ -181,9 +181,9 @@
   width: 100%;
   margin-top: 6px;
   padding: 18px;
-  border: 1px solid var(--amber-line);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-lg);
-  background: linear-gradient(180deg, var(--amber-soft), transparent 70%);
+  background: linear-gradient(180deg, var(--accent-soft), transparent 70%);
   display: flex;
   gap: 20px;
   align-items: center;
@@ -218,7 +218,7 @@
 }
 
 .compareLabelAccent {
-  color: var(--amber);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -240,10 +240,10 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 2px solid var(--amber);
+  border: 2px solid var(--accent);
   flex: 0 0 auto;
   background: var(--surface-2);
-  box-shadow: 0 0 0 4px var(--amber-soft);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -255,10 +255,10 @@
 @keyframes pulse-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 4px var(--amber-soft);
+    box-shadow: 0 0 0 4px var(--accent-soft);
   }
   50% {
-    box-shadow: 0 0 0 8px var(--amber-soft);
+    box-shadow: 0 0 0 8px var(--accent-soft);
   }
 }
 
@@ -329,7 +329,7 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--surface);
-  background: var(--amber);
+  background: var(--accent);
   border-radius: var(--r-md);
   padding: 9px 18px;
   transition: filter 0.15s ease;

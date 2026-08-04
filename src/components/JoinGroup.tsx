@@ -36,7 +36,7 @@ export function JoinGroup({ code, groupName, claimedAccounts, verifiedAccounts }
         <div className="note" style={{ marginTop: 0, marginBottom: 16 }}>
           <b>You haven&apos;t added a Riot account yet.</b> You can join {groupName} now,
           but you won&apos;t show up on the board until you{' '}
-          <Link href="/accounts" style={{ color: 'var(--amber)' }}>
+          <Link href="/accounts" style={{ color: 'var(--accent)' }}>
             add one
           </Link>
           .

@@ -32,7 +32,7 @@
 }
 
 .current {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .nav {
@@ -58,8 +58,8 @@
 }
 
 .button:hover {
-  color: var(--amber);
-  border-color: var(--amber-line);
+  color: var(--accent);
+  border-color: var(--accent-line);
 }
 
 .disabled {

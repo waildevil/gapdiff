@@ -30,7 +30,7 @@
 }
 
 .input:focus {
-  border-color: var(--amber-line);
+  border-color: var(--accent-line);
 }
 
 .input::placeholder {
@@ -42,16 +42,16 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--amber);
-  background: var(--amber-soft);
-  border: 1px solid var(--amber-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-md);
   padding: 0 18px;
   flex: 0 0 auto;
 }
 
 .submit:hover:not(:disabled) {
-  background: var(--amber);
+  background: var(--accent);
   color: var(--surface);
 }
 
@@ -94,7 +94,7 @@
 }
 
 .nameText:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .meta {
@@ -111,8 +111,8 @@
   letter-spacing: 0.1em;
   padding: 3px 7px;
   border-radius: var(--r-sm);
-  color: var(--amber);
-  background: var(--amber-soft);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .action {
@@ -128,8 +128,8 @@
 }
 
 .action:hover {
-  color: var(--amber);
-  border-color: var(--amber-line);
+  color: var(--accent);
+  border-color: var(--accent-line);
 }
 
 .empty {

@@ -20,8 +20,8 @@
 
 /* The founder is the one role that can't change, so it reads as a fact. */
 .founder {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .button {
@@ -39,8 +39,8 @@
 }
 
 .button:hover:not(:disabled) {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .button:disabled {

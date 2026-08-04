@@ -71,13 +71,13 @@
 }
 
 .add {
-  color: var(--amber);
-  background: var(--amber-soft);
-  border-color: var(--amber-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
 }
 
 .add:hover:not(:disabled) {
-  background: var(--amber);
+  background: var(--accent);
   color: var(--surface);
 }
 
@@ -106,5 +106,5 @@
 }
 
 .empty a {
-  color: var(--amber);
+  color: var(--accent);
 }

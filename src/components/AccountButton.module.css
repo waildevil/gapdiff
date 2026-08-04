@@ -11,9 +11,9 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--amber);
-  background: var(--amber-soft);
-  border: 1px solid var(--amber-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-md);
   padding: 8px 13px;
   white-space: nowrap;
@@ -21,7 +21,7 @@
 }
 
 .signIn:hover {
-  background: var(--amber);
+  background: var(--accent);
   color: var(--surface);
 }
 
@@ -43,7 +43,7 @@
 }
 
 .user:hover {
-  border-color: var(--amber-line);
+  border-color: var(--accent-line);
 }
 
 .name {

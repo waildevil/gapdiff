@@ -38,7 +38,7 @@ export default async function ManageGroupPage({ params }: PageProps) {
           <p style={{ color: 'var(--muted)', margin: '0 0 20px' }}>
             Only the owner of {group.name} can manage it.
           </p>
-          <Link href={`/group/${slug}`} style={{ color: 'var(--amber)', fontFamily: 'var(--mono)', fontSize: 12 }}>
+          <Link href={`/group/${slug}`} style={{ color: 'var(--accent)', fontFamily: 'var(--mono)', fontSize: 12 }}>
             View the standings instead →
           </Link>
         </div>

@@ -173,7 +173,7 @@ function Message({ title, children }: { title: string; children: React.ReactNode
       <h1 className={styles.messageTitle}>{title}</h1>
       {children}
       <p style={{ marginTop: 24 }}>
-        <Link href="/" style={{ color: 'var(--amber)', fontFamily: 'var(--mono)', fontSize: 12 }}>
+        <Link href="/" style={{ color: 'var(--accent)', fontFamily: 'var(--mono)', fontSize: 12 }}>
           â† Back to search
         </Link>
       </p>

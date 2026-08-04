@@ -45,7 +45,7 @@ export const ROLE_LABEL: Record<string, string> = {
 /** Colour ramp for a 0-100 performance score. */
 export function perfColor(score: number): string {
   if (score >= 75) return 'var(--good)';
-  if (score >= 55) return 'var(--amber)';
+  if (score >= 55) return 'var(--accent)';
   if (score >= 45) return 'var(--muted)';
   return 'var(--bad)';
 }

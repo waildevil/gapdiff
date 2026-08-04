@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AccountButton, type SessionUser } from './AccountButton';
+import { Logo } from './Logo';
 import { SearchForm } from './SearchForm';
 import { ThemeToggle } from './ThemeToggle';
 import styles from './Header.module.css';
@@ -16,10 +17,13 @@ export function Header({ user }: { user: SessionUser | null }) {
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link href="/" className={styles.brand}>
-          <span className={styles.mark}>
-            gap<span>diff</span>
+          <Logo />
+          <span className={styles.brandText}>
+            <span className={styles.mark}>
+              gap<span>diff</span>
+            </span>
+            <span className={styles.tagline}>League stats</span>
           </span>
-          <span className={styles.tagline}>League stats</span>
         </Link>
 
         {showSearch ? (

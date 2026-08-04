@@ -48,8 +48,8 @@
 }
 
 .tabOn {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .list {
@@ -160,8 +160,8 @@
 }
 
 .more:hover {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .hint {

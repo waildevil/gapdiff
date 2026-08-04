@@ -39,7 +39,7 @@
 }
 
 .row:hover .name {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .icon {

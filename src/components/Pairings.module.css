@@ -31,7 +31,7 @@
 }
 
 .name:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .amp {
@@ -95,7 +95,7 @@
 }
 
 .versus {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .empty {

@@ -1,0 +1,12 @@
+.logo {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.hex {
+  opacity: 0.55;
+}
+
+.spike {
+  opacity: 0.95;
+}

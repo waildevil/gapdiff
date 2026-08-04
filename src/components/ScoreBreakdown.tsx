@@ -14,7 +14,7 @@ const PILLARS = [
   {
     name: 'Performance',
     weight: '40%',
-    colour: 'var(--amber)',
+    colour: 'var(--accent)',
     body: 'How you played against the nine other people in each lobby — kill participation, damage, gold, CS, vision and deaths, weighted differently per role. Recent games count for more.',
   },
   {

@@ -187,7 +187,7 @@
 
 .expanded .chevron {
   transform: rotate(180deg);
-  color: var(--amber);
+  color: var(--accent);
 }
 
 /* ---------- expanded scoreboard ---------- */
@@ -257,11 +257,11 @@
 }
 
 .searched {
-  background: var(--amber-soft);
+  background: var(--accent-soft);
 }
 
 .searched:hover {
-  background: var(--amber-soft);
+  background: var(--accent-soft);
 }
 
 .who {
@@ -307,7 +307,7 @@
 }
 
 .whoNameText:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .damageWrap {
@@ -427,13 +427,13 @@
 }
 
 .badgeMvp {
-  color: var(--amber);
-  border-color: var(--amber);
+  color: var(--accent);
+  border-color: var(--accent);
   font-weight: 650;
 }
 
 .badgeAce {
-  color: var(--amber);
+  color: var(--accent);
   border-color: var(--line);
   font-weight: 650;
 }

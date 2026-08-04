@@ -36,20 +36,20 @@ export function Sparkline({ values, width = 68, height = 22, seed }: SparklinePr
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--amber)" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="var(--amber)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#${gradientId})`} />
       <polyline
         points={points.join(' ')}
         fill="none"
-        stroke="var(--amber)"
+        stroke="var(--accent)"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      <circle cx={last[0]} cy={last[1]} r="2.4" fill="var(--amber)" />
+      <circle cx={last[0]} cy={last[1]} r="2.4" fill="var(--accent)" />
     </svg>
   );
 }

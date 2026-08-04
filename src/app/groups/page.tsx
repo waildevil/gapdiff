@@ -79,7 +79,7 @@ export default async function GroupsPage() {
         <div className="note">
           <b>You have no Riot accounts claimed yet.</b> You can still create and join
           groups, but you won&apos;t appear on any leaderboard until you{' '}
-          <Link href="/accounts" style={{ color: 'var(--amber)' }}>
+          <Link href="/accounts" style={{ color: 'var(--accent)' }}>
             add and verify an account
           </Link>
           .

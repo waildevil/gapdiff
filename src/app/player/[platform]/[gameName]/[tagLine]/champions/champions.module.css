@@ -5,7 +5,7 @@
 }
 
 .back {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .back:hover {
@@ -27,7 +27,7 @@
 .link {
   font-family: var(--mono);
   font-size: 12px;
-  color: var(--amber);
+  color: var(--accent);
 }
 
 @media (max-width: 860px) {
