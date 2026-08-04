@@ -16,16 +16,20 @@
   height: 100%;
 }
 
+/* One hue, stepped by opacity, so the bar reads as a single glowing
+   measurement instead of three unrelated colors fighting each other. */
 .rank {
-  background: var(--diamond);
+  background: var(--accent);
 }
 
 .perf {
   background: var(--accent);
+  opacity: 0.68;
 }
 
 .cons {
-  background: var(--platinum);
+  background: var(--accent);
+  opacity: 0.38;
 }
 
 .key {

@@ -31,17 +31,19 @@ export function StatBoards({ boards }: { boards: StatBoardResult[] }) {
                 >
                   {row.gameName}
                 </Link>
-                {/* Games count always shows — the title line is extra, not a
-                    replacement, otherwise the holder's sample size is hidden. */}
-                <span className={`${styles.games} ${row.eligible ? '' : styles.ineligible}`}>
-                  {row.games} {row.games === 1 ? 'game' : 'games'}
-                  {row.eligible ? '' : ` · needs ${MIN_GAMES_FOR_TITLE}`}
-                </span>
-                {row.holdsTitle ? (
-                  <span className={styles.crown}>
-                    {row.takenFrom ? `took it from ${row.takenFrom}` : 'holds the title'}
+                <div className={styles.subline}>
+                  {/* Games count always shows — the title badge is extra, not a
+                      replacement, otherwise the holder's sample size is hidden. */}
+                  <span className={`${styles.games} ${row.eligible ? '' : styles.ineligible}`}>
+                    {row.games} {row.games === 1 ? 'game' : 'games'}
+                    {row.eligible ? '' : ` · needs ${MIN_GAMES_FOR_TITLE}`}
                   </span>
-                ) : null}
+                  {row.holdsTitle ? (
+                    <span className={styles.crown}>
+                      {row.takenFrom ? `from ${row.takenFrom}` : 'holds it'}
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               <div className={styles.value}>{row.games === 0 ? '—' : row.formatted}</div>
