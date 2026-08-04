@@ -16,24 +16,6 @@ export const metadata: Metadata = {
   description: 'Look up any League of Legends player and see how they actually performed.',
 };
 
-/**
- * Runs before first paint, so the page never renders in one theme and then
- * snaps to the other. Stored choice wins; otherwise follow the OS.
- */
-const themeScript = `
-(function(){
-  try {
-    var stored = localStorage.getItem('gapdiff-theme');
-    var theme = stored === 'light' || stored === 'dark'
-      ? stored
-      : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    document.documentElement.setAttribute('data-theme', theme);
-  } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
-})();
-`;
-
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const user = session?.user
@@ -45,11 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   return (
-    // The script above mutates data-theme before React hydrates.
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+    <html lang="en">
       <body className={display.variable}>
         <Header user={user} />
         <main>{children}</main>

@@ -1,12 +1,18 @@
 import Link from 'next/link';
 import { Avatar } from './Avatar';
-import { PillarBar } from './PillarBar';
 import { Sparkline } from './Sparkline';
 import { profileIcon } from '@/lib/ddragon';
 import { winRate } from '@/lib/format';
 import { RankBadge } from './RankBadge';
 import type { LeaderboardEntry } from '@/lib/leaderboard';
 import styles from './StandingsRow.module.css';
+
+/** How much the Gap Score should be trusted, in plain words. */
+function confidenceLabel(confidence: number): string {
+  if (confidence >= 0.7) return 'reliable sample';
+  if (confidence >= 0.4) return 'building sample';
+  return 'early sample';
+}
 
 /** Column labels, so no number on the board is unexplained. */
 export function StandingsHeader() {
@@ -16,7 +22,7 @@ export function StandingsHeader() {
       <div />
       <div>Player</div>
       <div className={styles.right}>Gap Score</div>
-      <div className={styles.pillarCell}>Score breakdown</div>
+      <div className={styles.gamesCell}>Games</div>
       <div className={styles.right}>KDA · win rate</div>
       <div className={styles.right}>Form</div>
     </div>
@@ -119,13 +125,12 @@ export function StandingsRow({
         )}
       </div>
 
-      <div className={styles.pillarCell}>
+      <div className={styles.gamesCell}>
         {rating.rated ? (
-          <PillarBar
-            rankScore={rating.rankScore}
-            performanceScore={rating.performanceScore}
-            consistencyScore={rating.consistencyScore}
-          />
+          <>
+            <div className={styles.gamesCount}>{games}</div>
+            <div className={styles.gamesLabel}>{confidenceLabel(rating.confidence)}</div>
+          </>
         ) : (
           <div className={styles.awaiting}>Waiting on the next ingest</div>
         )}
@@ -133,17 +138,10 @@ export function StandingsRow({
 
       <div className={styles.record}>
         {rating.rated ? (
-          <>
-            <div className={styles.kda}>
-              {player.kda.toFixed(2)} <span>KDA</span>
-            </div>
-            <div className={styles.recordSub}>
-              {winRate(rating.wins, rating.losses)}% of {games} games
-            </div>
-            <div className={styles.recordSub}>
-              {rating.wins}W {rating.losses}L
-            </div>
-          </>
+          <div className={styles.kda}>
+            {player.kda.toFixed(2)} <span>KDA</span> · {winRate(rating.wins, rating.losses)}%{' '}
+            <span>WR</span>
+          </div>
         ) : (
           <div className={styles.recordSub}>no games yet</div>
         )}

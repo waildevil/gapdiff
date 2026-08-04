@@ -1,77 +1,25 @@
 /* ============================================================
    gapdiff — design tokens and shared component styles.
 
-   Ground: near-black hextech blue. Signature: one neon arcane-teal accent
-   for every interactive and emphasized element — no gold, no amber. LoL
-   tier colours carry the rest of the chromatic work. Page-specific styles
-   live in CSS modules next to their components; everything shared lives
-   here.
+   One light theme, one accent: a clean readable blue, not neon and not
+   gold. LoL tier colours carry the rest of the chromatic work.
+   Page-specific styles live in CSS modules next to their components;
+   everything shared lives here.
    ============================================================ */
 
-/* Dark is the default. An inline script in the layout resolves the viewer's
-   stored choice (or their system preference) into data-theme before first
-   paint, so there is never a flash of the wrong theme. */
 :root {
-  /* The canvas sits lighter than the cards, so panels read as inset wells
-     rather than floating tiles. */
-  --bg: #131a24;
-  --surface: #0d131b;
-  --surface-2: #141c27;
-  --surface-3: #1c2632;
-  --line: #26313f;
-  --line-soft: #1a2330;
-  --text: #eef2f7;
-  --muted: #8695a8;
-  --faint: #56708a;
-  --accent: #29f1d1;
-  --accent-soft: rgba(41, 241, 209, 0.16);
-  --accent-line: rgba(41, 241, 209, 0.42);
-  --good: #3fcf8e;
-  --bad: #f0576a;
-  --good-soft: rgba(63, 207, 142, 0.13);
-  --bad-soft: rgba(240, 87, 106, 0.13);
-
-  --iron: #7a7a7a;
-  --bronze: #a3754c;
-  --silver: #a6b6c2;
-  --gold: #e0a63c;
-  --platinum: #4fc5b0;
-  --emerald: #35b36b;
-  --diamond: #5b8df0;
-  --master: #a568e8;
-  --grandmaster: #e0605f;
-  --challenger: #ecc964;
-
-  --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 14px;
-  --rail-w: 208px;
-  /* Chamfered corner for primary CTAs — the angular esports-HUD look, not a soft pill. */
-  --chamfer: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
-
-  --surface-translucent: rgba(13, 19, 27, 0.72);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 1px rgba(0, 0, 0, 0.16);
-  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.24);
-}
-
-/* Warm ivory canvas — the parchment tone hextech UI panels run on, not a
-   flat white SaaS background. Cards separate by border rather than fill. */
-:root[data-theme="light"] {
-  --bg: #f6f1e7;
-  --surface: #fffdf8;
-  --surface-2: #f1e9d8;
-  --surface-3: #e6d9bd;
-  --line: #ddcca4;
-  --line-soft: #ece2c9;
-  --text: #201a0e;
-  --muted: #6b5f47;
-  --faint: #8a7d5f;
-  --accent: #00786b;
-  --accent-soft: rgba(0, 120, 107, 0.1);
-  --accent-line: rgba(0, 120, 107, 0.32);
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --surface-3: #e2e7ee;
+  --line: #dbe1e8;
+  --line-soft: #e9edf1;
+  --text: #141b22;
+  --muted: #526271;
+  --faint: #7d8b98;
+  --accent: #2f6fed;
+  --accent-soft: rgba(47, 111, 237, 0.1);
+  --accent-line: rgba(47, 111, 237, 0.32);
   --good: #0f8a58;
   --bad: #c32e42;
   --good-soft: rgba(15, 138, 88, 0.1);
@@ -89,9 +37,19 @@
   --grandmaster: #c62233;
   --challenger: #8a6a00;
 
-  --surface-translucent: rgba(255, 253, 248, 0.72);
-  --shadow-sm: 0 1px 2px rgba(32, 26, 14, 0.07), 0 1px 1px rgba(32, 26, 14, 0.05);
-  --shadow-md: 0 8px 24px rgba(32, 26, 14, 0.12), 0 2px 8px rgba(32, 26, 14, 0.07);
+  --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 14px;
+  --rail-w: 208px;
+  /* Chamfered corner for primary CTAs — the angular esports-HUD look, not a soft pill. */
+  --chamfer: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+
+  --surface-translucent: rgba(255, 255, 255, 0.72);
+  --shadow-sm: 0 1px 2px rgba(20, 27, 34, 0.07), 0 1px 1px rgba(20, 27, 34, 0.05);
+  --shadow-md: 0 8px 24px rgba(20, 27, 34, 0.12), 0 2px 8px rgba(20, 27, 34, 0.07);
 }
 
 *,
