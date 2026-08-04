@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { claimAccount, forgetAccount, verifyAccount } from '@/app/actions/accounts';
 import { profileIcon } from '@/lib/ddragon';
 import { PLATFORMS, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
@@ -90,39 +90,61 @@ export function AccountManager({ accounts, version }: Props) {
   );
 }
 
+/** Riot's summoner cache can lag the client by up to a minute, so we keep polling instead of making the user re-click. */
+const POLL_INTERVAL_MS = 8000;
+
 function AccountRow({ account, version }: { account: ClaimedAccount; version: string }) {
   const [status, setStatus] = useState<string | null>(null);
   const [good, setGood] = useState(false);
+  const [polling, setPolling] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function handleVerify() {
-    setStatus(null);
+  useEffect(() => {
+    return () => {
+      if (pollTimer.current) clearTimeout(pollTimer.current);
+    };
+  }, []);
+
+  function runCheck(auto: boolean) {
     startTransition(async () => {
       const result = await verifyAccount(account.puuid);
       switch (result.status) {
         case 'verified':
+          setPolling(false);
           setGood(true);
           setStatus('Verified.');
           break;
         case 'mismatch':
           setGood(false);
           setStatus(
-            `Still showing icon ${result.actual ?? '?'}. Riot can take up to a minute to catch up — change it, wait, then try again.`,
+            `Still showing icon ${result.actual ?? '?'}. Waiting for Riot to catch up — checking again automatically.`,
           );
+          pollTimer.current = setTimeout(() => runCheck(true), POLL_INTERVAL_MS);
           break;
         case 'expired':
+          setPolling(false);
           setGood(false);
           setStatus('That challenge expired. Add the account again for a fresh one.');
           break;
         case 'none':
+          setPolling(false);
           setGood(false);
           setStatus('No challenge outstanding. Add the account again.');
           break;
         default:
+          setPolling(false);
           setGood(false);
           setStatus(result.error);
       }
     });
+  }
+
+  function handleVerify() {
+    if (pollTimer.current) clearTimeout(pollTimer.current);
+    setStatus(null);
+    setPolling(true);
+    runCheck(false);
   }
 
   return (
@@ -182,8 +204,8 @@ function AccountRow({ account, version }: { account: ClaimedAccount; version: st
             </p>
 
             <div className={styles.verifyRow}>
-              <button className={styles.verify} onClick={handleVerify} disabled={isPending}>
-                {isPending ? 'Checking…' : 'Verify'}
+              <button className={styles.verify} onClick={handleVerify} disabled={isPending || polling}>
+                {polling ? 'Waiting for Riot…' : isPending ? 'Checking…' : 'Verify'}
               </button>
               {status ? (
                 <span className={`${styles.status} ${good ? styles.statusGood : styles.statusBad}`}>
