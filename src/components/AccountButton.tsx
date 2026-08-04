@@ -70,6 +70,9 @@ export function AccountButton({ user }: { user: SessionUser | null }) {
           <Link className={styles.item} href="/accounts" onClick={() => setOpen(false)}>
             My Riot accounts
           </Link>
+          <Link className={styles.item} href="/duels" onClick={() => setOpen(false)}>
+            Start a duel
+          </Link>
           <div className={styles.divider} />
           <form action={() => signOutAction()}>
             <button className={`${styles.item} ${styles.danger}`} type="submit">

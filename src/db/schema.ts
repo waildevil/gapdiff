@@ -365,11 +365,13 @@ export const syncState = pgTable('sync_state', {
 });
 
 /**
- * A friendly race: 2-4 tracked accounts, ranked LP snapshotted at creation and
- * compared again whenever the page is opened.
+ * A friendly race: pick your own Riot account, challenge 1-3 people to a
+ * ranked-LP climb, they accept or decline.
  *
- * `code` is the public, unguessable id — a duel is viewable by link alone, same
- * as an invite, because bragging rights only work if you can send the result to
+ * Not scoped to one `group_id` — a challenge can cross groups, since the whole
+ * point is searching for anyone tracked anywhere in the app, not just your own
+ * board. `code` is the public, unguessable id a duel is viewable by, same as an
+ * invite, because bragging rights only work if you can send the result to
  * someone who isn't a group member.
  */
 export const duels = pgTable(
@@ -377,21 +379,24 @@ export const duels = pgTable(
   {
     id: serial('id').primaryKey(),
     code: varchar('code', { length: 32 }).notNull().unique(),
-    groupId: integer('group_id')
+    createdBy: text('created_by')
       .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
-    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+      .references(() => users.id, { onDelete: 'cascade' }),
     startAt: timestamp('start_at', { withTimezone: true }).notNull().defaultNow(),
     endAt: timestamp('end_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('duels_group_idx').on(table.groupId)],
+  (table) => [index('duels_created_by_idx').on(table.createdBy)],
 );
 
 /**
  * One racer's starting line, ranked-solo only — that's the ladder people mean
- * by "climbing". Null fields mean unranked at the start, so the climb is
+ * by "climbing". Null rank fields mean unranked at the start, so the climb is
  * measured from zero rather than blocking the racer from entering.
+ *
+ * `invitedUserId` is the verified owner of `puuid` — whoever must accept or
+ * decline before this racer's numbers are shown. The creator's own row is
+ * inserted pre-accepted, since challenging yourself needs no consent.
  */
 export const duelParticipants = pgTable(
   'duel_participants',
@@ -402,11 +407,20 @@ export const duelParticipants = pgTable(
     puuid: varchar('puuid', { length: 78 })
       .notNull()
       .references(() => accounts.puuid, { onDelete: 'cascade' }),
+    invitedUserId: text('invited_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 'pending' | 'accepted' | 'declined' */
+    status: varchar('status', { length: 16 }).notNull().default('pending'),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
     startTier: varchar('start_tier', { length: 16 }),
     startDivision: varchar('start_division', { length: 4 }),
     startLeaguePoints: integer('start_league_points'),
   },
-  (table) => [primaryKey({ columns: [table.duelId, table.puuid] })],
+  (table) => [
+    primaryKey({ columns: [table.duelId, table.puuid] }),
+    index('duel_participants_invited_idx').on(table.invitedUserId),
+  ],
 );
 
 export const groupsRelations = relations(groups, ({ many, one }) => ({
@@ -458,9 +472,8 @@ export const matchParticipantsRelations = relations(matchParticipants, ({ one })
   }),
 }));
 
-export const duelsRelations = relations(duels, ({ many, one }) => ({
+export const duelsRelations = relations(duels, ({ many }) => ({
   participants: many(duelParticipants),
-  group: one(groups, { fields: [duels.groupId], references: [groups.id] }),
 }));
 
 export const duelParticipantsRelations = relations(duelParticipants, ({ one }) => ({

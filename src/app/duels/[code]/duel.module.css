@@ -83,3 +83,17 @@
 .back:hover {
   color: var(--accent);
 }
+
+.pendingRow {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.empty {
+  padding: 18px 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
