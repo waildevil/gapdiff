@@ -49,6 +49,8 @@
   --r-md: 8px;
   --r-lg: 14px;
   --rail-w: 208px;
+  /* Chamfered corner for primary CTAs — the angular esports-HUD look, not a soft pill. */
+  --chamfer: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
 
   --surface-translucent: rgba(13, 19, 27, 0.72);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 1px rgba(0, 0, 0, 0.16);
@@ -155,6 +157,9 @@ main {
 }
 
 .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--mono);
   font-size: 10.5px;
   text-transform: uppercase;
@@ -163,12 +168,40 @@ main {
   margin-bottom: 8px;
 }
 
+.eyebrow::before {
+  content: '';
+  width: 3px;
+  height: 11px;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display), var(--sans);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 h1 {
-  font-size: 27px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: 34px;
+  line-height: 1.08;
+  letter-spacing: 0.005em;
   margin: 0 0 8px;
   text-wrap: balance;
+}
+
+h2 {
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: 0.005em;
+  margin: 0;
+}
+
+/* Inner pages get the accent title bar; the centered home hero opts out. */
+.page-head h1 {
+  border-left: 4px solid var(--accent);
+  padding-left: 14px;
 }
 
 .page-sub {

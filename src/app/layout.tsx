@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
+import { Barlow_Condensed } from 'next/font/google';
 import { auth } from '@/auth';
 import { Header } from '@/components/Header';
 import './globals.css';
+
+const display = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'gapdiff — League of Legends stats',
@@ -42,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>
+      <body className={display.variable}>
         <Header user={user} />
         <main>{children}</main>
       </body>

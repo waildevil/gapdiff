@@ -66,18 +66,6 @@ export function ordinal(position: number): string {
   return `${position}${suffix}`;
 }
 
-/**
- * Deterministic hue so a given champion or player always gets the same colour.
- * Used for generated avatars until Data Dragon art is wired in.
- */
-export function hueOf(name: string): number {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) % 360;
-  }
-  return hash;
-}
-
 export function initials(name: string): string {
   const clean = name.replace(/[^A-Za-z0-9' ]/g, '');
   const parts = clean.split(/[\s']+/).filter(Boolean);

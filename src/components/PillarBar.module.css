@@ -1,42 +1,33 @@
 .pillars {
   display: flex;
+  gap: 14px;
+}
+
+.stat {
+  display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
+  padding-left: 7px;
+  border-left: 2px solid var(--accent-line);
 }
 
-.bar {
-  display: flex;
-  height: 7px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--surface-3);
-}
-
-.seg {
-  height: 100%;
-}
-
-/* One hue, stepped by opacity, so the bar reads as a single glowing
-   measurement instead of three unrelated colors fighting each other. */
-.rank {
-  background: var(--accent);
-}
-
-.perf {
-  background: var(--accent);
-  opacity: 0.68;
-}
-
-.cons {
-  background: var(--accent);
-  opacity: 0.38;
-}
-
-.key {
-  display: flex;
-  gap: 10px;
+.statLabel {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--faint);
+}
+
+.statValue {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.statMuted {
+  color: var(--faint);
 }

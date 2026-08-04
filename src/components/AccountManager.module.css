@@ -50,25 +50,26 @@
 .submit {
   font-family: var(--mono);
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: var(--r-md);
+  color: var(--surface);
+  background: var(--accent);
+  clip-path: var(--chamfer);
   padding: 0 18px;
   flex: 0 0 auto;
+  transition: filter 120ms ease;
 }
 
 .submit:hover:not(:disabled) {
-  background: var(--accent);
-  color: var(--surface);
+  filter: brightness(1.1);
 }
 
 .submit:disabled {
   color: var(--faint);
   background: var(--surface-2);
-  border-color: var(--line);
+  clip-path: none;
+  border-radius: var(--r-md);
   cursor: default;
 }
 
@@ -326,11 +327,12 @@
   gap: 8px;
   font-family: var(--mono);
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--surface);
   background: var(--accent);
-  border-radius: var(--r-md);
+  clip-path: var(--chamfer);
   padding: 9px 18px;
   transition: filter 0.15s ease;
 }

@@ -31,11 +31,12 @@
 }
 
 .mark {
-  font-family: var(--mono);
-  font-size: 18px;
+  font-family: var(--font-display), var(--sans);
+  font-size: 21px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
 }
 
 .mark span {
