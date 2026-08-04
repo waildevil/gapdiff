@@ -1,18 +1,33 @@
 .hero {
+  position: relative;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 96px 24px 64px;
+  padding: 108px 24px 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  isolation: isolate;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  width: 720px;
+  height: 420px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, var(--amber-soft), transparent);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .title {
-  font-size: 38px;
+  font-size: 44px;
   line-height: 1.08;
   letter-spacing: -0.03em;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   text-wrap: balance;
 }
 
@@ -53,16 +68,19 @@
 .example {
   font-family: var(--mono);
   font-size: 12px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border: 1px solid var(--line);
-  border-radius: var(--r-sm);
+  border-radius: 999px;
   color: var(--muted);
-  transition: border-color 120ms ease, color 120ms ease;
+  background: var(--surface);
+  transition: border-color 120ms ease, color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
 }
 
 .example:hover {
   border-color: var(--amber-line);
   color: var(--amber);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .explainer {
@@ -75,19 +93,39 @@
 }
 
 .point {
-  padding: 18px;
+  padding: 20px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.point:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--amber-line);
 }
 
 .pointTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.13em;
   color: var(--amber);
   margin-bottom: 10px;
+}
+
+.pointTitle::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex: 0 0 auto;
 }
 
 .pointBody {
