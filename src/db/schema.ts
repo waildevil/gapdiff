@@ -362,6 +362,13 @@ export const syncState = pgTable('sync_state', {
   backfilledThrough: timestamp('backfilled_through', { withTimezone: true }),
   backfillComplete: boolean('backfill_complete').notNull().default(false),
   lastError: text('last_error'),
+  /**
+   * Set when a fresh claim needs to show up on the leaderboard before the
+   * nightly backfill would otherwise reach it. The priority-sync workflow
+   * drains this on a short cycle with a cheap recent-only window, then clears
+   * it; the full season backfill still happens later on the normal path.
+   */
+  priorityRequestedAt: timestamp('priority_requested_at', { withTimezone: true }),
 });
 
 /**

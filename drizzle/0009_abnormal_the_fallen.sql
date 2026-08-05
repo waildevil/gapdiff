@@ -1,0 +1,1 @@
+ALTER TABLE "sync_state" ADD COLUMN "priority_requested_at" timestamp with time zone;

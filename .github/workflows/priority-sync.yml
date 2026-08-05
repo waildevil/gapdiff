@@ -1,0 +1,51 @@
+name: Priority sync
+
+# Drains sync_state.priority_requested_at — set the moment a claim is verified
+# (see src/lib/verification.ts) — so a freshly joined account shows current
+# rank and recent matches within a couple of minutes instead of waiting for
+# the nightly full backfill (ingest.yml) to eventually reach it.
+#
+# Deliberately its own workflow, not a flag on the nightly one: that job's
+# concurrency group holds a slow season-long backfill for up to 30 minutes,
+# and a new joiner queuing behind it would defeat the point.
+on:
+  schedule:
+    - cron: '*/2 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: priority-sync
+  cancel-in-progress: false
+
+jobs:
+  priority-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Sync recently claimed accounts
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEASON_START: ${{ vars.SEASON_START }}
+          TITLE_WINDOW_START: ${{ vars.TITLE_WINDOW_START }}
+        run: |
+          if [ -z "$RIOT_API_KEY" ]; then
+            echo "::error::RIOT_API_KEY secret is not set."
+            exit 1
+          fi
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set."
+            exit 1
+          fi
+
+          npm run ingest -- --priority-only

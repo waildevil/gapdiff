@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import {
   accounts,
@@ -25,12 +25,25 @@ import { currentPeriodIndex, periodWindow, seasonStart } from '@/lib/titles';
  *   npm run ingest -- --player anvil    one account, so adding somebody is quick
  *   npm run ingest -- --backfill        back to SEASON_START, for a new account
  *   npm run ingest -- --days=90         explicit window, implies --backfill
+ *   npm run ingest -- --priority-only   only accounts flagged by a fresh claim,
+ *                                       a cheap recent-only window — see below
  *
  * Incremental by default. An account that has already been backfilled is only
  * asked for matches since its last sync, which is usually a single page rather
  * than four — the expensive part is per-match fetches, and a match is never
  * fetched twice.
+ *
+ * --priority-only is the other entry point, run by a separate short-cycle
+ * workflow (priority-sync.yml) instead of the nightly one. A freshly verified
+ * claim sets `sync_state.priority_requested_at`; this mode selects only those
+ * accounts, syncs a small recent window (PRIORITY_WINDOW_DAYS, not the season),
+ * and clears the flag — so a new joiner shows up on the board in minutes
+ * without queuing behind anyone else's season-long backfill, which still
+ * happens later on the normal nightly path.
  */
+
+/** Recent-only window for a priority pass — cheap enough to run every tick. */
+const PRIORITY_WINDOW_DAYS = 3;
 
 /** Riot caps match-id pages at 100. */
 const PAGE_SIZE = 100;
@@ -41,6 +54,7 @@ interface Options {
   days: number | null;
   backfill: boolean;
   player: string | null;
+  priorityOnly: boolean;
 }
 
 function parseOptions(): Options {
@@ -54,6 +68,7 @@ function parseOptions(): Options {
     // An explicit window is a backfill request by definition.
     backfill: argv.includes('--backfill') || Number.isFinite(parsedDays),
     player: playerArg ? (playerArg.split('=')[1] ?? null) : null,
+    priorityOnly: argv.includes('--priority-only'),
   };
 }
 
@@ -261,13 +276,19 @@ async function syncAccount(
       ? state.backfilledThrough
       : since;
 
+  // True only once the covered range actually reaches the season, not just
+  // because this run happened to be a "first run" — an explicit --days (the
+  // priority pass included) covers a short window and must leave this false,
+  // or the account never gets a real backfill on a later run.
+  const backfillComplete = earliestCovered <= seasonStart();
+
   await db
     .insert(syncState)
     .values({
       puuid: account.puuid,
       lastSyncedAt: new Date(),
       backfilledThrough: earliestCovered,
-      backfillComplete: true,
+      backfillComplete,
       lastError: null,
     })
     .onConflictDoUpdate({
@@ -275,7 +296,7 @@ async function syncAccount(
       set: {
         lastSyncedAt: new Date(),
         backfilledThrough: earliestCovered,
-        backfillComplete: true,
+        backfillComplete,
         lastError: null,
       },
     });
@@ -292,47 +313,86 @@ async function main() {
   const options = parseOptions();
   const riot = new RiotClient({ apiKey: process.env.RIOT_API_KEY ?? '' });
 
-  const where = options.player
-    ? and(
-        eq(trackedAccounts.puuid, accounts.puuid),
-        or(
-          sql`lower(${accounts.gameName}) = lower(${options.player})`,
-          sql`lower(${accounts.gameName} || '#' || ${accounts.tagLine}) = lower(${options.player})`,
-        ),
-      )
-    : eq(trackedAccounts.puuid, accounts.puuid);
+  let tracked: {
+    puuid: string;
+    platform: string;
+    gameName: string;
+    tagLine: string;
+    summonerId: string | null;
+  }[];
 
-  const tracked = await db
-    .selectDistinct({
-      puuid: accounts.puuid,
-      platform: accounts.platform,
-      gameName: accounts.gameName,
-      tagLine: accounts.tagLine,
-      summonerId: accounts.summonerId,
-    })
-    .from(accounts)
-    .innerJoin(trackedAccounts, where);
+  if (options.priorityOnly) {
+    tracked = await db
+      .selectDistinct({
+        puuid: accounts.puuid,
+        platform: accounts.platform,
+        gameName: accounts.gameName,
+        tagLine: accounts.tagLine,
+        summonerId: accounts.summonerId,
+      })
+      .from(accounts)
+      .innerJoin(syncState, eq(syncState.puuid, accounts.puuid))
+      .where(isNotNull(syncState.priorityRequestedAt));
 
-  if (tracked.length === 0) {
+    if (tracked.length === 0) {
+      console.log('No accounts flagged for priority sync.');
+      return;
+    }
+
     console.log(
-      options.player
-        ? `No tracked account matching "${options.player}".`
-        : 'No tracked accounts. Run `npm run seed` first.',
+      `Priority sync: ${tracked.length} freshly-claimed account(s), last ${PRIORITY_WINDOW_DAYS} days\n`,
     );
-    return;
+  } else {
+    const where = options.player
+      ? and(
+          eq(trackedAccounts.puuid, accounts.puuid),
+          or(
+            sql`lower(${accounts.gameName}) = lower(${options.player})`,
+            sql`lower(${accounts.gameName} || '#' || ${accounts.tagLine}) = lower(${options.player})`,
+          ),
+        )
+      : eq(trackedAccounts.puuid, accounts.puuid);
+
+    tracked = await db
+      .selectDistinct({
+        puuid: accounts.puuid,
+        platform: accounts.platform,
+        gameName: accounts.gameName,
+        tagLine: accounts.tagLine,
+        summonerId: accounts.summonerId,
+      })
+      .from(accounts)
+      .innerJoin(trackedAccounts, where);
+
+    if (tracked.length === 0) {
+      console.log(
+        options.player
+          ? `No tracked account matching "${options.player}".`
+          : 'No tracked accounts. Run `npm run seed` first.',
+      );
+      return;
+    }
+
+    // Accounts that have never been backfilled widen to the season on their
+    // own, so this is the floor for an already-synced account rather than a
+    // promise.
+    const window = options.days
+      ? `last ${options.days} days`
+      : options.backfill
+        ? `since ${seasonStart().toISOString().slice(0, 10)}`
+        : `since ${defaultWindowStart().toISOString().slice(0, 10)}`;
+    console.log(
+      `Ingesting ${tracked.length} account(s), ${window}` +
+        `${options.backfill ? ' (backfill)' : ''}\n`,
+    );
   }
 
-  // Accounts that have never been backfilled widen to the season on their own,
-  // so this is the floor for an already-synced account rather than a promise.
-  const window = options.days
-    ? `last ${options.days} days`
-    : options.backfill
-      ? `since ${seasonStart().toISOString().slice(0, 10)}`
-      : `since ${defaultWindowStart().toISOString().slice(0, 10)}`;
-  console.log(
-    `Ingesting ${tracked.length} account(s), ${window}` +
-      `${options.backfill ? ' (backfill)' : ''}\n`,
-  );
+  // A priority pass never widens the real backfill window — it just needs
+  // recent matches on the board fast. The season backfill still happens
+  // later on the normal path, once backfillComplete correctly stays false.
+  const syncOptions: Options = options.priorityOnly
+    ? { ...options, days: PRIORITY_WINDOW_DAYS, backfill: true }
+    : options;
 
   let total = 0;
   let calls = 0;
@@ -343,10 +403,18 @@ async function main() {
   for (const account of tracked) {
     const label = `${account.gameName}#${account.tagLine}`;
     try {
-      const result = await syncAccount(riot, account, options);
+      const result = await syncAccount(riot, account, syncOptions);
       total += result.added;
       calls += result.calls;
       snapshots += result.snapshots;
+      // Only clear the flag once its data has actually landed — a failed
+      // sync should be retried by the next tick, not silently dropped.
+      if (options.priorityOnly) {
+        await db
+          .update(syncState)
+          .set({ priorityRequestedAt: null })
+          .where(eq(syncState.puuid, account.puuid));
+      }
     } catch (error) {
       const message = (error as Error).message;
       console.error(`  ${label}: ${message}`);

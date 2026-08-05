@@ -1,6 +1,6 @@
 import { and, eq, isNotNull, ne } from 'drizzle-orm';
 import { db } from '@/db';
-import { accountClaims, accounts, iconChallenges } from '@/db/schema';
+import { accountClaims, accounts, iconChallenges, syncState } from '@/db/schema';
 import { syncClaimsToGroups } from './groups';
 import { getRiotClient, RiotApiError } from './riot/client';
 import { parsePlatform, parseRiotId, type Platform } from './riot/routing';
@@ -183,6 +183,16 @@ export async function checkClaim(userId: string, puuid: string): Promise<CheckRe
   // Put it straight onto the boards of every group they're already in. Without
   // this, verifying after joining leaves you invisible on the leaderboard.
   await syncClaimsToGroups(userId);
+
+  // Flag for the priority-sync workflow so recent matches and current rank
+  // show up in minutes rather than waiting on the nightly full backfill.
+  await db
+    .insert(syncState)
+    .values({ puuid, priorityRequestedAt: now })
+    .onConflictDoUpdate({
+      target: syncState.puuid,
+      set: { priorityRequestedAt: now },
+    });
 
   await db
     .update(iconChallenges)
