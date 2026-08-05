@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { LiveGameExpand, type LiveGameExpandProps } from './LiveGameExpand';
 import { RankBadge } from './RankBadge';
 import styles from './RoleRow.module.css';
 
@@ -18,6 +19,7 @@ export interface RoleCardData {
   record: string | null;
   roleChips: string[];
   autofilled: boolean;
+  expand: LiveGameExpandProps | null;
 }
 
 const SLOT_LABELS = ['TOP', 'JG', 'MID', 'ADC', 'SUP'];
@@ -115,6 +117,8 @@ export function RoleRow({ cards }: { cards: RoleCardData[] }) {
                 ) : null}
 
                 {card.autofilled ? <span className={styles.autofill}>Autofilled?</span> : null}
+
+                {card.expand ? <LiveGameExpand {...card.expand} /> : null}
               </div>
             </div>
           </div>

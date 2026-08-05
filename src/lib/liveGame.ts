@@ -1,6 +1,6 @@
-import { inArray, sql } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { matchParticipants } from '@/db/schema';
+import { matchParticipants, matches } from '@/db/schema';
 import { getRiotClient } from './riot/client';
 import type { Platform } from './riot/routing';
 import type { LeagueEntry } from './riot/types';
@@ -41,6 +41,24 @@ export interface RoleFamiliarity {
   wins: number;
 }
 
+export interface ChampionFamiliarity {
+  games: number;
+  wins: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+}
+
+export interface RecentGameSummary {
+  championId: number;
+  win: boolean;
+  kills: number;
+  deaths: number;
+  assists: number;
+  queueId: number;
+  playedAt: Date;
+}
+
 export interface LiveGameParticipantView {
   puuid: string;
   teamId: number;
@@ -62,6 +80,14 @@ export interface LiveGameParticipantView {
    * summoner without scraping their full history per page load.
    */
   roleHistory: RoleFamiliarity[];
+  /** This participant's history on the exact champion they're playing right
+   *  now — null if gapdiff has never scored them on it. Same data source as
+   *  roleHistory: only covers puuids that have crossed paths with the group. */
+  championFamiliarity: ChampionFamiliarity | null;
+  /** Season totals across every champion, same source. Null with zero games. */
+  seasonRecord: { games: number; wins: number } | null;
+  /** Last five games gapdiff has stored for this puuid, any queue, newest first. */
+  recentGames: RecentGameSummary[];
   /**
    * Best-effort guess at this game's lane, not a fact Riot hands out — the
    * spectator feed carries no position data at all. Jungle is the one
@@ -177,6 +203,85 @@ async function getRoleFamiliarity(puuids: string[]): Promise<Map<string, RoleFam
   return byPuuid;
 }
 
+/**
+ * Per-champion stats (for "how good is this guy on this champ") plus a
+ * season total, for every puuid gapdiff has ever scored a match for. One
+ * query grouped by (puuid, championId), same shape as getRoleFamiliarity —
+ * the champion actually being played this game is picked out of the map by
+ * the caller, who's the one that knows what that is.
+ */
+async function getChampionFamiliarity(
+  puuids: string[],
+): Promise<Map<string, { byChampion: Map<number, ChampionFamiliarity>; season: { games: number; wins: number } }>> {
+  const byPuuid = new Map<
+    string,
+    { byChampion: Map<number, ChampionFamiliarity>; season: { games: number; wins: number } }
+  >();
+  if (puuids.length === 0) return byPuuid;
+
+  const rows = await db
+    .select({
+      puuid: matchParticipants.puuid,
+      championId: matchParticipants.championId,
+      games: sql<number>`count(*)::int`,
+      wins: sql<number>`sum(case when ${matchParticipants.win} then 1 else 0 end)::int`,
+      kills: sql<number>`sum(${matchParticipants.kills})::int`,
+      deaths: sql<number>`sum(${matchParticipants.deaths})::int`,
+      assists: sql<number>`sum(${matchParticipants.assists})::int`,
+    })
+    .from(matchParticipants)
+    .where(inArray(matchParticipants.puuid, puuids))
+    .groupBy(matchParticipants.puuid, matchParticipants.championId);
+
+  for (const puuid of puuids) byPuuid.set(puuid, { byChampion: new Map(), season: { games: 0, wins: 0 } });
+
+  for (const row of rows) {
+    const entry = byPuuid.get(row.puuid);
+    if (!entry) continue;
+    entry.byChampion.set(row.championId, {
+      games: row.games,
+      wins: row.wins,
+      kills: row.kills,
+      deaths: row.deaths,
+      assists: row.assists,
+    });
+    entry.season.games += row.games;
+    entry.season.wins += row.wins;
+  }
+
+  return byPuuid;
+}
+
+/** Last five stored games per puuid, newest first — needs a LIMIT per puuid
+ *  rather than one grouped query, but the group is at most ten people, so
+ *  ten small indexed lookups in parallel costs nothing worth avoiding. */
+async function getRecentGames(puuids: string[]): Promise<Map<string, RecentGameSummary[]>> {
+  if (puuids.length === 0) return new Map();
+
+  const entries = await Promise.all(
+    puuids.map(async (puuid) => {
+      const rows = await db
+        .select({
+          championId: matchParticipants.championId,
+          win: matchParticipants.win,
+          kills: matchParticipants.kills,
+          deaths: matchParticipants.deaths,
+          assists: matchParticipants.assists,
+          queueId: matches.queueId,
+          playedAt: matches.gameCreation,
+        })
+        .from(matchParticipants)
+        .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
+        .where(eq(matchParticipants.puuid, puuid))
+        .orderBy(desc(matches.gameCreation))
+        .limit(5);
+      return [puuid, rows] as const;
+    }),
+  );
+
+  return new Map(entries);
+}
+
 export interface LiveGameView {
   gameId: number;
   platform: Platform;
@@ -214,9 +319,12 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
   const game = await riot.getActiveGame(platform, puuid);
   if (!game) return null;
 
-  const roleHistoryByPuuid = await getRoleFamiliarity(
-    game.participants.filter((p) => !p.bot).map((p) => p.puuid),
-  );
+  const humanPuuids = game.participants.filter((p) => !p.bot).map((p) => p.puuid);
+  const [roleHistoryByPuuid, familiarityByPuuid, recentGamesByPuuid] = await Promise.all([
+    getRoleFamiliarity(humanPuuids),
+    getChampionFamiliarity(humanPuuids),
+    getRecentGames(humanPuuids),
+  ]);
 
   const participants: LiveGameParticipantView[] = await Promise.all(
     game.participants.map(async (p) => {
@@ -235,12 +343,16 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
           tagLine,
           soloRank: null,
           roleHistory: [],
+          championFamiliarity: null,
+          seasonRecord: null,
+          recentGames: [],
           laneRole: null,
           autofilled: false,
         };
       }
 
       const leagues = await riot.getLeagueEntries(platform, p.puuid).catch(() => []);
+      const familiarity = familiarityByPuuid.get(p.puuid);
 
       return {
         puuid: p.puuid,
@@ -254,6 +366,9 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
         tagLine,
         soloRank: leagues.find((l) => l.queueType === 'RANKED_SOLO_5x5') ?? null,
         roleHistory: roleHistoryByPuuid.get(p.puuid) ?? [],
+        championFamiliarity: familiarity?.byChampion.get(p.championId) ?? null,
+        seasonRecord: familiarity && familiarity.season.games > 0 ? familiarity.season : null,
+        recentGames: recentGamesByPuuid.get(p.puuid) ?? [],
         laneRole: null,
         autofilled: false,
       };

@@ -3,7 +3,8 @@ import { auth } from '@/auth';
 import { latestVersion, profileIcon, rankEmblem } from '@/lib/ddragon';
 import { getMatches, getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
-import { formatRank } from '@/lib/rating/rating';
+import { formatRank, rankPoints } from '@/lib/rating/rating';
+import { getPeakRank, type PeakRank } from '@/lib/rankHistory';
 import { tierColor, winRate } from '@/lib/format';
 import { RiotApiError } from '@/lib/riot/client';
 import { AddFriendButton } from '@/components/AddFriendButton';
@@ -61,9 +62,11 @@ export default async function PlayerPage({ params }: PageProps) {
 
     // Empty for anybody the ingester doesn't track, which the sidebar handles
     // by fetching a deeper batch of live matches instead (below).
-    const [championHistory, owner] = await Promise.all([
+    const [championHistory, owner, soloPeak, flexPeak] = await Promise.all([
       getChampionHistory(profile.puuid).catch(() => ({ rows: [], since: null })),
       getVerifiedOwner(profile.puuid),
+      getPeakRank(profile.puuid, 'RANKED_SOLO_5x5'),
+      getPeakRank(profile.puuid, 'RANKED_FLEX_SR'),
     ]);
 
     const sidebarMatches =
@@ -90,8 +93,8 @@ export default async function PlayerPage({ params }: PageProps) {
       <div className={styles.wrap}>
         <div className={styles.sidebar}>
           <div className={`card ${styles.sidebarRanks}`}>
-            <RankCard label="Ranked Solo/Duo" entry={profile.solo} />
-            <RankCard label="Ranked Flex" entry={profile.flex} />
+            <RankCard label="Ranked Solo/Duo" entry={profile.solo} peak={soloPeak} />
+            <RankCard label="Ranked Flex" entry={profile.flex} peak={flexPeak} />
           </div>
 
           <ChampionSidebar
@@ -256,11 +259,19 @@ function Stat({
 function RankCard({
   label,
   entry,
+  peak,
 }: {
   label: string;
   entry: { tier: string; rank: string; leaguePoints: number; wins: number; losses: number } | null;
+  /** Highest rank gapdiff has recorded this season — only shown when it beats
+   *  the current standing, so climbing back up doesn't repeat itself. */
+  peak: PeakRank | null;
 }) {
   const tier = entry?.tier ?? 'UNRANKED';
+
+  const currentPoints = entry ? rankPoints(entry.tier, entry.rank, entry.leaguePoints) : -1;
+  const peakPoints = peak ? rankPoints(peak.tier, peak.division, peak.leaguePoints) : -1;
+  const showPeak = peak !== null && peakPoints > currentPoints;
 
   return (
     <div className={styles.rank}>
@@ -282,6 +293,11 @@ function RankCard({
         {entry ? (
           <div className={styles.rankRecord}>
             {entry.wins}W {entry.losses}L · {winRate(entry.wins, entry.losses)}%
+          </div>
+        ) : null}
+        {showPeak ? (
+          <div className={styles.rankPeak}>
+            Peak: {formatRank(peak!.tier, peak!.division, peak!.leaguePoints)}
           </div>
         ) : null}
       </div>

@@ -5,6 +5,7 @@ import { ROLE_LABEL, winRate } from '@/lib/format';
 import { queueName } from '@/lib/profile';
 import { RiotApiError, getRiotClient } from '@/lib/riot/client';
 import { isPlatform, PLATFORM_LABELS, regionForPlatform, type Platform } from '@/lib/riot/routing';
+import { LiveGameExpand, type LiveGameExpandProps } from '@/components/LiveGameExpand';
 import { LiveRefresh } from '@/components/LiveRefresh';
 import { LiveTimer } from '@/components/LiveTimer';
 import { RankBadge } from '@/components/RankBadge';
@@ -157,7 +158,7 @@ export default async function LiveGamePage({ params }: PageProps) {
               <RoleRow
                 cards={[...section.participants]
                   .sort((a, b) => laneIndex(a.laneRole) - laneIndex(b.laneRole))
-                  .map((p) => toCardData(p, platform, version, champIcon))}
+                  .map((p) => toCardData(p, platform, version, champIcon, champById))}
               />
             ) : (
               <div className={styles.grid}>
@@ -168,6 +169,7 @@ export default async function LiveGamePage({ params }: PageProps) {
                     platform={platform}
                     version={version}
                     iconSrc={champIcon(participant.championId)}
+                    expand={buildExpandProps(participant, champById, champIcon)}
                   />
                 ))}
               </div>
@@ -189,6 +191,7 @@ function toCardData(
   platform: Platform,
   version: string,
   champIcon: (championId: number) => string | undefined,
+  champById: Map<number, string>,
 ): RoleCardData {
   const rank = participant.soloRank;
   return {
@@ -209,6 +212,36 @@ function toCardData(
       .slice(0, 2)
       .map((r) => `${ROLE_LABEL[r.role] ?? r.role} ${r.games}G · ${winRate(r.wins, r.games - r.wins)}%`),
     autofilled: participant.autofilled,
+    expand: buildExpandProps(participant, champById, champIcon),
+  };
+}
+
+/**
+ * Champion-on-champion form, season record, last five games — everything
+ * gapdiff already knows about this participant from matches it's already
+ * ingested (see LiveGameParticipantView.championFamiliarity et al.). Null
+ * for a bot, or for a human nobody's ever crossed paths with before.
+ */
+function buildExpandProps(
+  participant: LiveGameParticipantView,
+  champById: Map<number, string>,
+  champIcon: (championId: number) => string | undefined,
+): LiveGameExpandProps | null {
+  if (participant.bot) return null;
+
+  return {
+    championIconSrc: champIcon(participant.championId),
+    championName: champById.get(participant.championId) ?? 'this champion',
+    onChampion: participant.championFamiliarity,
+    season: participant.seasonRecord,
+    recentGames: participant.recentGames.map((g) => ({
+      championIconSrc: champIcon(g.championId),
+      win: g.win,
+      kills: g.kills,
+      deaths: g.deaths,
+      assists: g.assists,
+      queueLabel: queueName(g.queueId),
+    })),
   };
 }
 
@@ -217,11 +250,13 @@ function ParticipantCard({
   platform,
   version,
   iconSrc,
+  expand,
 }: {
   participant: LiveGameParticipantView;
   platform: Platform;
   version: string;
   iconSrc: string | undefined;
+  expand: LiveGameExpandProps | null;
 }) {
   const rank = participant.soloRank;
 
@@ -279,6 +314,8 @@ function ParticipantCard({
             ))}
           </div>
         ) : null}
+
+        {expand ? <LiveGameExpand {...expand} /> : null}
       </div>
     </div>
   );

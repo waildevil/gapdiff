@@ -61,47 +61,9 @@
 }
 
 /* Dark tokens, same shape as :root — kept in sync by hand since there's no
-   preprocessor here. Duplicated across the media query (OS default) and the
-   explicit override (ThemeToggle) rather than shared, because CSS custom
-   properties can't reference "the dark block" from two selectors otherwise. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --bg: #0b0f14;
-    --surface: #11161d;
-    --surface-2: #171d26;
-    --surface-3: #1f2733;
-    --line: #2a323f;
-    --line-soft: #1c232d;
-    --text: #eef2f6;
-    --muted: #9aa7b4;
-    --faint: #6b7885;
-    --accent: #5b8dff;
-    --accent-soft: rgba(91, 141, 255, 0.16);
-    --accent-line: rgba(91, 141, 255, 0.4);
-    --good: #2fbf82;
-    --bad: #ef5468;
-    --good-soft: rgba(47, 191, 130, 0.14);
-    --bad-soft: rgba(239, 84, 104, 0.14);
-
-    --iron: #9aa4ab;
-    --bronze: #d99a4e;
-    --silver: #9db3c2;
-    --gold: #e0b400;
-    --platinum: #35d6c0;
-    --emerald: #30d17e;
-    --diamond: #6f9dff;
-    --master: #b083f0;
-    --grandmaster: #ff5c73;
-    --challenger: #f0c419;
-
-    --surface-translucent: rgba(17, 22, 29, 0.82);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-}
-
+   preprocessor here. Light is the hard default regardless of OS setting;
+   dark only ever applies once someone explicitly picks it via ThemeToggle,
+   which is what stamps this attribute onto <html>. */
 :root[data-theme="dark"] {
   color-scheme: dark;
 

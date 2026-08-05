@@ -124,6 +124,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.rankPeak {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
 /* ---------- match list ---------- */
 
 .matchRow {

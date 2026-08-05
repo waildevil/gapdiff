@@ -1,0 +1,139 @@
+.wrap {
+  margin-top: 6px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 6px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  width: 100%;
+}
+
+.toggle:hover {
+  color: var(--accent);
+}
+
+.chevron {
+  transition: transform 150ms ease;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.panel {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.champRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.champIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+
+.champText {
+  min-width: 0;
+}
+
+.champTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.champKda {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.seasonRow {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.recent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.recentRow.win {
+  border-left: 2px solid var(--good);
+}
+
+.recentRow.loss {
+  border-left: 2px solid var(--bad);
+}
+
+.recentIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  flex-shrink: 0;
+}
+
+.recentResult {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  width: 10px;
+  flex-shrink: 0;
+}
+
+.recentRow.win .recentResult {
+  color: var(--good);
+}
+
+.recentRow.loss .recentResult {
+  color: var(--bad);
+}
+
+.recentKda {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.recentQueue {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}

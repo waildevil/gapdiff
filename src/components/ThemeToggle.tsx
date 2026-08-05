@@ -14,13 +14,11 @@ const STORAGE_KEY = 'gapdiff-theme';
 export function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  // Light unless a previous visit explicitly chose dark — no OS-preference
+  // fallback, so this only ever reads what ThemeToggle itself wrote.
   useEffect(() => {
     const current = document.documentElement.dataset.theme;
-    if (current === 'dark' || current === 'light') {
-      setTheme(current);
-      return;
-    }
-    setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (current === 'dark') setTheme('dark');
   }, []);
 
   function toggle() {
