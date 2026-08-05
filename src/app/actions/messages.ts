@@ -64,6 +64,25 @@ export async function getConversationsAction(): Promise<ConversationPreview[]> {
   }
 }
 
+export interface ChatList {
+  conversations: ConversationPreview[];
+  groupChats: GroupChatPreview[];
+}
+
+/** Both lists in one round trip — the widget's landing view polls this, not the two separately. */
+export async function getChatListAction(): Promise<ChatList> {
+  try {
+    const userId = await requireUserId();
+    const [conversations, groupChats] = await Promise.all([
+      listConversations(userId),
+      listGroupChats(userId),
+    ]);
+    return { conversations, groupChats };
+  } catch {
+    return { conversations: [], groupChats: [] };
+  }
+}
+
 export async function sendGroupMessageAction(
   groupId: number,
   body: string,

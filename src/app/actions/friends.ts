@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import {
   blockUser,
+  cancelFriendRequest,
   countIncomingFriendRequests,
   FriendError,
   removeFriend,
@@ -64,6 +65,17 @@ export async function respondToFriendRequestAction(
     return { ok: true };
   } catch (error) {
     return { ok: false, error: message(error, 'Could not respond to that request.') };
+  }
+}
+
+export async function cancelFriendRequestAction(requestId: number): Promise<FriendActionResult> {
+  try {
+    const userId = await requireUserId();
+    await cancelFriendRequest(userId, requestId);
+    revalidatePath('/friends');
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not cancel that request.') };
   }
 }
 

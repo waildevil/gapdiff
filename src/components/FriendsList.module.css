@@ -80,6 +80,16 @@
   cursor: default;
 }
 
+.pending {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
 .error {
   margin: 0;
   padding: 0 16px 12px;

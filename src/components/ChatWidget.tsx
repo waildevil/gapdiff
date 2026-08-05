@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
+  getChatListAction,
   getConversationAction,
-  getConversationsAction,
-  getGroupChatsAction,
   getGroupMessagesAction,
   getUnreadMessageCountAction,
   sendGroupMessageAction,
@@ -15,9 +14,12 @@ import type { ConversationPreview, GroupChatPreview, MessageView } from '@/lib/m
 import { EmojiPicker } from './EmojiPicker';
 import styles from './ChatWidget.module.css';
 
-const BADGE_POLL_MS = 20_000;
-const LIST_POLL_MS = 15_000;
-const THREAD_POLL_MS = 2_000;
+const BADGE_POLL_MS = 15_000;
+const LIST_POLL_MS = 5_000;
+// The lowest this can practically go while polling — much under a second and
+// each open tab is hammering the DB for no real gain. True instant delivery
+// needs a push transport (websocket/SSE), which is a separate decision.
+const THREAD_POLL_MS = 1_000;
 
 type Thread = { kind: 'dm'; userId: string; name: string | null } | { kind: 'group'; groupId: number; name: string };
 
@@ -56,6 +58,8 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [listLoading, setListLoading] = useState(true);
+  const [threadLoading, setThreadLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -91,18 +95,16 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
   useEffect(() => {
     if (!open || thread) return;
     let cancelled = false;
-    async function poll() {
-      const [convos, groups] = await Promise.all([
-        getConversationsAction(),
-        getGroupChatsAction(),
-      ]);
-      if (!cancelled) {
-        setConversations(convos);
-        setGroupChats(groups);
-      }
+    setListLoading(true);
+    async function poll(isFirst: boolean) {
+      const { conversations: convos, groupChats: groups } = await getChatListAction();
+      if (cancelled) return;
+      setConversations(convos);
+      setGroupChats(groups);
+      if (isFirst) setListLoading(false);
     }
-    poll();
-    const interval = setInterval(poll, LIST_POLL_MS);
+    poll(true);
+    const interval = setInterval(() => poll(false), LIST_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -113,15 +115,19 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
   useEffect(() => {
     if (!open || !thread) return;
     let cancelled = false;
-    async function poll() {
+    setThreadLoading(true);
+    setMessages([]);
+    async function poll(isFirst: boolean) {
       const rows =
         thread!.kind === 'dm'
           ? await getConversationAction(thread!.userId)
           : await getGroupMessagesAction(thread!.groupId);
-      if (!cancelled) setMessages(rows);
+      if (cancelled) return;
+      setMessages(rows);
+      if (isFirst) setThreadLoading(false);
     }
-    poll();
-    const interval = setInterval(poll, THREAD_POLL_MS);
+    poll(true);
+    const interval = setInterval(() => poll(false), THREAD_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -195,7 +201,9 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
               </div>
 
               <div className={styles.thread}>
-                {messages.length === 0 ? (
+                {threadLoading ? (
+                  <div className={styles.empty}>Loading…</div>
+                ) : messages.length === 0 ? (
                   <div className={styles.empty}>No messages yet — say hi.</div>
                 ) : (
                   messages.map((m, i) => {
@@ -268,7 +276,9 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
               </div>
 
               <div className={styles.list}>
-                {groupChats.length === 0 && conversations.length === 0 ? (
+                {listLoading ? (
+                  <div className={styles.empty}>Loading…</div>
+                ) : groupChats.length === 0 && conversations.length === 0 ? (
                   <div className={styles.empty}>
                     No conversations yet — message a friend from your{' '}
                     <a href="/friends">friends list</a>.
