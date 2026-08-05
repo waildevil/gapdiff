@@ -27,11 +27,14 @@ export const revalidate = 60;
 
 /**
  * Untracked accounts have no database history, so the champion pool is built
- * live instead — deep enough to feel like real coverage rather than a token
- * ten games, while staying well inside the dev-key rate budget for one page
- * load.
+ * live instead. Riot's match-list endpoint caps at 100 per call regardless,
+ * so 100 would be "free" in request count — the real limit is the dev key's
+ * 100-calls-per-120-seconds budget, shared with everything else the app is
+ * doing. 50 is deep enough to stop looking like a token sample without
+ * eating half that budget on one profile view; `revalidate` below means
+ * that cost is paid once per player per 60s, not per visit.
  */
-const LIVE_POOL_SIZE = 30;
+const LIVE_POOL_SIZE = 50;
 
 export default async function PlayerPage({ params }: PageProps) {
   const { platform: platformParam, gameName: rawName, tagLine: rawTag } = await params;
