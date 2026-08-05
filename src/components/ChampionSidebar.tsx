@@ -81,7 +81,7 @@ export function ChampionSidebar({
         <div className={styles.caption}>
           {stored
             ? `${games} games ingested${since ? ` since ${formatSince(since)}` : ''}`
-            : `last ${matches.length} games`}
+            : `last ${matches.length} games · not tracked in a group`}
         </div>
       </div>
 

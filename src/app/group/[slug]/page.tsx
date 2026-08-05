@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
@@ -18,16 +19,46 @@ import { Titles } from '@/components/Titles';
 import { latestVersion } from '@/lib/ddragon';
 import { getRelationshipStatuses } from '@/lib/friends';
 import { listMyAccountsForGroup } from '@/lib/groups';
-import { getGroupStandings } from '@/lib/leaderboard';
-import { listPeriods } from '@/lib/titles';
+import { getGroupStandings, type GroupStandings } from '@/lib/leaderboard';
+import { currentPeriodIndex, listPeriods } from '@/lib/titles';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ week?: string }>;
 }
 
-// Standings only change when the ingester runs, so a short cache is plenty.
-export const revalidate = 60;
+/**
+ * Reading `searchParams` already forces this page to render per request —
+ * `export const revalidate` has no effect here, so the caching happens at the
+ * data layer instead. A closed week can never change again (no match can land
+ * with a timestamp inside a boundary that has already passed), so it's cached
+ * indefinitely; the in-progress week keeps a short TTL since the ingester adds
+ * to it every night. This is what makes clicking through old weeks fast after
+ * the first person has loaded them, instead of a DB round trip every time.
+ */
+const getCachedCurrentWeek = unstable_cache(
+  (slug: string, index: number | undefined) => getGroupStandings(slug, index),
+  ['group-standings-current'],
+  { revalidate: 60 },
+);
+const getCachedPastWeek = unstable_cache(
+  (slug: string, index: number) => getGroupStandings(slug, index),
+  ['group-standings-past'],
+  { revalidate: false },
+);
+
+/** unstable_cache round-trips through JSON, which turns Date fields into
+ *  strings — restore them before anything downstream calls .getTime() on them. */
+function reviveDates(standings: GroupStandings): GroupStandings {
+  return {
+    ...standings,
+    period: {
+      ...standings.period,
+      start: new Date(standings.period.start),
+      end: new Date(standings.period.end),
+    },
+  };
+}
 
 export default async function GroupPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
@@ -42,15 +73,19 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
   }
 
   const requested = Number.parseInt(weekParam ?? '', 10);
-  const [standings, version, myAccounts] = await Promise.all([
-    getGroupStandings(slug, Number.isFinite(requested) ? requested : undefined),
+  const requestedIndex = Number.isFinite(requested) ? requested : undefined;
+  const isPast = requestedIndex !== undefined && requestedIndex < currentPeriodIndex();
+
+  const [standingsRaw, version, myAccounts] = await Promise.all([
+    isPast ? getCachedPastWeek(slug, requestedIndex) : getCachedCurrentWeek(slug, requestedIndex),
     latestVersion(),
     session?.user?.id
       ? listMyAccountsForGroup(access.group.id, session.user.id)
       : Promise.resolve([]),
   ]);
 
-  if (!standings) notFound();
+  if (!standingsRaw) notFound();
+  const standings = reviveDates(standingsRaw);
 
   const { group, entries, totalGames, period, boards, pairings } = standings;
   const scored = entries.filter((entry) => entry.rating.games > 0);
