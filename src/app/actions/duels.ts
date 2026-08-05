@@ -35,11 +35,11 @@ export type CreateDuelResult = { ok: true; code: string } | { ok: false; error: 
 export async function createDuelAction(
   creatorPuuid: string,
   targetPuuids: string[],
-  days: number,
+  minutes: number,
 ): Promise<CreateDuelResult> {
   try {
     const userId = await requireUserId();
-    const duel = await createDuel(userId, creatorPuuid, targetPuuids, days);
+    const duel = await createDuel(userId, creatorPuuid, targetPuuids, minutes);
     revalidatePath('/duels');
     return { ok: true, code: duel.code };
   } catch (error) {

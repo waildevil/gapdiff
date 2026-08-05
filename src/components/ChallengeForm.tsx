@@ -22,7 +22,8 @@ export function ChallengeForm({ myAccounts }: Props) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<DuelTargetCandidate[]>([]);
   const [open, setOpen] = useState(false);
-  const [days, setDays] = useState(7);
+  const [amount, setAmount] = useState(7);
+  const [unit, setUnit] = useState<'days' | 'minutes'>('days');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const wrap = useRef<HTMLDivElement>(null);
@@ -65,11 +66,8 @@ export function ChallengeForm({ myAccounts }: Props) {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createDuelAction(
-        myPuuid,
-        targets.map((t) => t.puuid),
-        days,
-      );
+      const minutes = unit === 'days' ? amount * 1440 : amount;
+      const result = await createDuelAction(myPuuid, targets.map((t) => t.puuid), minutes);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -186,11 +184,18 @@ export function ChallengeForm({ myAccounts }: Props) {
               className={styles.daysInput}
               type="number"
               min={1}
-              max={30}
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+              max={unit === 'days' ? 30 : 30 * 24 * 60}
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
             />
-            days
+            <select
+              className={styles.unitSelect}
+              value={unit}
+              onChange={(e) => setUnit(e.target.value as 'days' | 'minutes')}
+            >
+              <option value="days">days</option>
+              <option value="minutes">minutes (testing)</option>
+            </select>
           </label>
 
           <button className={styles.submit} type="submit" disabled={!canSubmit || isPending}>

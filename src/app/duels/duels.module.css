@@ -4,24 +4,29 @@
   padding: 40px 24px 80px;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.duelRow {
+  display: block;
   padding: 13px 16px;
   border-bottom: 1px solid var(--line-soft);
 }
 
-.row:last-of-type {
+.duelRow:last-of-type {
   border-bottom: none;
 }
 
-.row:hover {
+.duelRow:hover {
   background: var(--surface-2);
 }
 
-.names {
+.duelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.duelSummary {
   font-size: 13.5px;
   font-weight: 600;
 }
@@ -32,6 +37,49 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--faint);
+}
+
+.racerLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 3px 0;
+  flex-wrap: wrap;
+}
+
+.racerName {
+  font-size: 12.5px;
+  color: var(--muted);
+  min-width: 90px;
+}
+
+.racerNameWinner {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text);
+  min-width: 90px;
+}
+
+.racerRank {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  flex: 1;
+}
+
+.racerDelta {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.up {
+  color: var(--good);
+}
+
+.down {
+  color: var(--bad);
 }
 
 .empty {

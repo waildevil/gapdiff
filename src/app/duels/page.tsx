@@ -47,22 +47,39 @@ export default async function DuelsPage() {
         ) : (
           myDuels.map((duel) => {
             const winner = duel.racers.find((r) => r.winner);
-            const names = duel.racers.map((r) => r.gameName).join(' vs ');
+            const tied = duel.ended && !winner && duel.racers.length >= 2;
 
             return (
-              <Link className={styles.row} href={`/duels/${duel.code}`} key={duel.code}>
-                <span className={styles.names}>
-                  {duel.ended && winner ? (
-                    <>
-                      <b>{winner.gameName}</b> beat {duel.racers.filter((r) => !r.winner).map((r) => r.gameName).join(', ')}
-                    </>
-                  ) : duel.ended ? (
-                    `Tied — ${names}`
-                  ) : (
-                    names
-                  )}
-                </span>
-                <span className={styles.status}>{duel.ended ? 'Ended' : 'Running'}</span>
+              <Link className={styles.duelRow} href={`/duels/${duel.code}`} key={duel.code}>
+                <div className={styles.duelHead}>
+                  <span className={styles.duelSummary}>
+                    {winner ? <>🏆 {winner.gameName} won</> : tied ? 'Tied' : 'In progress'}
+                  </span>
+                  <span className={styles.status}>{duel.ended ? 'Ended' : 'Running'}</span>
+                </div>
+
+                {duel.racers.map((racer) => (
+                  <div className={styles.racerLine} key={racer.gameName}>
+                    <span className={racer.winner ? styles.racerNameWinner : styles.racerName}>
+                      {racer.gameName}
+                    </span>
+                    <span className={styles.racerRank}>
+                      {racer.formattedStart} → {racer.formattedCurrent}
+                    </span>
+                    <span
+                      className={`${styles.racerDelta} ${
+                        (racer.delta ?? 0) > 0
+                          ? styles.up
+                          : (racer.delta ?? 0) < 0
+                            ? styles.down
+                            : ''
+                      }`}
+                    >
+                      {(racer.delta ?? 0) > 0 ? '+' : ''}
+                      {racer.delta ?? 0}
+                    </span>
+                  </div>
+                ))}
               </Link>
             );
           })

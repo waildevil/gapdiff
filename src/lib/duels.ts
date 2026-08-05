@@ -29,8 +29,8 @@ export class DuelError extends Error {}
 
 const MIN_RACERS = 2;
 const MAX_RACERS = 4;
-const DEFAULT_DAYS = 7;
-const MAX_DAYS = 30;
+const DEFAULT_MINUTES = 7 * 24 * 60;
+const MAX_MINUTES = 30 * 24 * 60;
 const SEARCH_LIMIT = 8;
 
 /** URL-safe, no ambiguous characters, short enough to paste in chat. */
@@ -162,7 +162,7 @@ export async function createDuel(
   creatorUserId: string,
   creatorPuuid: string,
   targetPuuids: string[],
-  days: number = DEFAULT_DAYS,
+  minutes: number = DEFAULT_MINUTES,
 ): Promise<{ code: string }> {
   const [creatorClaim] = await db
     .select({ puuid: accountClaims.puuid })
@@ -196,8 +196,8 @@ export async function createDuel(
     }
   }
 
-  const clampedDays = Math.min(MAX_DAYS, Math.max(1, Math.round(days)));
-  const endAt = new Date(Date.now() + clampedDays * 24 * 60 * 60 * 1000);
+  const clampedMinutes = Math.min(MAX_MINUTES, Math.max(1, Math.round(minutes)));
+  const endAt = new Date(Date.now() + clampedMinutes * 60 * 1000);
 
   const [duel] = await db
     .insert(duels)
@@ -513,6 +513,8 @@ export async function listIncomingChallenges(userId: string): Promise<IncomingCh
 
 export interface MyDuelRacer {
   gameName: string;
+  formattedStart: string | null;
+  formattedCurrent: string | null;
   delta: number | null;
   winner: boolean;
 }
@@ -561,6 +563,8 @@ export async function listMyDuels(userId: string): Promise<MyDuel[]> {
       settled: view.settled,
       racers: view.racers.map((r) => ({
         gameName: r.gameName,
+        formattedStart: r.formattedStart,
+        formattedCurrent: r.formattedCurrent,
         delta: r.delta,
         winner: r.winner,
       })),
