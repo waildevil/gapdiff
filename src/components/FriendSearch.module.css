@@ -45,11 +45,19 @@
   background: var(--surface-2);
 }
 
-.optionName {
-  font-size: 13.5px;
+.optionInfo {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.optionName {
+  font-size: 13.5px;
+}
+
+.optionTag {
+  color: var(--faint);
 }
 
 .optionMeta {

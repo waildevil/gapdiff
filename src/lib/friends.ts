@@ -1,6 +1,6 @@
-import { and, desc, eq, inArray, notInArray, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, notInArray, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { blocks, friendships, groupMemberships, users } from '@/db/schema';
+import { accountClaims, accounts, blocks, friendships, groupMemberships, users } from '@/db/schema';
 
 /**
  * Friends and blocking.
@@ -56,22 +56,77 @@ export async function isBlocked(userA: string, userB: string): Promise<boolean> 
   return Boolean(row);
 }
 
+export type RelationshipStatus = 'self' | 'friends' | 'pending' | 'blocked' | 'none';
+
+/**
+ * One status per candidate user id, for a page showing several people at
+ * once (the group standings) that needs to know per-row whether "Add
+ * friend" even makes sense — without a query per row.
+ */
+export async function getRelationshipStatuses(
+  viewerId: string,
+  otherUserIds: string[],
+): Promise<Map<string, RelationshipStatus>> {
+  const ids = [...new Set(otherUserIds)].filter((id) => id !== viewerId);
+  const result = new Map<string, RelationshipStatus>();
+  for (const id of otherUserIds) result.set(id, id === viewerId ? 'self' : 'none');
+  if (ids.length === 0) return result;
+
+  const [friendshipRows, blockRows] = await Promise.all([
+    db
+      .select({ requesterId: friendships.requesterId, addresseeId: friendships.addresseeId, status: friendships.status })
+      .from(friendships)
+      .where(
+        and(
+          or(eq(friendships.requesterId, viewerId), eq(friendships.addresseeId, viewerId)),
+          or(inArray(friendships.requesterId, ids), inArray(friendships.addresseeId, ids)),
+        ),
+      ),
+    db
+      .select({ blockerId: blocks.blockerId, blockedId: blocks.blockedId })
+      .from(blocks)
+      .where(
+        and(
+          or(eq(blocks.blockerId, viewerId), eq(blocks.blockedId, viewerId)),
+          or(inArray(blocks.blockerId, ids), inArray(blocks.blockedId, ids)),
+        ),
+      ),
+  ]);
+
+  for (const row of friendshipRows) {
+    const otherId = row.requesterId === viewerId ? row.addresseeId : row.requesterId;
+    if (row.status === 'accepted') result.set(otherId, 'friends');
+    else if (row.status === 'pending' && result.get(otherId) !== 'friends') {
+      result.set(otherId, 'pending');
+    }
+  }
+  for (const row of blockRows) {
+    const otherId = row.blockerId === viewerId ? row.blockedId : row.blockerId;
+    result.set(otherId, 'blocked');
+  }
+
+  return result;
+}
+
 // --- finding people to add --------------------------------------------------
 
 export interface FriendCandidate {
   userId: string;
-  name: string | null;
-  image: string | null;
+  /** The Riot ID people actually recognize each other by — friending, like
+   *  dueling, is found and typed by summoner name, not Discord display name. */
+  gameName: string;
+  tagLine: string;
   groupName: string | null;
 }
 
 /**
  * People a user could send a friend request to: not themselves, not already
- * friends or pending either direction, not blocked either direction.
+ * friends or pending either direction, not blocked either direction. Matched
+ * by *verified* Riot ID — same identity search as duel challenges, so
+ * there's exactly one way to look somebody up anywhere in this app.
  *
- * With no query, limited to people who share a group — same shape as
- * `searchDuelTargets`, so the box starts out useful. A query reaches anyone
- * in the app by Discord display name.
+ * With no query, limited to people who share a group, so the box starts out
+ * useful. A query reaches anyone verified in the app by Riot ID.
  */
 export async function searchFriendCandidates(
   userId: string,
@@ -105,21 +160,28 @@ export async function searchFriendCandidates(
     if (myGroups.length === 0) return [];
 
     const rows = await db
-      .selectDistinctOn([users.id], {
-        userId: users.id,
-        name: users.name,
-        image: users.image,
+      .selectDistinctOn([accountClaims.userId], {
+        userId: accountClaims.userId,
+        gameName: accounts.gameName,
+        tagLine: accounts.tagLine,
         groupName: sql<string>`(select name from groups where id = ${groupMemberships.groupId})`,
       })
       .from(groupMemberships)
-      .innerJoin(users, eq(users.id, groupMemberships.userId))
+      .innerJoin(
+        accountClaims,
+        and(
+          eq(accountClaims.userId, groupMemberships.userId),
+          isNotNull(accountClaims.verifiedAt),
+        ),
+      )
+      .innerJoin(accounts, eq(accounts.puuid, accountClaims.puuid))
       .where(
         and(
           inArray(
             groupMemberships.groupId,
             myGroups.map((g) => g.groupId),
           ),
-          notInArray(users.id, excludedList),
+          notInArray(accountClaims.userId, excludedList),
         ),
       )
       .limit(SEARCH_LIMIT);
@@ -130,20 +192,27 @@ export async function searchFriendCandidates(
   const escaped = trimmed.replace(/[\\%_]/g, (c) => `\\${c}`);
 
   const rows = await db
-    .select({
-      userId: users.id,
-      name: users.name,
-      image: users.image,
+    .selectDistinctOn([accountClaims.userId], {
+      userId: accountClaims.userId,
+      gameName: accounts.gameName,
+      tagLine: accounts.tagLine,
       groupName: sql<string | null>`(
         select g.name from group_memberships gm
         join groups g on g.id = gm.group_id
-        where gm.user_id = ${users.id}
+        where gm.user_id = ${accountClaims.userId}
         and gm.group_id in (select group_id from group_memberships where user_id = ${userId})
         limit 1
       )`,
     })
-    .from(users)
-    .where(and(sql`${users.name} ilike ${escaped + '%'}`, notInArray(users.id, excludedList)))
+    .from(accountClaims)
+    .innerJoin(accounts, eq(accounts.puuid, accountClaims.puuid))
+    .where(
+      and(
+        isNotNull(accountClaims.verifiedAt),
+        sql`${accounts.gameName} ilike ${escaped + '%'}`,
+        notInArray(accountClaims.userId, excludedList),
+      ),
+    )
     .limit(SEARCH_LIMIT);
 
   return rows;

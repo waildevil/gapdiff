@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { AddFriendButton } from './AddFriendButton';
 import { Avatar } from './Avatar';
 import { Sparkline } from './Sparkline';
 import { profileIcon } from '@/lib/ddragon';
 import { winRate } from '@/lib/format';
 import { RankBadge } from './RankBadge';
 import type { LeaderboardEntry } from '@/lib/leaderboard';
+import type { RelationshipStatus } from '@/lib/friends';
 import styles from './StandingsRow.module.css';
 
 /** How much the Gap Score should be trusted, in plain words. */
@@ -69,9 +71,12 @@ export function UnratedDivider() {
 export function StandingsRow({
   entry,
   version,
+  relationship,
 }: {
   entry: LeaderboardEntry;
   version: string;
+  /** Undefined when signed out, or looking at your own row — no button either way. */
+  relationship?: RelationshipStatus;
 }) {
   const { player, rating, position } = entry;
   const games = rating.wins + rating.losses;
@@ -107,6 +112,9 @@ export function StandingsRow({
                 <span className={styles.titleMore}>+{player.titles.length - 1}</span>
               ) : null}
             </span>
+          ) : null}
+          {relationship === 'none' && player.ownerId ? (
+            <AddFriendButton userId={player.ownerId} />
           ) : null}
         </div>
       </div>

@@ -8,7 +8,7 @@ import styles from './FriendSearch.module.css';
 
 const DEBOUNCE_MS = 200;
 
-/** Search for people to add — groupmates by default, anyone by name once you type. */
+/** Search for people to add by Riot ID — groupmates by default, anyone verified once you type. */
 export function FriendSearch() {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -60,7 +60,7 @@ export function FriendSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
-          placeholder="Type a name…"
+          placeholder="Type a Riot ID…"
           autoComplete="off"
           spellCheck={false}
         />
@@ -69,8 +69,11 @@ export function FriendSearch() {
           <div className={styles.menu} role="listbox">
             {suggestions.map((candidate) => (
               <div className={styles.option} key={candidate.userId}>
-                <span className={styles.optionName}>
-                  {candidate.name ?? 'Unnamed'}
+                <span className={styles.optionInfo}>
+                  <span className={styles.optionName}>
+                    {candidate.gameName}
+                    <span className={styles.optionTag}>#{candidate.tagLine}</span>
+                  </span>
                   {candidate.groupName ? (
                     <span className={styles.optionMeta}>in {candidate.groupName}</span>
                   ) : null}

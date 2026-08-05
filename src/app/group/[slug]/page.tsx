@@ -15,6 +15,7 @@ import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
 import { Titles } from '@/components/Titles';
 import { latestVersion } from '@/lib/ddragon';
+import { getRelationshipStatuses } from '@/lib/friends';
 import { listMyAccountsForGroup } from '@/lib/groups';
 import { getGroupStandings } from '@/lib/leaderboard';
 
@@ -51,6 +52,13 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
 
   const { group, entries, totalGames, period, boards, pairings } = standings;
   const scored = entries.filter((entry) => entry.rating.games > 0);
+
+  const ownerIds = entries
+    .map((entry) => entry.player.ownerId)
+    .filter((id): id is string => id !== null);
+  const relationships = session?.user?.id
+    ? await getRelationshipStatuses(session.user.id, ownerIds)
+    : new Map();
 
   return (
     <div className="page" style={{ margin: '0 auto' }}>
@@ -123,7 +131,13 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
                     ) : above && entry.rating.rated ? (
                       <GapMarker delta={entry.gapToNext} />
                     ) : null}
-                    <StandingsRow entry={entry} version={version} />
+                    <StandingsRow
+                      entry={entry}
+                      version={version}
+                      relationship={
+                        entry.player.ownerId ? relationships.get(entry.player.ownerId) : undefined
+                      }
+                    />
                   </div>
                 );
               })}

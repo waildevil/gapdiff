@@ -45,6 +45,8 @@ export interface LeaderboardPlayer {
   /** Discord avatar, only when somebody has *proved* they own this account. */
   ownerImage: string | null;
   ownerName: string | null;
+  /** Set alongside ownerName/ownerImage — who to send a friend request to. */
+  ownerId: string | null;
   verified: boolean;
   /** Pooled across the season: (kills + assists) / deaths. */
   kda: number;
@@ -156,6 +158,7 @@ export async function getGroupStandings(
       profileIconId: accounts.profileIconId,
       nickname: trackedAccounts.nickname,
       verifiedAt: accountClaims.verifiedAt,
+      ownerId: accountClaims.userId,
       ownerName: users.name,
       ownerImage: users.image,
     })
@@ -384,6 +387,7 @@ export async function getGroupStandings(
           profileIconId: member.profileIconId,
           ownerImage: member.verifiedAt ? member.ownerImage : null,
           ownerName: member.verifiedAt ? member.ownerName : null,
+          ownerId: member.verifiedAt ? member.ownerId : null,
           verified: member.verifiedAt !== null,
           kda:
             bucket.deaths === 0
