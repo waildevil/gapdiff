@@ -63,8 +63,20 @@ export class RiotClient {
   /**
    * `method` is the rate-limit bucket key, not the HTTP verb — Riot meters per
    * endpoint, so it must identify the endpoint and not include path parameters.
+   *
+   * `cache` opts into Next's persistent Data Cache for endpoints whose response
+   * can't change — a finished match, essentially. Everything else stays
+   * uncached: rank, summoner (profile icon, read live by claim verification)
+   * and account resolution all need to reflect Riot right now, which is also
+   * the promise the search page itself makes. Outside a Next.js request (the
+   * CLI ingestion worker), `next` is simply an inert extra fetch option.
    */
-  private async request<T>(host: string, path: string, method: string): Promise<T> {
+  private async request<T>(
+    host: string,
+    path: string,
+    method: string,
+    cache?: { revalidate: number | false },
+  ): Promise<T> {
     const url = `${host}${path}`;
     let lastError: unknown;
 
@@ -75,6 +87,7 @@ export class RiotClient {
       try {
         response = await this.doFetch(url, {
           headers: { 'X-Riot-Token': this.apiKey },
+          ...(cache ? { next: cache } : {}),
         });
       } catch (error) {
         // Network-level failure: back off and retry.
@@ -221,11 +234,13 @@ export class RiotClient {
     );
   }
 
+  /** A finished match never changes, so this is safe to cache indefinitely. */
   async getMatch(region: Region, matchId: string): Promise<Match> {
     return this.request<Match>(
       regionHost(region),
       `/lol/match/v5/matches/${matchId}`,
       'match.byId',
+      { revalidate: false },
     );
   }
 
@@ -234,6 +249,7 @@ export class RiotClient {
       regionHost(region),
       `/lol/match/v5/matches/${matchId}/timeline`,
       'match.timeline',
+      { revalidate: false },
     );
   }
 
