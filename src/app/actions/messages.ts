@@ -2,13 +2,19 @@
 
 import { auth } from '@/auth';
 import {
+  countUnreadGroupMessages,
   countUnreadMessages,
   listConversation,
   listConversations,
+  listGroupChats,
+  listGroupMessages,
   markConversationRead,
+  markGroupRead,
   MessageError,
+  sendGroupMessage,
   sendMessage,
   type ConversationPreview,
+  type GroupChatPreview,
   type MessageView,
 } from '@/lib/messages';
 
@@ -16,6 +22,11 @@ async function requireUserId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Not signed in.');
   return session.user.id;
+}
+
+function message(error: unknown, fallback: string): string {
+  if (error instanceof MessageError) return error.message;
+  return error instanceof Error ? error.message : fallback;
 }
 
 export type SendMessageResult = { ok: true } | { ok: false; error: string };
@@ -29,13 +40,7 @@ export async function sendMessageAction(
     await sendMessage(userId, toUserId, body);
     return { ok: true };
   } catch (error) {
-    const message =
-      error instanceof MessageError
-        ? error.message
-        : error instanceof Error
-          ? error.message
-          : 'Could not send that message.';
-    return { ok: false, error: message };
+    return { ok: false, error: message(error, 'Could not send that message.') };
   }
 }
 
@@ -59,10 +64,48 @@ export async function getConversationsAction(): Promise<ConversationPreview[]> {
   }
 }
 
+export async function sendGroupMessageAction(
+  groupId: number,
+  body: string,
+): Promise<SendMessageResult> {
+  try {
+    const userId = await requireUserId();
+    await sendGroupMessage(userId, groupId, body);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not send that message.') };
+  }
+}
+
+/** Polled by the chat widget. Marks the group thread read as a side effect of opening it. */
+export async function getGroupMessagesAction(groupId: number): Promise<MessageView[]> {
+  try {
+    const userId = await requireUserId();
+    const rows = await listGroupMessages(userId, groupId);
+    await markGroupRead(userId, groupId);
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+export async function getGroupChatsAction(): Promise<GroupChatPreview[]> {
+  try {
+    const userId = await requireUserId();
+    return await listGroupChats(userId);
+  } catch {
+    return [];
+  }
+}
+
 export async function getUnreadMessageCountAction(): Promise<number> {
   try {
     const userId = await requireUserId();
-    return await countUnreadMessages(userId);
+    const [dm, group] = await Promise.all([
+      countUnreadMessages(userId),
+      countUnreadGroupMessages(userId),
+    ]);
+    return dm + group;
   } catch {
     return 0;
   }

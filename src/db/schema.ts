@@ -541,10 +541,12 @@ export const blocks = pgTable(
 );
 
 /**
- * A direct message. Friends-only, enforced in `lib/messages.ts` rather than
- * here — a blocked-and-later-unblocked pair should still be able to see
- * history that predates the block, so the constraint belongs at write time,
- * not as a schema-level guarantee.
+ * A message, either a direct one (`recipientId` set) or posted to a group's
+ * shared chat (`groupId` set) — exactly one of the two, enforced in
+ * `lib/messages.ts` rather than as a DB constraint. Friends-only for DMs,
+ * membership-only for group chat; both checked at write time rather than
+ * schema-level, because a blocked-and-later-unblocked pair (or someone who
+ * left a group) should still be able to see history that predates it.
  */
 export const messages = pgTable(
   'messages',
@@ -553,17 +555,33 @@ export const messages = pgTable(
     senderId: text('sender_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    recipientId: text('recipient_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    recipientId: text('recipient_id').references(() => users.id, { onDelete: 'cascade' }),
+    groupId: integer('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     body: text('body').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** DMs only — group chat unread is tracked per-user in `group_chat_reads` instead. */
     readAt: timestamp('read_at', { withTimezone: true }),
   },
   (table) => [
     index('messages_sender_idx').on(table.senderId, table.createdAt),
     index('messages_recipient_idx').on(table.recipientId, table.createdAt),
+    index('messages_group_idx').on(table.groupId, table.createdAt),
   ],
+);
+
+/** How far into a group's chat each member has read — a group message has no single recipient. */
+export const groupChatReads = pgTable(
+  'group_chat_reads',
+  {
+    groupId: integer('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    lastReadAt: timestamp('last_read_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.groupId, table.userId] })],
 );
 
 export const friendshipsRelations = relations(friendships, ({ one }) => ({
@@ -574,6 +592,7 @@ export const friendshipsRelations = relations(friendships, ({ one }) => ({
 export const messagesRelations = relations(messages, ({ one }) => ({
   sender: one(users, { fields: [messages.senderId], references: [users.id] }),
   recipient: one(users, { fields: [messages.recipientId], references: [users.id] }),
+  group: one(groups, { fields: [messages.groupId], references: [groups.id] }),
 }));
 
 export const duelParticipantsRelations = relations(duelParticipants, ({ one }) => ({

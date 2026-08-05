@@ -1,3 +1,11 @@
+/* .card clips overflow for its rounded corners, which also clipped this
+   dropdown before anything in it could be seen or clicked — same fix as
+   ChallengeForm's search box. !important because Next.js doesn't guarantee
+   this module's rules load after globals.css. */
+.card {
+  overflow: visible !important;
+}
+
 .searchWrap {
   position: relative;
   padding: 4px 16px 16px;

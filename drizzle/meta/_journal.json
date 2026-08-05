@@ -57,6 +57,13 @@
       "when": 1785898448835,
       "tag": "0007_tiny_ulik",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785899716065,
+      "tag": "0008_many_rick_jones",
+      "breakpoints": true
     }
   ]
 }

@@ -145,6 +145,24 @@
   gap: 6px;
 }
 
+.dateSeparator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 6px;
+}
+
+.dateSeparator span {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  background: var(--surface-2);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
 .bubbleRow {
   display: flex;
 }
@@ -153,8 +171,25 @@
   justify-content: flex-end;
 }
 
-.bubble {
+.bubbleGroup {
   max-width: 78%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mine .bubbleGroup {
+  align-items: flex-end;
+}
+
+.senderName {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 0 2px;
+}
+
+.bubble {
   padding: 8px 12px;
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -168,12 +203,41 @@
   color: var(--surface);
 }
 
+.time {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--faint);
+  padding: 0 2px;
+}
+
 .composer {
+  position: relative;
   display: flex;
   gap: 8px;
   padding: 10px;
   border-top: 1px solid var(--line-soft);
   flex-shrink: 0;
+}
+
+.emojiWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.emojiToggle {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.emojiToggle:hover {
+  background: var(--surface-3);
 }
 
 .input {

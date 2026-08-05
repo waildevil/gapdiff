@@ -49,7 +49,7 @@ export function FriendSearch() {
   }
 
   return (
-    <div className="card">
+    <div className={`card ${styles.card}`}>
       <div className="card-head">
         <div className="card-title">Add a friend</div>
       </div>
