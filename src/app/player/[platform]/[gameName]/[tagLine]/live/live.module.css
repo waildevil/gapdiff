@@ -65,6 +65,16 @@
   flex: 0 0 auto;
 }
 
+.estimateNote {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--faint);
+  text-transform: none;
+  letter-spacing: normal;
+  margin-left: auto;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

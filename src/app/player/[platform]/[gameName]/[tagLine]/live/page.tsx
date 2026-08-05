@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { championIcon, championIdToName, latestVersion, profileIcon, spellIcon } from '@/lib/ddragon';
-import { getLiveGameView, type LiveGameParticipantView } from '@/lib/liveGame';
+import { getLiveGameView, LANE_ROLES, type LiveGameParticipantView } from '@/lib/liveGame';
 import { ROLE_LABEL, winRate } from '@/lib/format';
 import { queueName } from '@/lib/profile';
 import { RiotApiError, getRiotClient } from '@/lib/riot/client';
@@ -8,6 +8,7 @@ import { isPlatform, PLATFORM_LABELS, regionForPlatform, type Platform } from '@
 import { LiveRefresh } from '@/components/LiveRefresh';
 import { LiveTimer } from '@/components/LiveTimer';
 import { RankBadge } from '@/components/RankBadge';
+import { RoleRow, type RoleCardData } from '@/components/RoleRow';
 import profileStyles from '../profile.module.css';
 import styles from './live.module.css';
 
@@ -129,32 +130,86 @@ export default async function LiveGamePage({ params }: PageProps) {
         </div>
       ) : null}
 
-      {teamSections.map((section) => (
-        <div className={styles.teamSection} key={section.teamId}>
-          <div className={styles.teamHead}>
-            {section.teamId !== 0 ? (
-              <span
-                className={styles.teamDot}
-                style={{ background: section.teamId === 100 ? 'var(--accent)' : 'var(--bad)' }}
+      {teamSections.map((section) => {
+        const lanesResolved =
+          game.hasLaneRoles &&
+          section.participants.length === 5 &&
+          section.participants.every((p) => p.laneRole !== null);
+
+        return (
+          <div className={styles.teamSection} key={section.teamId}>
+            <div className={styles.teamHead}>
+              {section.teamId !== 0 ? (
+                <span
+                  className={styles.teamDot}
+                  style={{ background: section.teamId === 100 ? 'var(--accent)' : 'var(--bad)' }}
+                />
+              ) : null}
+              {section.label}
+              {lanesResolved ? (
+                <span className={styles.estimateNote}>
+                  lanes estimated — drag a card if it&apos;s wrong
+                </span>
+              ) : null}
+            </div>
+
+            {lanesResolved ? (
+              <RoleRow
+                cards={[...section.participants]
+                  .sort((a, b) => laneIndex(a.laneRole) - laneIndex(b.laneRole))
+                  .map((p) => toCardData(p, platform, version, champIcon))}
               />
-            ) : null}
-            {section.label}
+            ) : (
+              <div className={styles.grid}>
+                {section.participants.map((participant) => (
+                  <ParticipantCard
+                    key={participant.puuid}
+                    participant={participant}
+                    platform={platform}
+                    version={version}
+                    iconSrc={champIcon(participant.championId)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          <div className={styles.grid}>
-            {section.participants.map((participant) => (
-              <ParticipantCard
-                key={participant.puuid}
-                participant={participant}
-                platform={platform}
-                version={version}
-                iconSrc={champIcon(participant.championId)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+function laneIndex(role: string | null): number {
+  const i = LANE_ROLES.indexOf(role as (typeof LANE_ROLES)[number]);
+  return i === -1 ? LANE_ROLES.length : i;
+}
+
+function toCardData(
+  participant: LiveGameParticipantView,
+  platform: Platform,
+  version: string,
+  champIcon: (championId: number) => string | undefined,
+): RoleCardData {
+  const rank = participant.soloRank;
+  return {
+    puuid: participant.puuid,
+    champIconSrc: champIcon(participant.championId),
+    profileIconSrc: profileIcon(version, participant.profileIconId),
+    spell1Src: spellIcon(version, participant.spell1Id) ?? undefined,
+    spell2Src: spellIcon(version, participant.spell2Id) ?? undefined,
+    name: participant.bot ? 'Bot' : (participant.gameName ?? 'Unknown summoner'),
+    tag: participant.bot ? null : participant.tagLine,
+    href:
+      !participant.bot && participant.gameName && participant.tagLine
+        ? `/player/${platform}/${encodeURIComponent(participant.gameName)}/${encodeURIComponent(participant.tagLine)}`
+        : null,
+    rank: rank ? { tier: rank.tier, division: rank.rank, leaguePoints: rank.leaguePoints } : null,
+    record: rank && rank.wins + rank.losses > 0 ? `${winRate(rank.wins, rank.losses)}% WR · ${rank.wins + rank.losses}G` : null,
+    roleChips: participant.roleHistory
+      .slice(0, 2)
+      .map((r) => `${ROLE_LABEL[r.role] ?? r.role} ${r.games}G · ${winRate(r.wins, r.games - r.wins)}%`),
+    autofilled: participant.autofilled,
+  };
 }
 
 function ParticipantCard({
