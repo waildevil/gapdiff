@@ -7,9 +7,11 @@ import {
   clearGroupWebhook,
   createGroup,
   createInvite,
+  deleteGroup,
   GroupError,
   joinGroupByInvite,
   removeAccountFromBoard,
+  renameGroup,
   revokeInvite,
   setMemberRole,
   setGroupWebhook,
@@ -132,6 +134,38 @@ export async function disconnectDiscordAction(
     return { ok: true, hint: null };
   } catch (error) {
     return { ok: false, error: message(error, 'Could not disconnect Discord.') };
+  }
+}
+
+export type RenameGroupResult = { ok: true; name: string } | { ok: false; error: string };
+
+export async function renameGroupAction(
+  groupId: number,
+  slug: string,
+  name: string,
+): Promise<RenameGroupResult> {
+  try {
+    const userId = await requireUserId();
+    const renamed = await renameGroup(groupId, userId, name);
+    revalidatePath(`/groups/${slug}/manage`);
+    revalidatePath(`/group/${slug}`);
+    revalidatePath('/groups');
+    return { ok: true, name: renamed };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not rename the group.') };
+  }
+}
+
+export type DeleteGroupResult = { ok: true } | { ok: false; error: string };
+
+export async function deleteGroupAction(groupId: number): Promise<DeleteGroupResult> {
+  try {
+    const userId = await requireUserId();
+    await deleteGroup(groupId, userId);
+    revalidatePath('/groups');
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not delete the group.') };
   }
 }
 

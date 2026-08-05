@@ -1,0 +1,116 @@
+.renameForm {
+  display: flex;
+  gap: 8px;
+  padding: 4px 16px 16px;
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 180px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 13.5px;
+  padding: 9px 12px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent-line);
+}
+
+.save {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-sm);
+  padding: 0 16px;
+  flex: 0 0 auto;
+}
+
+.save:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.save:disabled {
+  color: var(--faint);
+  background: var(--surface-2);
+  border-color: var(--line);
+  cursor: default;
+}
+
+.danger {
+  border-color: var(--bad);
+}
+
+.dangerTitle {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--bad);
+}
+
+.dangerBody {
+  padding: 4px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dangerText {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dangerText code {
+  font-family: var(--mono);
+}
+
+.confirmLabel {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.confirmLabel code {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.deleteButton {
+  align-self: flex-start;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--bad);
+  background: var(--bad-soft);
+  border: 1px solid var(--bad);
+  border-radius: var(--r-sm);
+  padding: 9px 16px;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: var(--bad);
+  color: var(--surface);
+}
+
+.deleteButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  color: var(--bad);
+  font-size: 12px;
+}

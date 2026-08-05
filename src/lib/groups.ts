@@ -288,6 +288,30 @@ export async function createGroup(userId: string, name: string): Promise<GroupSu
   };
 }
 
+export async function renameGroup(groupId: number, userId: string, name: string): Promise<string> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can rename it.');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length < 2) throw new GroupError('Give the group a name.');
+  if (trimmed.length > 64) throw new GroupError('That name is too long.');
+
+  await db.update(groups).set({ name: trimmed }).where(eq(groups.id, groupId));
+  return trimmed;
+}
+
+/**
+ * Deletes the group itself. Memberships, tracked accounts and invites cascade
+ * from the FK on `group_id` — nothing else to clean up by hand. Riot accounts,
+ * matches and rank history are untouched: they're global, not the group's.
+ */
+export async function deleteGroup(groupId: number, userId: string): Promise<void> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can delete this group.');
+  }
+  await db.delete(groups).where(eq(groups.id, groupId));
+}
+
 export async function isOwner(groupId: number, userId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: groups.id })

@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { db } from '@/db';
 import { groups } from '@/db/schema';
 import { DiscordConnect } from '@/components/DiscordConnect';
+import { GroupSettings } from '@/components/GroupSettings';
 import { MemberRole } from '@/components/MemberRole';
 import { InviteManager } from '@/components/InviteManager';
 import {
@@ -112,6 +113,8 @@ export default async function ManageGroupPage({ params }: PageProps) {
             </div>
           ))}
         </div>
+
+        <GroupSettings groupId={group.id} slug={slug} name={group.name} />
 
         {unclaimed.length > 0 ? (
           <div className="card">
