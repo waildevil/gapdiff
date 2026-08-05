@@ -6,6 +6,7 @@ import { db } from '@/db';
 import { groups } from '@/db/schema';
 import { DiscordConnect } from '@/components/DiscordConnect';
 import { GroupSettings } from '@/components/GroupSettings';
+import { LiveRefresh } from '@/components/LiveRefresh';
 import { MemberRole } from '@/components/MemberRole';
 import { InviteManager } from '@/components/InviteManager';
 import {
@@ -18,6 +19,10 @@ import {
 import styles from '../../groups.module.css';
 
 export const dynamic = 'force-dynamic';
+
+// How often to check for someone else's action — an invite getting accepted,
+// a member's account getting verified — without the owner having to reload.
+const REFRESH_MS = 5_000;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -56,6 +61,8 @@ export default async function ManageGroupPage({ params }: PageProps) {
 
   return (
     <div className={styles.wrap}>
+      <LiveRefresh intervalMs={REFRESH_MS} />
+
       <div className="page-head">
         <div className="eyebrow">Managing</div>
         <h1>{group.name}</h1>
