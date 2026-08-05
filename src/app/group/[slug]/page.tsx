@@ -30,11 +30,17 @@ interface PageProps {
 /**
  * Reading `searchParams` already forces this page to render per request —
  * `export const revalidate` has no effect here, so the caching happens at the
- * data layer instead. A closed week can never change again (no match can land
- * with a timestamp inside a boundary that has already passed), so it's cached
- * indefinitely; the in-progress week keeps a short TTL since the ingester adds
- * to it every night. This is what makes clicking through old weeks fast after
- * the first person has loaded them, instead of a DB round trip every time.
+ * data layer instead. A closed week's *match data* can never change again (no
+ * match can land with a timestamp inside a boundary that has already passed),
+ * but this caches the whole computed page — titles, labels, formatting — and
+ * that output depends on the current code, which does change. An infinite
+ * TTL here previously left a past week showing stale title copy for as long
+ * as nobody happened to trigger a revalidation, surviving even a deploy that
+ * fixed the wording. An hour bounds that without giving up the point of
+ * caching a page nobody's data will move under.
+ *
+ * "-v2" forces out whatever got stuck under the old infinite-TTL key; drop it
+ * next time this needs bumping rather than growing the suffix forever.
  */
 const getCachedCurrentWeek = unstable_cache(
   (slug: string, index: number | undefined) => getGroupStandings(slug, index),
@@ -43,8 +49,8 @@ const getCachedCurrentWeek = unstable_cache(
 );
 const getCachedPastWeek = unstable_cache(
   (slug: string, index: number) => getGroupStandings(slug, index),
-  ['group-standings-past'],
-  { revalidate: false },
+  ['group-standings-past-v2'],
+  { revalidate: 3600 },
 );
 
 /** unstable_cache round-trips through JSON, which turns Date fields into
