@@ -30,20 +30,40 @@ export default async function DuelPage({ params }: PageProps) {
   const duel = await getDuel(code);
   if (!duel) notFound();
 
-  const leaderDelta = duel.racers[0]?.delta ?? 0;
   const pending = duel.invited.filter((p) => p.status === 'pending');
   const declined = duel.invited.filter((p) => p.status === 'declined');
+  const winner = duel.racers.find((r) => r.winner) ?? null;
 
   return (
     <div className={styles.wrap}>
       <div className="page-head">
-        <div className="eyebrow">Duel</div>
+        <div className="eyebrow">
+          Duel
+          {duel.ended ? <span className={styles.endedTag}>Ended</span> : null}
+        </div>
         <h1>Ranked LP race</h1>
         <p className="page-sub">
           {duel.racers.length} racing, ranked LP compared against where they started.{' '}
-          {duel.ended ? 'This duel has ended.' : timeLeft(duel.endAt)}
+          {duel.ended ? 'Final — nothing here will change again.' : timeLeft(duel.endAt)}
         </p>
       </div>
+
+      {duel.ended && duel.racers.length >= 2 ? (
+        <div className={styles.resultBanner}>
+          {winner ? (
+            <>
+              🏆 <b>{winner.gameName}</b> won, {winner.delta! > 0 ? '+' : ''}
+              {winner.delta} to{' '}
+              {duel.racers
+                .filter((r) => !r.winner)
+                .map((r) => `${r.delta! > 0 ? '+' : ''}${r.delta}`)
+                .join(', ')}
+            </>
+          ) : (
+            <>Tied — nobody climbed further than anyone else.</>
+          )}
+        </div>
+      ) : null}
 
       <div className="card">
         <div className="card-head">
@@ -56,38 +76,37 @@ export default async function DuelPage({ params }: PageProps) {
         {duel.racers.length === 0 ? (
           <div className={styles.empty}>Nobody has accepted yet.</div>
         ) : (
-          duel.racers.map((racer, index) => {
-            const isLeader = index === 0 && leaderDelta > 0;
-            return (
-              <div className={styles.row} key={racer.puuid}>
-                <div className={styles.position}>{index + 1}</div>
+          duel.racers.map((racer, index) => (
+            <div className={styles.row} key={racer.puuid}>
+              <div className={styles.position}>{index + 1}</div>
 
-                <div className={styles.who}>
-                  <div className={styles.name}>
-                    {racer.gameName}
-                    {isLeader ? <span className={styles.crown}>👑</span> : null}
-                  </div>
-                  <div className={styles.meta}>
-                    {racer.formattedStart} → {racer.formattedCurrent}
-                  </div>
+              <div className={styles.who}>
+                <div className={styles.name}>
+                  {racer.gameName}
+                  {racer.winner ? <span className={styles.crown}>👑</span> : null}
                 </div>
-
-                <div
-                  className={`${styles.delta} ${
-                    (racer.delta ?? 0) > 0 ? styles.up : (racer.delta ?? 0) < 0 ? styles.down : ''
-                  }`}
-                >
-                  {(racer.delta ?? 0) > 0 ? '+' : ''}
-                  {racer.delta}
+                <div className={styles.meta}>
+                  {racer.formattedStart} → {racer.formattedCurrent}
                 </div>
               </div>
-            );
-          })
+
+              <div
+                className={`${styles.delta} ${
+                  (racer.delta ?? 0) > 0 ? styles.up : (racer.delta ?? 0) < 0 ? styles.down : ''
+                }`}
+              >
+                {(racer.delta ?? 0) > 0 ? '+' : ''}
+                {racer.delta}
+              </div>
+            </div>
+          ))
         )}
 
         {pending.length > 0 ? (
           <div className={styles.pendingRow}>
-            Waiting on {pending.map((p) => p.gameName).join(', ')} to accept.
+            {duel.ended ? 'Never responded: ' : 'Waiting on '}
+            {pending.map((p) => p.gameName).join(', ')}
+            {duel.ended ? '.' : ' to accept.'}
           </div>
         ) : null}
 

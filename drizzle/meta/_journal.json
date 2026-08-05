@@ -43,6 +43,13 @@
       "when": 1785886842738,
       "tag": "0005_natural_tattoo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785889441332,
+      "tag": "0006_abnormal_the_spike",
+      "breakpoints": true
     }
   ]
 }

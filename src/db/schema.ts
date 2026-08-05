@@ -385,6 +385,17 @@ export const duels = pgTable(
     startAt: timestamp('start_at', { withTimezone: true }).notNull().defaultNow(),
     endAt: timestamp('end_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Set the first time anybody views this duel after `endAt` has passed.
+     * Before that, "current rank" is read live; after, it's frozen to whatever
+     * each racer's end-snapshot says — otherwise an "ended" duel would keep
+     * drifting every time someone opened the link months later.
+     */
+    settledAt: timestamp('settled_at', { withTimezone: true }),
+    /** Null when there was no clear winner — a tie, or nobody else accepted. */
+    winnerPuuid: varchar('winner_puuid', { length: 78 }).references(() => accounts.puuid, {
+      onDelete: 'set null',
+    }),
   },
   (table) => [index('duels_created_by_idx').on(table.createdBy)],
 );
@@ -397,6 +408,9 @@ export const duels = pgTable(
  * `invitedUserId` is the verified owner of `puuid` — whoever must accept or
  * decline before this racer's numbers are shown. The creator's own row is
  * inserted pre-accepted, since challenging yourself needs no consent.
+ *
+ * The `end*` columns are that racer's frozen finish line, filled in once at
+ * settlement — see `duels.settledAt`.
  */
 export const duelParticipants = pgTable(
   'duel_participants',
@@ -416,6 +430,9 @@ export const duelParticipants = pgTable(
     startTier: varchar('start_tier', { length: 16 }),
     startDivision: varchar('start_division', { length: 4 }),
     startLeaguePoints: integer('start_league_points'),
+    endTier: varchar('end_tier', { length: 16 }),
+    endDivision: varchar('end_division', { length: 4 }),
+    endLeaguePoints: integer('end_league_points'),
   },
   (table) => [
     primaryKey({ columns: [table.duelId, table.puuid] }),

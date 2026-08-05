@@ -45,12 +45,27 @@ export default async function DuelsPage() {
         {myDuels.length === 0 ? (
           <div className={styles.empty}>No duels yet — start one above.</div>
         ) : (
-          myDuels.map((duel) => (
-            <Link className={styles.row} href={`/duels/${duel.code}`} key={duel.code}>
-              <span className={styles.names}>{duel.racerNames.join(' vs ')}</span>
-              <span className={styles.status}>{duel.ended ? 'Ended' : 'Running'}</span>
-            </Link>
-          ))
+          myDuels.map((duel) => {
+            const winner = duel.racers.find((r) => r.winner);
+            const names = duel.racers.map((r) => r.gameName).join(' vs ');
+
+            return (
+              <Link className={styles.row} href={`/duels/${duel.code}`} key={duel.code}>
+                <span className={styles.names}>
+                  {duel.ended && winner ? (
+                    <>
+                      <b>{winner.gameName}</b> beat {duel.racers.filter((r) => !r.winner).map((r) => r.gameName).join(', ')}
+                    </>
+                  ) : duel.ended ? (
+                    `Tied — ${names}`
+                  ) : (
+                    names
+                  )}
+                </span>
+                <span className={styles.status}>{duel.ended ? 'Ended' : 'Running'}</span>
+              </Link>
+            );
+          })
         )}
       </div>
     </div>
