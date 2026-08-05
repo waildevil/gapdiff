@@ -9,6 +9,7 @@ import {
   rankSnapshots,
   trackedAccounts,
 } from '@/db/schema';
+import { RANKED_QUEUES } from '@/lib/riot/types';
 import { getGroupStandings } from './leaderboard';
 import { rankPoints } from './rating/rating';
 
@@ -205,6 +206,7 @@ async function getHighlights(puuids: string[], since: Date): Promise<Highlights>
       and(
         inArray(mine.puuid, puuids),
         eq(matches.scorable, true),
+        inArray(matches.queueId, RANKED_QUEUES),
         gte(matches.gameCreation, since),
         isNotNull(mine.performanceScore),
       ),

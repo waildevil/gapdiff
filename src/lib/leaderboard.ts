@@ -11,6 +11,7 @@ import {
   rankSnapshots,
   users,
 } from '@/db/schema';
+import { RANKED_QUEUES } from '@/lib/riot/types';
 import { buildLeaderboard, type Rating } from './rating/rating';
 import {
   assignTitles,
@@ -223,6 +224,7 @@ export async function getGroupStandings(
         and(
           inArray(matchParticipants.puuid, puuids),
           eq(matches.scorable, true),
+          inArray(matches.queueId, RANKED_QUEUES),
           gte(matches.gameCreation, since),
           lt(matches.gameCreation, cutoff),
         ),
@@ -531,6 +533,7 @@ async function getPairings(
         inArray(mine.puuid, puuids),
         inArray(theirs.puuid, puuids),
         eq(matches.scorable, true),
+        inArray(matches.queueId, RANKED_QUEUES),
         gte(matches.gameCreation, from),
         lt(matches.gameCreation, to),
       ),
