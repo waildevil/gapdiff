@@ -74,3 +74,33 @@ export function spellIcon(version: string, spellId: number): string | null {
 export function rankEmblem(tier: string): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;
 }
+
+let championMapCache: { version: string; byId: Map<number, string> } | null = null;
+
+/**
+ * Spectator data only carries numeric championId, but the asset CDN is keyed
+ * by champion name (`championIcon`) — Riot ships no id->name endpoint, so this
+ * is the one live lookup against Data Dragon's full champion list.
+ */
+export async function championIdToName(version: string): Promise<Map<number, string>> {
+  if (championMapCache && championMapCache.version === version) return championMapCache.byId;
+
+  const byId = new Map<number, string>();
+  try {
+    const response = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`,
+      { next: { revalidate: 3600 } },
+    );
+    if (response.ok) {
+      const data = (await response.json()) as { data: Record<string, { key: string; id: string }> };
+      for (const champion of Object.values(data.data)) {
+        byId.set(Number(champion.key), champion.id);
+      }
+    }
+  } catch {
+    // Empty map falls back to a numeric label wherever it's used.
+  }
+
+  championMapCache = { version, byId };
+  return byId;
+}

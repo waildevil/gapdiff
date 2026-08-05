@@ -1,0 +1,114 @@
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.bans {
+  display: flex;
+  gap: 4px;
+}
+
+.banIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  opacity: 0.75;
+  filter: grayscale(0.4);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 40px 20px 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.champIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+}
+
+.spells {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spellIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+
+.profileIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-2);
+}
+
+.identity {
+  min-width: 0;
+}
+
+.name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.name:hover {
+  color: var(--accent);
+}
+
+.tag {
+  color: var(--faint);
+  font-weight: 500;
+  margin-left: 3px;
+}
+
+.rank {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.backLink {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .teams {
+    grid-template-columns: 1fr;
+  }
+
+  .wrap {
+    padding: 16px;
+  }
+}

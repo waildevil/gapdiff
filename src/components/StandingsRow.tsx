@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AddFriendButton } from './AddFriendButton';
 import { Avatar } from './Avatar';
+import { LiveDot } from './LiveDot';
 import { Sparkline } from './Sparkline';
 import { profileIcon } from '@/lib/ddragon';
 import { winRate } from '@/lib/format';
@@ -95,6 +96,12 @@ export function StandingsRow({
           {player.gameName}
         </Link>
         <div className={styles.meta}>
+          <LiveDot
+            platform={player.platform}
+            puuid={player.puuid}
+            gameName={player.gameName}
+            tagLine={player.tagLine}
+          />
           <RankBadge rank={player.rank} />
           {player.nickname ? (
             <span className={styles.nickname}>{player.nickname}</span>

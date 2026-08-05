@@ -67,6 +67,18 @@
   margin-top: 5px;
 }
 
+.liveBadge {
+  text-decoration: none;
+}
+
+.liveDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
 .ranks {
   display: flex;
   gap: 10px;

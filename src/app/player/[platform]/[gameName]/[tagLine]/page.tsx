@@ -4,7 +4,7 @@ import { getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank } from '@/lib/rating/rating';
 import { tierColor, winRate } from '@/lib/format';
-import { RiotApiError } from '@/lib/riot/client';
+import { RiotApiError, getRiotClient } from '@/lib/riot/client';
 import { ChampionSidebar } from '@/components/ChampionSidebar';
 import { getChampionHistory } from '@/lib/championHistory';
 import { MatchSection } from '@/components/MatchSection';
@@ -47,10 +47,10 @@ export default async function PlayerPage({ params }: PageProps) {
 
     // Empty for anybody the ingester doesn't track, which the sidebar handles
     // by falling back to the ten live matches.
-    const championHistory = await getChampionHistory(profile.puuid).catch(() => ({
-      rows: [],
-      since: null,
-    }));
+    const [championHistory, activeGame] = await Promise.all([
+      getChampionHistory(profile.puuid).catch(() => ({ rows: [], since: null })),
+      getRiotClient().getActiveGame(platform, profile.puuid).catch(() => null),
+    ]);
 
     return (
       <div className={styles.wrap}>
@@ -93,6 +93,13 @@ export default async function PlayerPage({ params }: PageProps) {
                 Level {profile.summonerLevel} · {PLATFORM_LABELS[platform]}
               </div>
             </div>
+
+            {activeGame ? (
+              <Link href={`${profileHref}/live`} className={`chip good ${styles.liveBadge}`}>
+                <span className={styles.liveDot} />
+                Live now · spectate
+              </Link>
+            ) : null}
 
             <div className={styles.ranks}>
               <RankCard label="Ranked Solo" entry={profile.solo} />

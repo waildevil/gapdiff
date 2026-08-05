@@ -341,6 +341,13 @@ export interface FriendView {
   userId: string;
   name: string | null;
   image: string | null;
+  /** From their first verified Riot account, if they have one — the account
+   *  the live-game dot and profile link point at. Null for someone who hasn't
+   *  verified a Riot ID yet. */
+  puuid: string | null;
+  platform: string | null;
+  gameName: string | null;
+  tagLine: string | null;
 }
 
 export async function listFriends(userId: string): Promise<FriendView[]> {
@@ -356,10 +363,38 @@ export async function listFriends(userId: string): Promise<FriendView[]> {
   if (rows.length === 0) return [];
 
   const friendIds = rows.map((r) => (r.requesterId === userId ? r.addresseeId : r.requesterId));
-  return db
-    .select({ userId: users.id, name: users.name, image: users.image })
-    .from(users)
-    .where(inArray(users.id, friendIds));
+
+  const [friendUsers, verifiedAccounts] = await Promise.all([
+    db
+      .select({ userId: users.id, name: users.name, image: users.image })
+      .from(users)
+      .where(inArray(users.id, friendIds)),
+    db
+      .selectDistinctOn([accountClaims.userId], {
+        userId: accountClaims.userId,
+        puuid: accounts.puuid,
+        platform: accounts.platform,
+        gameName: accounts.gameName,
+        tagLine: accounts.tagLine,
+      })
+      .from(accountClaims)
+      .innerJoin(accounts, eq(accounts.puuid, accountClaims.puuid))
+      .where(and(inArray(accountClaims.userId, friendIds), isNotNull(accountClaims.verifiedAt)))
+      .orderBy(accountClaims.userId, accountClaims.createdAt),
+  ]);
+
+  const accountByUser = new Map(verifiedAccounts.map((a) => [a.userId, a]));
+
+  return friendUsers.map((friend) => {
+    const account = accountByUser.get(friend.userId);
+    return {
+      ...friend,
+      puuid: account?.puuid ?? null,
+      platform: account?.platform ?? null,
+      gameName: account?.gameName ?? null,
+      tagLine: account?.tagLine ?? null,
+    };
+  });
 }
 
 export async function countIncomingFriendRequests(userId: string): Promise<number> {

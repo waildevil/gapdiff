@@ -10,6 +10,7 @@ import {
   UnratedDivider,
 } from '@/components/StandingsRow';
 import { Pairings } from '@/components/Pairings';
+import { LiveStatusProvider } from '@/components/LiveStatusProvider';
 import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
@@ -107,7 +108,12 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
 
             <StandingsHeader />
 
-            <div>
+            <LiveStatusProvider
+              players={entries.map((entry) => ({
+                platform: entry.player.platform,
+                puuid: entry.player.puuid,
+              }))}
+            >
               {entries.map((entry, index) => {
                 const above = index > 0 ? entries[index - 1] : undefined;
 
@@ -141,7 +147,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
                   </div>
                 );
               })}
-            </div>
+            </LiveStatusProvider>
           </div>
 
           {access.isMember ? (
