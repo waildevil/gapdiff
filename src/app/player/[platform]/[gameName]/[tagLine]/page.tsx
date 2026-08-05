@@ -4,9 +4,11 @@ import { getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank } from '@/lib/rating/rating';
 import { tierColor, winRate } from '@/lib/format';
-import { RiotApiError, getRiotClient } from '@/lib/riot/client';
+import { RiotApiError } from '@/lib/riot/client';
 import { ChampionSidebar } from '@/components/ChampionSidebar';
 import { getChampionHistory } from '@/lib/championHistory';
+import { LiveBanner } from '@/components/LiveBanner';
+import { LiveStatusProvider } from '@/components/LiveStatusProvider';
 import { MatchSection } from '@/components/MatchSection';
 import { RecentlyPlayedWith } from '@/components/RecentlyPlayedWith';
 import styles from './profile.module.css';
@@ -47,10 +49,10 @@ export default async function PlayerPage({ params }: PageProps) {
 
     // Empty for anybody the ingester doesn't track, which the sidebar handles
     // by falling back to the ten live matches.
-    const [championHistory, activeGame] = await Promise.all([
-      getChampionHistory(profile.puuid).catch(() => ({ rows: [], since: null })),
-      getRiotClient().getActiveGame(platform, profile.puuid).catch(() => null),
-    ]);
+    const championHistory = await getChampionHistory(profile.puuid).catch(() => ({
+      rows: [],
+      since: null,
+    }));
 
     return (
       <div className={styles.wrap}>
@@ -94,12 +96,14 @@ export default async function PlayerPage({ params }: PageProps) {
               </div>
             </div>
 
-            {activeGame ? (
-              <Link href={`${profileHref}/live`} className={`chip good ${styles.liveBadge}`}>
-                <span className={styles.liveDot} />
-                Live now · spectate
-              </Link>
-            ) : null}
+            <LiveStatusProvider players={[{ platform, puuid: profile.puuid }]}>
+              <LiveBanner
+                platform={platform}
+                puuid={profile.puuid}
+                gameName={profile.gameName}
+                tagLine={profile.tagLine}
+              />
+            </LiveStatusProvider>
 
             <div className={styles.ranks}>
               <RankCard label="Ranked Solo" entry={profile.solo} />
