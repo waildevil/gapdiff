@@ -39,24 +39,77 @@ export function seasonStart(): Date {
   return new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
 }
 
-/** Fallback when TITLE_WINDOW_START is unset or unparseable. */
-const DEFAULT_TITLE_WINDOW_START = '2026-06-01';
+/** Fallback when TITLE_WINDOW_START is unset or unparseable. Must be a Monday. */
+const DEFAULT_WEEK_ANCHOR = '2026-06-29';
+
+/** Standings reset every Monday at this local hour in RESET_TIMEZONE. */
+const RESET_TIMEZONE = 'Europe/Berlin';
+const RESET_HOUR = 19;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Period 0 begins here, snapped to the first of that month. Titles are
- * contested one calendar month at a time.
- *
- * The code says "period" rather than "month" so the cadence can change without
- * renaming everything that touches it — only the two functions below know that
- * a period is currently a month.
+ * Offset (ms) to add to a UTC instant to read its wall-clock time in
+ * `timeZone` — Europe/Berlin is UTC+1 or UTC+2 depending on DST, and this is
+ * the only reliable way to get that without a date library.
  */
-export function titleAnchor(): Date {
+function tzOffsetMs(timeZone: string, utcMs: number): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(utcMs));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
+  const asUTC = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour'),
+    get('minute'),
+    get('second'),
+  );
+  return asUTC - utcMs;
+}
+
+/** The UTC instant of RESET_HOUR:00 on the given calendar date, in RESET_TIMEZONE. */
+function resetInstant(year: number, month: number, day: number): Date {
+  const guess = Date.UTC(year, month - 1, day, RESET_HOUR, 0, 0);
+  return new Date(guess - tzOffsetMs(RESET_TIMEZONE, guess));
+}
+
+/**
+ * Period 0's Monday, from TITLE_WINDOW_START (or the default), snapped back
+ * to that week's Monday if it isn't one already — a period always starts on
+ * a Monday, whatever date somebody puts in the env var.
+ *
+ * The code says "period" rather than "week" so the cadence can change without
+ * renaming everything that touches it — only the functions in this section
+ * know that a period is currently a week.
+ */
+function weekAnchor(): { year: number; month: number; day: number } {
   const configured = process.env.TITLE_WINDOW_START;
-  const parsed = configured ? new Date(configured) : new Date(NaN);
+  const parsed = configured ? new Date(`${configured}T00:00:00Z`) : new Date(NaN);
   const base = Number.isNaN(parsed.getTime())
-    ? new Date(`${DEFAULT_TITLE_WINDOW_START}T00:00:00Z`)
+    ? new Date(`${DEFAULT_WEEK_ANCHOR}T00:00:00Z`)
     : parsed;
-  return new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), 1));
+  // getUTCDay: 0 = Sunday .. 6 = Saturday. Roll back to that week's Monday.
+  const dayOfWeek = base.getUTCDay();
+  const backToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(
+    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() - backToMonday),
+  );
+  return { year: monday.getUTCFullYear(), month: monday.getUTCMonth() + 1, day: monday.getUTCDate() };
+}
+
+function periodStart(index: number): Date {
+  const anchor = weekAnchor();
+  // Date.UTC normalises day overflow, so day 37 becomes the right day next month.
+  const d = new Date(Date.UTC(anchor.year, anchor.month - 1, anchor.day + index * 7));
+  return resetInstant(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
 }
 
 export interface PeriodWindow {
@@ -65,36 +118,37 @@ export interface PeriodWindow {
   /** Exclusive: the first instant of the next period. */
   end: Date;
   isCurrent: boolean;
-  /** "June 2026" */
+  /** "Week of 29 Jun" */
   label: string;
 }
 
-/** Which period contains `now`. Never negative. */
+/** Which period contains `now`. Never negative — periods before week 0 don't exist. */
 export function currentPeriodIndex(now: Date = new Date()): number {
-  const anchor = titleAnchor();
-  const months =
-    (now.getUTCFullYear() - anchor.getUTCFullYear()) * 12 +
-    (now.getUTCMonth() - anchor.getUTCMonth());
-  return Math.max(0, months);
+  const anchorInstant = periodStart(0);
+  // A ms-based guess, then corrected against the real (DST-aware) boundary —
+  // the guess can only be off by the ~1-hour Aachen DST shift, never by a
+  // whole week, so this settles in at most one step either way.
+  let index = Math.max(0, Math.floor((now.getTime() - anchorInstant.getTime()) / WEEK_MS));
+  while (periodStart(index + 1).getTime() <= now.getTime()) index++;
+  while (index > 0 && periodStart(index).getTime() > now.getTime()) index--;
+  return index;
 }
 
 export function periodWindow(index: number, now: Date = new Date()): PeriodWindow {
-  const anchor = titleAnchor();
   const clamped = Math.max(0, Math.min(index, currentPeriodIndex(now)));
-  // Date.UTC normalises month overflow, so month 13 becomes January of the next year.
-  const start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + clamped, 1));
-  const end = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + clamped + 1, 1));
+  const start = periodStart(clamped);
+  const end = periodStart(clamped + 1);
 
   return {
     index: clamped,
     start,
     end,
     isCurrent: clamped === currentPeriodIndex(now),
-    label: start.toLocaleDateString('en-GB', {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }),
+    label: `Week of ${start.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      timeZone: RESET_TIMEZONE,
+    })}`,
   };
 }
 

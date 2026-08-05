@@ -21,9 +21,10 @@ function formatDay(date: Date): string {
 }
 
 /**
- * Months are addressable by index rather than by date, so a link to month 1
- * keeps meaning June forever. The end date shown is inclusive — the window
- * itself is half-open, so a game at exactly midnight belongs to the next month.
+ * Weeks are addressable by index rather than by date, so a link to week 1
+ * keeps meaning the same week forever. The end date shown is inclusive — the
+ * window itself is half-open, so a game at exactly the reset instant belongs
+ * to the next week.
  */
 export function PeriodPicker({
   slug,
@@ -52,7 +53,7 @@ export function PeriodPicker({
       <div className={styles.nav}>
         <Link
           className={`${styles.button} ${hasPrevious ? '' : styles.disabled}`}
-          href={`/group/${slug}?month=${index - 1}`}
+          href={`/group/${slug}?week=${index - 1}`}
           aria-disabled={!hasPrevious}
           tabIndex={hasPrevious ? undefined : -1}
         >
@@ -60,7 +61,7 @@ export function PeriodPicker({
         </Link>
         <Link
           className={`${styles.button} ${hasNext ? '' : styles.disabled}`}
-          href={`/group/${slug}?month=${index + 1}`}
+          href={`/group/${slug}?week=${index + 1}`}
           aria-disabled={!hasNext}
           tabIndex={hasNext ? undefined : -1}
         >
@@ -68,7 +69,7 @@ export function PeriodPicker({
         </Link>
         {!isCurrent ? (
           <Link className={styles.button} href={`/group/${slug}`}>
-            This month
+            This week
           </Link>
         ) : null}
       </div>

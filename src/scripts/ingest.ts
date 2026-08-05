@@ -58,13 +58,13 @@ function parseOptions(): Options {
 }
 
 /**
- * The default window is the current month, because the standings are scored per
- * month — anything older only matters if somebody browses back to it, and that
+ * The default window is the current week, because the standings are scored per
+ * week — anything older only matters if somebody browses back to it, and that
  * is what --backfill is for.
  */
 function defaultWindowStart(): Date {
-  const monthStart = periodWindow(currentPeriodIndex()).start;
-  return new Date(monthStart.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const weekStart = periodWindow(currentPeriodIndex()).start;
+  return new Date(weekStart.getTime() - 2 * 24 * 60 * 60 * 1000);
 }
 
 async function storeMatch(match: Match, platform: string): Promise<void> {

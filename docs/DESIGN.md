@@ -140,9 +140,9 @@ moving average with a half-life of about 20 games.
 
 ### Seasons
 
-The leaderboard resets monthly. Keeps it competitive, gives everyone a fresh shot, and
-stops one hot streak in January from deciding the year. All-time standings are kept
-alongside.
+The leaderboard resets weekly, every Monday at 19:00 Aachen time. Keeps it competitive,
+gives everyone a fresh shot, and stops one hot streak from deciding the whole season.
+All-time standings are kept alongside.
 
 ### Transparency
 

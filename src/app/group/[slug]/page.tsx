@@ -22,7 +22,7 @@ import { getGroupStandings } from '@/lib/leaderboard';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ week?: string }>;
 }
 
 // Standings only change when the ingester runs, so a short cache is plenty.
@@ -30,7 +30,7 @@ export const revalidate = 60;
 
 export default async function GroupPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { month: monthParam } = await searchParams;
+  const { week: weekParam } = await searchParams;
 
   const session = await auth();
   const access = await checkGroupAccess(slug, session?.user?.id);
@@ -40,7 +40,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
     return <PrivateGroup name={access.groupName} slug={slug} signedIn={access.signedIn} />;
   }
 
-  const requested = Number.parseInt(monthParam ?? '', 10);
+  const requested = Number.parseInt(weekParam ?? '', 10);
   const [standings, version, myAccounts] = await Promise.all([
     getGroupStandings(slug, Number.isFinite(requested) ? requested : undefined),
     latestVersion(),

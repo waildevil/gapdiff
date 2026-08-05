@@ -155,13 +155,13 @@ function highlightLines(highlights: Highlights): string[] {
 }
 
 /**
- * The monthly wrap: titles, once they mean something.
+ * The weekly wrap: titles, once they mean something.
  *
- * Deliberately separate from the digest. Mid-month a title flips on a handful
+ * Deliberately separate from the digest. Mid-week a title flips on a handful
  * of games and flips back two days later, so announcing them daily would be
- * noise that contradicts itself. Posted once, for a month that has finished.
+ * noise that contradicts itself. Posted once, for a week that has finished.
  */
-export function monthlyPayload(
+export function weeklyPayload(
   standings: GroupStandings,
   periodLabel: string,
 ): WebhookPayload | null {

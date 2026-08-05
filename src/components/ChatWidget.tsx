@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getFriendsListAction } from '@/app/actions/friends';
 import {
   getChatListAction,
   getConversationAction,
@@ -10,6 +11,7 @@ import {
   sendMessageAction,
 } from '@/app/actions/messages';
 import { OPEN_CHAT_EVENT, type OpenChatDetail } from '@/lib/chatEvents';
+import type { FriendView } from '@/lib/friends';
 import type { ConversationPreview, GroupChatPreview, MessageView } from '@/lib/messages';
 import { EmojiPicker } from './EmojiPicker';
 import styles from './ChatWidget.module.css';
@@ -53,6 +55,8 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
   const [thread, setThread] = useState<Thread | null>(null);
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [groupChats, setGroupChats] = useState<GroupChatPreview[]>([]);
+  const [friends, setFriends] = useState<FriendView[]>([]);
+  const [search, setSearch] = useState('');
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [unread, setUnread] = useState(0);
   const [draft, setDraft] = useState('');
@@ -111,6 +115,19 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
     };
   }, [open, thread]);
 
+  // The friends list, so search can reach somebody before any message has
+  // been sent — doesn't need the 5s poll above, it barely changes.
+  useEffect(() => {
+    if (!open || thread) return;
+    let cancelled = false;
+    getFriendsListAction().then((rows) => {
+      if (!cancelled) setFriends(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, thread]);
+
   // The open thread itself.
   useEffect(() => {
     if (!open || !thread) return;
@@ -137,6 +154,31 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'nearest' });
   }, [messages]);
+
+  // Search reaches three pools: groups, people already talked to, and friends
+  // who haven't been messaged yet. Without a query the list is just what it
+  // always was — conversations and group chats — so typing is what surfaces
+  // a friend you haven't started a thread with.
+  const query = search.trim().toLowerCase();
+  const includes = (text: string | null | undefined) =>
+    Boolean(text && text.toLowerCase().includes(query));
+
+  const visibleGroupChats = query ? groupChats.filter((g) => includes(g.groupName)) : groupChats;
+  const visibleConversations = query
+    ? conversations.filter((c) => includes(c.name))
+    : conversations;
+
+  const conversationIds = useMemo(() => new Set(conversations.map((c) => c.userId)), [conversations]);
+  const visibleFriends = query
+    ? friends.filter(
+        (f) =>
+          !conversationIds.has(f.userId) &&
+          (includes(f.name) || includes(f.gameName) || includes(f.tagLine)),
+      )
+    : [];
+
+  const hasResults =
+    visibleGroupChats.length > 0 || visibleConversations.length > 0 || visibleFriends.length > 0;
 
   if (!signedIn) return null;
 
@@ -275,17 +317,33 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
                 </button>
               </div>
 
+              <div className={styles.searchWrap}>
+                <input
+                  className={styles.searchInput}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search people or groups…"
+                  autoComplete="off"
+                />
+              </div>
+
               <div className={styles.list}>
                 {listLoading ? (
                   <div className={styles.empty}>Loading…</div>
-                ) : groupChats.length === 0 && conversations.length === 0 ? (
+                ) : !hasResults ? (
                   <div className={styles.empty}>
-                    No conversations yet — message a friend from your{' '}
-                    <a href="/friends">friends list</a>.
+                    {query ? (
+                      `No matches for “${search.trim()}”.`
+                    ) : (
+                      <>
+                        No conversations yet — message a friend from your{' '}
+                        <a href="/friends">friends list</a>.
+                      </>
+                    )}
                   </div>
                 ) : (
                   <>
-                    {groupChats.map((g) => (
+                    {visibleGroupChats.map((g) => (
                       <button
                         key={`group-${g.groupId}`}
                         className={styles.conversation}
@@ -300,7 +358,7 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
                         ) : null}
                       </button>
                     ))}
-                    {conversations.map((c) => (
+                    {visibleConversations.map((c) => (
                       <button
                         key={`dm-${c.userId}`}
                         className={styles.conversation}
@@ -311,6 +369,18 @@ export function ChatWidget({ signedIn }: { signedIn: boolean }) {
                         {c.unread > 0 ? (
                           <span className={styles.convoBadge}>{c.unread}</span>
                         ) : null}
+                      </button>
+                    ))}
+                    {visibleFriends.map((f) => (
+                      <button
+                        key={`friend-${f.userId}`}
+                        className={styles.conversation}
+                        onClick={() => setThread({ kind: 'dm', userId: f.userId, name: f.name })}
+                      >
+                        <span className={styles.convoName}>
+                          {f.name ?? (f.gameName ? `${f.gameName}#${f.tagLine}` : 'Unnamed')}
+                        </span>
+                        <span className={styles.convoPreview}>Friend · start a conversation</span>
                       </button>
                     ))}
                   </>

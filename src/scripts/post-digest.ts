@@ -3,7 +3,7 @@
  *
  *   npx tsx src/scripts/post-digest.ts --dry-run     render, print, send nothing
  *   npx tsx src/scripts/post-digest.ts               daily digest, one day back
- *   npx tsx src/scripts/post-digest.ts --monthly     last month's final results
+ *   npx tsx src/scripts/post-digest.ts --weekly      last week's final results
  *   npx tsx src/scripts/post-digest.ts --group=slug  limit to one board
  *
  * Silence is the default outcome. A group where nothing moved posts nothing,
@@ -16,7 +16,7 @@ import { db, runScript } from '@/db';
 import { groups } from '@/db/schema';
 import {
   digestPayload,
-  monthlyPayload,
+  weeklyPayload,
   postToDiscord,
   webhookEnvName,
   webhookFor,
@@ -29,7 +29,7 @@ import { currentPeriodIndex, periodWindow } from '@/lib/titles';
 async function main() {
   const argv = process.argv.slice(2);
   const dryRun = argv.includes('--dry-run');
-  const monthly = argv.includes('--monthly');
+  const weekly = argv.includes('--weekly');
   const only = argv.find((a) => a.startsWith('--group='))?.split('=')[1];
   const daysArg = argv.find((a) => a.startsWith('--days='));
   const days = daysArg ? Number.parseInt(daysArg.split('=')[1] ?? '', 10) : 1;
@@ -43,7 +43,7 @@ async function main() {
     return;
   }
 
-  // The month that just ended, which is the only one whose titles are settled.
+  // The week that just ended, which is the only one whose titles are settled.
   const previousIndex = currentPeriodIndex() - 1;
   const previous = periodWindow(previousIndex);
 
@@ -51,10 +51,10 @@ async function main() {
   let unconfigured = 0;
 
   for (const { slug } of boards) {
-    const payload = monthly
+    const payload = weekly
       ? await (async () => {
           const standings = await getGroupStandings(slug, previousIndex);
-          return standings ? monthlyPayload(standings, previous.label) : null;
+          return standings ? weeklyPayload(standings, previous.label) : null;
         })()
       : await (async () => {
           const movement = await getGroupMovement(slug, days);

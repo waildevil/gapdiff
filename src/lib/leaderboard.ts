@@ -81,7 +81,7 @@ export interface StatBoardRow {
   /** False when below the games threshold — shown, but can't hold the title. */
   eligible: boolean;
   holdsTitle: boolean;
-  /** Set when this holder took the title off somebody else last month. */
+  /** Set when this holder took the title off somebody else last week. */
   takenFrom: string | null;
 }
 
@@ -118,7 +118,7 @@ export interface GroupStandings {
   group: { slug: string; name: string };
   entries: LeaderboardEntry[];
   totalGames: number;
-  /** Standings cover the season; titles are contested one month at a time. */
+  /** Standings cover the season; titles are contested one week at a time. */
   period: PeriodWindow & { games: number; latestIndex: number };
   boards: StatBoardResult[];
   /** Member-with-member and member-vs-member games in the selected period. */
@@ -246,12 +246,12 @@ export async function getGroupStandings(
    * Rank as it stood at the end of the period being viewed, not as it stands
    * today.
    *
-   * Everything else on this page is scoped to the selected month, but the rank
-   * pillar used the newest snapshot regardless — so June's board showed June's
-   * performance beside August's LP, and a climb in July retroactively lifted
-   * every earlier month.
+   * Everything else on this page is scoped to the selected week, but the rank
+   * pillar used the newest snapshot regardless — so an old week's board showed
+   * that week's performance beside this week's LP, and a climb this week
+   * retroactively lifted every earlier week.
    *
-   * Snapshots only began accumulating on 2026-07-31, so months before that have
+   * Snapshots only began accumulating on 2026-07-31, so weeks before that have
    * nothing in range. Those fall back to the oldest snapshot on record rather
    * than to null: reporting a whole group as unranked would drop the rank
    * pillar entirely and rewrite the standings, which is a worse lie than a
@@ -279,9 +279,10 @@ export async function getGroupStandings(
     rankInPeriod.get(puuid) ?? oldestKnown.get(puuid) ?? null;
 
   /**
-   * Everything on this page describes the selected month, not the season.
-   * Browsing to June should show June's standings — a season-wide score sitting
-   * above a month's titles would be two different stories on one page.
+   * Everything on this page describes the selected week, not the season.
+   * Browsing to an old week should show that week's standings — a season-wide
+   * score sitting above a week's titles would be two different stories on
+   * one page.
    */
   type Bucket = {
     wins: number;
@@ -292,7 +293,7 @@ export async function getGroupStandings(
     assists: number;
     windowRows: (typeof rows)[number][];
     windowScores: number[];
-    /** The month before, used only to work out who lost a title. */
+    /** The week before, used only to work out who lost a title. */
     prevRows: (typeof rows)[number][];
     prevScores: number[];
   };
@@ -319,7 +320,7 @@ export async function getGroupStandings(
     const bucket = byPlayer.get(row.puuid);
     if (!bucket) continue;
 
-    // Bounded at both ends, otherwise browsing to an old month would still
+    // Bounded at both ends, otherwise browsing to an old week would still
     // count newer games.
     if (row.playedAt >= period.start && row.playedAt < cutoff) {
       bucket.windowRows.push(row);
@@ -350,7 +351,7 @@ export async function getGroupStandings(
 
   const awards = assignTitles([...statsByPlayer.values()]);
 
-  // Last month's holders, so a title can say who it was taken from.
+  // Last week's holders, so a title can say who it was taken from.
   const previousHolders = new Map<string, string>();
   if (previous) {
     const prevStats = members.map((member) => {
@@ -370,7 +371,8 @@ export async function getGroupStandings(
   const boards = buildStatBoards(members, statsByPlayer, awards, previousHolders);
 
   // Scoped to the selected period like everything else on the page, so browsing
-  // to June shows June's pairings rather than a season total under June titles.
+  // to an old week shows that week's pairings rather than a season total under
+  // that week's titles.
   const pairings = await getPairings(puuids, period.start, cutoff);
 
   const ranked = buildLeaderboard(
@@ -577,7 +579,7 @@ async function getPairings(
     );
 }
 
-/** Titles run on the month window, not the whole season. */
+/** Titles run on the week window, not the whole season. */
 function toTitleStats(
   puuid: string,
   bucket: {

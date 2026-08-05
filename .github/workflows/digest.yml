@@ -8,12 +8,14 @@ on:
     # 18:00 UTC = 20:00 in Aachen while CEST is in effect. Cron has no notion of
     # daylight saving, so this drifts to 19:00 local over winter.
     - cron: '0 18 * * *'
-    # 18:05 on the 1st: the month that just ended, once its titles are settled.
-    - cron: '5 18 1 * *'
+    # 18:05 UTC every Monday: the week that just ended (standings reset Monday
+    # 19:00 Aachen time), once its titles are settled. The night's games are
+    # already in from the 03:00 UTC ingest earlier that same day.
+    - cron: '5 18 * * 1'
   workflow_dispatch:
     inputs:
-      monthly:
-        description: 'Post last month''s final results instead of the daily digest'
+      weekly:
+        description: 'Post last week''s final results instead of the daily digest'
         type: boolean
         default: false
       days:
@@ -72,9 +74,9 @@ jobs:
           fi
 
           args=""
-          # The monthly cron fires on the 1st; a manual run can force it.
-          if [ "${{ github.event.schedule }}" = "5 18 1 * *" ] || [ "${{ inputs.monthly }}" = "true" ]; then
-            args="--monthly"
+          # The weekly cron fires on Mondays; a manual run can force it.
+          if [ "${{ github.event.schedule }}" = "5 18 * * 1" ] || [ "${{ inputs.weekly }}" = "true" ]; then
+            args="--weekly"
           fi
           if [ -n "${{ inputs.days }}" ] && [ "${{ inputs.days }}" != "1" ]; then
             args="$args --days=${{ inputs.days }}"

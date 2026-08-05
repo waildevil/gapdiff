@@ -7,12 +7,14 @@ import {
   cancelFriendRequest,
   countIncomingFriendRequests,
   FriendError,
+  listFriends,
   removeFriend,
   respondToFriendRequest,
   searchFriendCandidates,
   sendFriendRequest,
   unblockUser,
   type FriendCandidate,
+  type FriendView,
 } from '@/lib/friends';
 
 async function requireUserId(): Promise<string> {
@@ -36,6 +38,17 @@ export async function searchFriendCandidatesAction(query: string): Promise<Frien
   try {
     const userId = await requireUserId();
     return await searchFriendCandidates(userId, query);
+  } catch {
+    return [];
+  }
+}
+
+/** The signed-in user's full friends list — used by the chat widget's search,
+ *  which needs to reach a friend even before any message has been sent. */
+export async function getFriendsListAction(): Promise<FriendView[]> {
+  try {
+    const userId = await requireUserId();
+    return await listFriends(userId);
   } catch {
     return [];
   }
