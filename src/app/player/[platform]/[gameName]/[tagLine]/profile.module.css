@@ -47,6 +47,13 @@
   min-width: 200px;
 }
 
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .name {
   font-size: 26px;
   font-weight: 700;

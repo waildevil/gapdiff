@@ -16,6 +16,17 @@ export class FriendError extends Error {}
 
 const SEARCH_LIMIT = 8;
 
+/** Who, if anyone, has proved they own this Riot account — the bar a profile
+ *  page checks before it can offer a friend request. */
+export async function getVerifiedOwner(puuid: string): Promise<{ userId: string } | null> {
+  const [row] = await db
+    .select({ userId: accountClaims.userId })
+    .from(accountClaims)
+    .where(and(eq(accountClaims.puuid, puuid), isNotNull(accountClaims.verifiedAt)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function areFriends(userA: string, userB: string): Promise<boolean> {
   const [row] = await db
     .select({ id: friendships.id })

@@ -1,12 +1,15 @@
 ﻿import Link from 'next/link';
+import { auth } from '@/auth';
 import { latestVersion, profileIcon, rankEmblem } from '@/lib/ddragon';
-import { getProfile, ProfileNotFound } from '@/lib/profile';
+import { getMatches, getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank } from '@/lib/rating/rating';
 import { tierColor, winRate } from '@/lib/format';
 import { RiotApiError } from '@/lib/riot/client';
+import { AddFriendButton } from '@/components/AddFriendButton';
 import { ChampionSidebar } from '@/components/ChampionSidebar';
 import { getChampionHistory } from '@/lib/championHistory';
+import { getRelationshipStatuses, getVerifiedOwner } from '@/lib/friends';
 import { LiveBanner } from '@/components/LiveBanner';
 import { LiveStatusProvider } from '@/components/LiveStatusProvider';
 import { MatchSection } from '@/components/MatchSection';
@@ -20,6 +23,14 @@ interface PageProps {
 // Riot data changes every game; a short window keeps repeat views fast without
 // showing stale rank.
 export const revalidate = 60;
+
+/**
+ * Untracked accounts have no database history, so the champion pool is built
+ * live instead — deep enough to feel like real coverage rather than a token
+ * ten games, while staying well inside the dev-key rate budget for one page
+ * load.
+ */
+const LIVE_POOL_SIZE = 30;
 
 export default async function PlayerPage({ params }: PageProps) {
   const { platform: platformParam, gameName: rawName, tagLine: rawTag } = await params;
@@ -42,26 +53,41 @@ export default async function PlayerPage({ params }: PageProps) {
   const profileHref = `/player/${platform}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 
   try {
-    const [profile, version] = await Promise.all([
+    const [profile, version, session] = await Promise.all([
       getProfile(platform, gameName, tagLine),
       latestVersion(),
+      auth(),
     ]);
 
     // Empty for anybody the ingester doesn't track, which the sidebar handles
-    // by falling back to the ten live matches.
-    const championHistory = await getChampionHistory(profile.puuid).catch(() => ({
-      rows: [],
-      since: null,
-    }));
+    // by fetching a deeper batch of live matches instead (below).
+    const [championHistory, owner] = await Promise.all([
+      getChampionHistory(profile.puuid).catch(() => ({ rows: [], since: null })),
+      getVerifiedOwner(profile.puuid),
+    ]);
+
+    const sidebarMatches =
+      championHistory.rows.length > 0
+        ? profile.matches
+        : await getMatches(platform, profile.puuid, 0, LIVE_POOL_SIZE)
+            .then((page) => page.matches)
+            .catch(() => profile.matches);
+
+    // "Connected" means this Riot account is claimed by a real gapdiff user —
+    // the same bar the standings page uses before offering a friend request.
+    const relationship =
+      owner && session?.user?.id
+        ? (await getRelationshipStatuses(session.user.id, [owner.userId])).get(owner.userId)
+        : undefined;
+    const showAddFriend = Boolean(owner && relationship === 'none');
 
     return (
       <div className={styles.wrap}>
         <div className={styles.sidebar}>
           <ChampionSidebar
             history={championHistory.rows}
-            since={championHistory.since?.toISOString() ?? null}
             profileHref={profileHref}
-            matches={profile.matches}
+            matches={sidebarMatches}
             version={version}
           />
 
@@ -87,10 +113,13 @@ export default async function PlayerPage({ params }: PageProps) {
             />
 
             <div className={styles.names}>
-              <h1 className={styles.name}>
-                {profile.gameName}
-                <span>#{profile.tagLine}</span>
-              </h1>
+              <div className={styles.nameRow}>
+                <h1 className={styles.name}>
+                  {profile.gameName}
+                  <span>#{profile.tagLine}</span>
+                </h1>
+                {showAddFriend ? <AddFriendButton userId={owner!.userId} /> : null}
+              </div>
               <div className={styles.meta}>
                 Level {profile.summonerLevel} · {PLATFORM_LABELS[platform]}
               </div>

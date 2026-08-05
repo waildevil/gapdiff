@@ -16,34 +16,28 @@ import styles from './ChampionSidebar.module.css';
 interface ChampionSidebarProps {
   /** Stored history from the database. Empty for untracked accounts. */
   history: ChampionQueueRow[];
-  /**
-   * Oldest stored game. The ingester's window is a setting, not the whole
-   * season, so the caption reports coverage rather than implying completeness.
-   */
-  since: string | null;
   /** Link base for the full-pool page. */
   profileHref: string;
-  /** The ten live matches, used only when there is no stored history. */
+  /**
+   * Live-fetched matches. For a tracked account these are just the visible
+   * match list; for an untracked one the caller fetches a deeper batch
+   * specifically so this panel isn't stuck at a token ten games.
+   */
   matches: ProfileMatch[];
   version: string;
 }
 
 const SHOWN = 8;
 
-function formatSince(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
 /**
  * Champion pool, in the left column where op.gg puts it.
  *
- * Tracked accounts get their whole season out of the database; everybody else
- * falls back to the ten matches the profile already fetched, which is thin
- * enough that the caption says so rather than pretending otherwise.
+ * Tracked accounts get their whole season out of the database; everybody
+ * else is built from live-fetched matches instead — same shape, same
+ * caption, just a shallower sample since it costs real Riot calls to fetch.
  */
 export function ChampionSidebar({
   history,
-  since,
   profileHref,
   matches,
   version,
@@ -78,11 +72,7 @@ export function ChampionSidebar({
     <div className={styles.wrap}>
       <div className={styles.head}>
         <div className={styles.label}>Champions</div>
-        <div className={styles.caption}>
-          {stored
-            ? `${games} games ingested${since ? ` since ${formatSince(since)}` : ''}`
-            : `last ${matches.length} games · not tracked in a group`}
-        </div>
+        <div className={styles.caption}>{games} games this season</div>
       </div>
 
       {/* Only the stored history can be re-totalled per queue; the ten live
