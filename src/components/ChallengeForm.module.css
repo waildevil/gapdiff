@@ -1,3 +1,11 @@
+/* .card clips overflow for its rounded corners, which also clipped the
+   suggestion dropdown before it could scroll — this card has nothing else
+   that needs clipping, so let it escape. !important because Next.js doesn't
+   guarantee this module's rules load after globals.css. */
+.card {
+  overflow: visible !important;
+}
+
 .form {
   padding: 4px 16px 16px;
   display: flex;

@@ -94,7 +94,7 @@ export function ChallengeForm({ myAccounts }: Props) {
   const canSubmit = myPuuid !== '' && targets.length > 0;
 
   return (
-    <div className="card">
+    <div className={`card ${styles.card}`}>
       <div className="card-head">
         <div className="card-title">Start a duel</div>
         <div className="card-note">
