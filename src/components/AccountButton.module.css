@@ -53,12 +53,36 @@
   white-space: nowrap;
 }
 
+.avatarWrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+}
+
 .avatar {
   width: 26px;
   height: 26px;
   border-radius: var(--r-sm);
   background: var(--surface-3);
   flex: 0 0 auto;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--bad);
+  color: var(--surface);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  border: 1.5px solid var(--surface);
 }
 
 .menu {
@@ -77,7 +101,10 @@
 }
 
 .item {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   text-align: left;
   padding: 8px 10px;
@@ -89,6 +116,20 @@
 .item:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+.itemBadge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
 }
 
 .danger:hover {

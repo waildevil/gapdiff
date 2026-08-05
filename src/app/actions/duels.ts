@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import {
+  countIncomingChallenges,
   createDuel,
   DuelError,
   respondToDuel,
@@ -45,6 +46,13 @@ export async function createDuelAction(
   } catch (error) {
     return { ok: false, error: message(error, 'Could not start the duel.') };
   }
+}
+
+/** Polled from the header on every page — never throws, just reads 0 when signed out. */
+export async function getIncomingChallengeCountAction(): Promise<number> {
+  const session = await auth();
+  if (!session?.user?.id) return 0;
+  return countIncomingChallenges(session.user.id);
 }
 
 export type RespondResult = { ok: true } | { ok: false; error: string };

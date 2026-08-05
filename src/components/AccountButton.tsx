@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { signInWithDiscord, signOutAction } from '@/app/actions/auth';
+import { getIncomingChallengeCountAction } from '@/app/actions/duels';
 import styles from './AccountButton.module.css';
 
 export interface SessionUser {
@@ -11,13 +12,33 @@ export interface SessionUser {
   image: string | null;
 }
 
+/** How often to check for a new duel challenge while the tab is just sitting open. */
+const POLL_MS = 20_000;
+
 /**
  * Sign-in lives in the header rather than behind a route, because every page
  * here is readable signed-out — you only need an account to own a group.
  */
-export function AccountButton({ user }: { user: SessionUser | null }) {
+export function AccountButton({
+  user,
+  pendingDuels,
+}: {
+  user: SessionUser | null;
+  pendingDuels: number;
+}) {
   const [open, setOpen] = useState(false);
+  const [challengeCount, setChallengeCount] = useState(pendingDuels);
   const wrap = useRef<HTMLDivElement>(null);
+
+  // Keeps the badge honest without a reload — a challenge sent while you're
+  // sitting on any other page still shows up here within POLL_MS.
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      setChallengeCount(await getIncomingChallengeCountAction());
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     if (!open) return;
@@ -55,11 +76,16 @@ export function AccountButton({ user }: { user: SessionUser | null }) {
         aria-haspopup="menu"
       >
         <span className={styles.name}>{user.name ?? 'Account'}</span>
-        {user.image ? (
-          <img className={styles.avatar} src={user.image} alt="" width={26} height={26} />
-        ) : (
-          <span className={styles.avatar} />
-        )}
+        <span className={styles.avatarWrap}>
+          {user.image ? (
+            <img className={styles.avatar} src={user.image} alt="" width={26} height={26} />
+          ) : (
+            <span className={styles.avatar} />
+          )}
+          {challengeCount > 0 ? (
+            <span className={styles.badge}>{challengeCount > 9 ? '9+' : challengeCount}</span>
+          ) : null}
+        </span>
       </button>
 
       {open ? (
@@ -71,7 +97,10 @@ export function AccountButton({ user }: { user: SessionUser | null }) {
             My Riot accounts
           </Link>
           <Link className={styles.item} href="/duels" onClick={() => setOpen(false)}>
-            Start a duel
+            My duels
+            {challengeCount > 0 ? (
+              <span className={styles.itemBadge}>{challengeCount}</span>
+            ) : null}
           </Link>
           <div className={styles.divider} />
           <form action={() => signOutAction()}>

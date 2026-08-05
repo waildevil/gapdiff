@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, desc, eq, inArray, isNotNull, ne, notInArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNotNull, ne, notInArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   accountClaims,
@@ -509,6 +509,17 @@ export async function listIncomingChallenges(userId: string): Promise<IncomingCh
       return { ...row, otherRacerNames: others.map((o) => o.gameName) };
     }),
   );
+}
+
+/** Just the count, for a badge — cheap enough to poll from every page. */
+export async function countIncomingChallenges(userId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(duelParticipants)
+    .where(
+      and(eq(duelParticipants.invitedUserId, userId), eq(duelParticipants.status, 'pending')),
+    );
+  return row?.n ?? 0;
 }
 
 export interface MyDuelRacer {

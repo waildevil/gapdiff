@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Barlow_Condensed } from 'next/font/google';
 import { auth } from '@/auth';
 import { Header } from '@/components/Header';
+import { countIncomingChallenges } from '@/lib/duels';
 import './globals.css';
 
 const display = Barlow_Condensed({
@@ -26,10 +27,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       }
     : null;
 
+  const pendingDuels = user ? await countIncomingChallenges(user.id) : 0;
+
   return (
     <html lang="en">
       <body className={display.variable}>
-        <Header user={user} />
+        <Header user={user} pendingDuels={pendingDuels} />
         <main>{children}</main>
       </body>
     </html>

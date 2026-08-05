@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDuel } from '@/lib/duels';
 import { CopyDuelLink } from '@/components/CopyDuelLink';
+import { DuelAutoRefresh } from '@/components/DuelAutoRefresh';
 import styles from './duel.module.css';
 
 interface PageProps {
@@ -36,6 +37,7 @@ export default async function DuelPage({ params }: PageProps) {
 
   return (
     <div className={styles.wrap}>
+      <DuelAutoRefresh ended={duel.ended} />
       <div className="page-head">
         <div className="eyebrow">
           Duel

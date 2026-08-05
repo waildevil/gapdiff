@@ -7,7 +7,13 @@ import { Logo } from './Logo';
 import { SearchForm } from './SearchForm';
 import styles from './Header.module.css';
 
-export function Header({ user }: { user: SessionUser | null }) {
+export function Header({
+  user,
+  pendingDuels,
+}: {
+  user: SessionUser | null;
+  pendingDuels: number;
+}) {
   const pathname = usePathname();
   // The home page has its own full-size search; a second one would be noise.
   const showSearch = pathname !== '/';
@@ -32,7 +38,7 @@ export function Header({ user }: { user: SessionUser | null }) {
         ) : null}
 
         <div className={`${styles.actions} ${showSearch ? '' : styles.pushRight}`}>
-          <AccountButton user={user} />
+          <AccountButton user={user} pendingDuels={pendingDuels} />
         </div>
       </div>
     </header>
