@@ -218,40 +218,6 @@ export async function searchFriendCandidates(
   return rows;
 }
 
-// --- display names -----------------------------------------------------------
-
-/**
- * A verified Riot ID when there is one, Discord name otherwise — the same
- * "which name" question `searchFriendCandidates` answers, but for people
- * already in a list rather than a search box. One batched query rather than
- * one per row.
- */
-async function resolveDisplayNames(
-  userIds: string[],
-): Promise<Map<string, { name: string | null; image: string | null }>> {
-  const ids = [...new Set(userIds)];
-  if (ids.length === 0) return new Map();
-
-  const [people, riotRows] = await Promise.all([
-    db.select({ id: users.id, name: users.name, image: users.image }).from(users).where(inArray(users.id, ids)),
-    db
-      .selectDistinctOn([accountClaims.userId], {
-        userId: accountClaims.userId,
-        gameName: accounts.gameName,
-        tagLine: accounts.tagLine,
-      })
-      .from(accountClaims)
-      .innerJoin(accounts, eq(accounts.puuid, accountClaims.puuid))
-      .where(and(isNotNull(accountClaims.verifiedAt), inArray(accountClaims.userId, ids))),
-  ]);
-
-  const riotByUser = new Map(riotRows.map((r) => [r.userId, `${r.gameName}#${r.tagLine}`]));
-
-  return new Map(
-    people.map((p) => [p.id, { name: riotByUser.get(p.id) ?? p.name, image: p.image }]),
-  );
-}
-
 // --- requests ----------------------------------------------------------------
 
 export interface FriendRequestView {
@@ -335,34 +301,32 @@ export async function removeFriend(userId: string, friendUserId: string): Promis
 
 /** Requests sent to this user that still need a yes or no. */
 export async function listIncomingFriendRequests(userId: string): Promise<FriendRequestView[]> {
-  const rows = await db
-    .select({ id: friendships.id, userId: friendships.requesterId })
+  return db
+    .select({
+      id: friendships.id,
+      userId: friendships.requesterId,
+      name: users.name,
+      image: users.image,
+    })
     .from(friendships)
+    .innerJoin(users, eq(users.id, friendships.requesterId))
     .where(and(eq(friendships.addresseeId, userId), eq(friendships.status, 'pending')))
     .orderBy(desc(friendships.createdAt));
-
-  const names = await resolveDisplayNames(rows.map((r) => r.userId));
-  return rows.map((row) => ({
-    ...row,
-    name: names.get(row.userId)?.name ?? null,
-    image: names.get(row.userId)?.image ?? null,
-  }));
 }
 
 /** Requests this user sent that are still waiting on someone else. */
 export async function listOutgoingFriendRequests(userId: string): Promise<FriendRequestView[]> {
-  const rows = await db
-    .select({ id: friendships.id, userId: friendships.addresseeId })
+  return db
+    .select({
+      id: friendships.id,
+      userId: friendships.addresseeId,
+      name: users.name,
+      image: users.image,
+    })
     .from(friendships)
+    .innerJoin(users, eq(users.id, friendships.addresseeId))
     .where(and(eq(friendships.requesterId, userId), eq(friendships.status, 'pending')))
     .orderBy(desc(friendships.createdAt));
-
-  const names = await resolveDisplayNames(rows.map((r) => r.userId));
-  return rows.map((row) => ({
-    ...row,
-    name: names.get(row.userId)?.name ?? null,
-    image: names.get(row.userId)?.image ?? null,
-  }));
 }
 
 /** Withdraws a request before the other person has answered it. */
@@ -392,12 +356,10 @@ export async function listFriends(userId: string): Promise<FriendView[]> {
   if (rows.length === 0) return [];
 
   const friendIds = rows.map((r) => (r.requesterId === userId ? r.addresseeId : r.requesterId));
-  const names = await resolveDisplayNames(friendIds);
-  return friendIds.map((id) => ({
-    userId: id,
-    name: names.get(id)?.name ?? null,
-    image: names.get(id)?.image ?? null,
-  }));
+  return db
+    .select({ userId: users.id, name: users.name, image: users.image })
+    .from(users)
+    .where(inArray(users.id, friendIds));
 }
 
 export async function countIncomingFriendRequests(userId: string): Promise<number> {
@@ -439,16 +401,9 @@ export interface BlockedView {
 }
 
 export async function listBlocked(userId: string): Promise<BlockedView[]> {
-  const rows = await db
-    .select({ userId: blocks.blockedId })
+  return db
+    .select({ userId: users.id, name: users.name, image: users.image })
     .from(blocks)
+    .innerJoin(users, eq(users.id, blocks.blockedId))
     .where(eq(blocks.blockerId, userId));
-  if (rows.length === 0) return [];
-
-  const names = await resolveDisplayNames(rows.map((r) => r.userId));
-  return rows.map((row) => ({
-    userId: row.userId,
-    name: names.get(row.userId)?.name ?? null,
-    image: names.get(row.userId)?.image ?? null,
-  }));
 }
