@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AccountButton, type SessionUser } from './AccountButton';
 import { Logo } from './Logo';
 import { SearchForm } from './SearchForm';
+import { ThemeToggle } from './ThemeToggle';
 import styles from './Header.module.css';
 
 export function Header({
@@ -40,6 +41,7 @@ export function Header({
         ) : null}
 
         <div className={`${styles.actions} ${showSearch ? '' : styles.pushRight}`}>
+          <ThemeToggle />
           <AccountButton
             user={user}
             pendingDuels={pendingDuels}

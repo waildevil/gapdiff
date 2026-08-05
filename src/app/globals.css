@@ -1,13 +1,21 @@
 /* ============================================================
    gapdiff — design tokens and shared component styles.
 
-   One light theme, one accent: a clean readable blue, not neon and not
-   gold. LoL tier colours carry the rest of the chromatic work.
-   Page-specific styles live in CSS modules next to their components;
-   everything shared lives here.
+   One accent — a clean readable blue, not neon and not gold — carried
+   across a light and a dark theme. LoL tier colours carry the rest of the
+   chromatic work, retuned per theme so every tier still reads clearly
+   against its surface. Page-specific styles live in CSS modules next to
+   their components; everything shared lives here.
+
+   Theme resolution: `prefers-color-scheme` is the default signal with no
+   JS involved; `<html data-theme="dark|light">` (set by ThemeToggle, see
+   src/components/ThemeToggle.tsx) overrides it explicitly in either
+   direction once someone picks a side.
    ============================================================ */
 
 :root {
+  color-scheme: light;
+
   --bg: #f5f7fa;
   --surface: #ffffff;
   --surface-2: #eef1f5;
@@ -50,6 +58,84 @@
   --surface-translucent: rgba(255, 255, 255, 0.72);
   --shadow-sm: 0 1px 2px rgba(20, 27, 34, 0.07), 0 1px 1px rgba(20, 27, 34, 0.05);
   --shadow-md: 0 8px 24px rgba(20, 27, 34, 0.12), 0 2px 8px rgba(20, 27, 34, 0.07);
+}
+
+/* Dark tokens, same shape as :root — kept in sync by hand since there's no
+   preprocessor here. Duplicated across the media query (OS default) and the
+   explicit override (ThemeToggle) rather than shared, because CSS custom
+   properties can't reference "the dark block" from two selectors otherwise. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0b0f14;
+    --surface: #11161d;
+    --surface-2: #171d26;
+    --surface-3: #1f2733;
+    --line: #2a323f;
+    --line-soft: #1c232d;
+    --text: #eef2f6;
+    --muted: #9aa7b4;
+    --faint: #6b7885;
+    --accent: #5b8dff;
+    --accent-soft: rgba(91, 141, 255, 0.16);
+    --accent-line: rgba(91, 141, 255, 0.4);
+    --good: #2fbf82;
+    --bad: #ef5468;
+    --good-soft: rgba(47, 191, 130, 0.14);
+    --bad-soft: rgba(239, 84, 104, 0.14);
+
+    --iron: #9aa4ab;
+    --bronze: #d99a4e;
+    --silver: #9db3c2;
+    --gold: #e0b400;
+    --platinum: #35d6c0;
+    --emerald: #30d17e;
+    --diamond: #6f9dff;
+    --master: #b083f0;
+    --grandmaster: #ff5c73;
+    --challenger: #f0c419;
+
+    --surface-translucent: rgba(17, 22, 29, 0.82);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b0f14;
+  --surface: #11161d;
+  --surface-2: #171d26;
+  --surface-3: #1f2733;
+  --line: #2a323f;
+  --line-soft: #1c232d;
+  --text: #eef2f6;
+  --muted: #9aa7b4;
+  --faint: #6b7885;
+  --accent: #5b8dff;
+  --accent-soft: rgba(91, 141, 255, 0.16);
+  --accent-line: rgba(91, 141, 255, 0.4);
+  --good: #2fbf82;
+  --bad: #ef5468;
+  --good-soft: rgba(47, 191, 130, 0.14);
+  --bad-soft: rgba(239, 84, 104, 0.14);
+
+  --iron: #9aa4ab;
+  --bronze: #d99a4e;
+  --silver: #9db3c2;
+  --gold: #e0b400;
+  --platinum: #35d6c0;
+  --emerald: #30d17e;
+  --diamond: #6f9dff;
+  --master: #b083f0;
+  --grandmaster: #ff5c73;
+  --challenger: #f0c419;
+
+  --surface-translucent: rgba(17, 22, 29, 0.82);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 *,
