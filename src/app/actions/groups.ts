@@ -10,7 +10,9 @@ import {
   deleteGroup,
   GroupError,
   joinGroupByInvite,
+  leaveGroup,
   removeAccountFromBoard,
+  removeMember,
   renameGroup,
   revokeInvite,
   setMemberRole,
@@ -166,6 +168,36 @@ export async function deleteGroupAction(groupId: number): Promise<DeleteGroupRes
     return { ok: true };
   } catch (error) {
     return { ok: false, error: message(error, 'Could not delete the group.') };
+  }
+}
+
+export type RemoveMemberResult = { ok: true } | { ok: false; error: string };
+
+export async function removeMemberAction(
+  groupId: number,
+  slug: string,
+  targetUserId: string,
+): Promise<RemoveMemberResult> {
+  try {
+    const userId = await requireUserId();
+    await removeMember(groupId, userId, targetUserId);
+    revalidatePath(`/groups/${slug}/manage`);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not remove that member.') };
+  }
+}
+
+export type LeaveGroupResult = { ok: true } | { ok: false; error: string };
+
+export async function leaveGroupAction(groupId: number): Promise<LeaveGroupResult> {
+  try {
+    const userId = await requireUserId();
+    await leaveGroup(groupId, userId);
+    revalidatePath('/groups');
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not leave that group.') };
   }
 }
 

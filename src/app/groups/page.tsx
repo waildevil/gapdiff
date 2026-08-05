@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { CreateGroupForm } from '@/components/CreateGroupForm';
+import { LeaveGroupButton } from '@/components/LeaveGroupButton';
 import { listUserGroups } from '@/lib/groups';
 import { listClaims } from '@/lib/verification';
 import styles from './groups.module.css';
@@ -68,7 +69,9 @@ export default async function GroupsPage() {
                   <Link className={styles.action} href={`/groups/${group.slug}/manage`}>
                     Manage
                   </Link>
-                ) : null}
+                ) : (
+                  <LeaveGroupButton groupId={group.id} name={group.name} />
+                )}
               </div>
             ))
           )}

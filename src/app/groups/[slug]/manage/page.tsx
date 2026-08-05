@@ -9,6 +9,7 @@ import { GroupSettings } from '@/components/GroupSettings';
 import { LiveRefresh } from '@/components/LiveRefresh';
 import { MemberRole } from '@/components/MemberRole';
 import { InviteManager } from '@/components/InviteManager';
+import { RemoveMemberButton } from '@/components/RemoveMemberButton';
 import {
   getDiscordConnection,
   isOwner,
@@ -117,6 +118,15 @@ export default async function ManageGroupPage({ params }: PageProps) {
                 canManage={member.canManage}
                 viewerCanManage
               />
+
+              {!member.isFounder ? (
+                <RemoveMemberButton
+                  groupId={group.id}
+                  slug={slug}
+                  userId={member.userId}
+                  name={member.name ?? 'They'}
+                />
+              ) : null}
             </div>
           ))}
         </div>

@@ -312,6 +312,67 @@ export async function deleteGroup(groupId: number, userId: string): Promise<void
   await db.delete(groups).where(eq(groups.id, groupId));
 }
 
+/**
+ * Removes somebody else from the group. Only the founder can — same gate as
+ * renaming or deleting the group, see the isOwner() docstring below.
+ *
+ * Their tracked accounts stay on the board, same as seed-group.ts dropping
+ * somebody from the config: the games they played in are still context for
+ * everyone else, and the account just becomes unclaimed rather than gone.
+ */
+export async function removeMember(
+  groupId: number,
+  actingUserId: string,
+  targetUserId: string,
+): Promise<void> {
+  if (!(await isOwner(groupId, actingUserId))) {
+    throw new GroupError('Only the group owner can remove a member.');
+  }
+
+  const [group] = await db
+    .select({ ownerId: groups.ownerId })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
+  if (group?.ownerId === targetUserId) {
+    throw new GroupError('The founder can\'t be removed. Delete the group instead.');
+  }
+
+  await db
+    .delete(groupMemberships)
+    .where(
+      and(eq(groupMemberships.groupId, groupId), eq(groupMemberships.userId, targetUserId)),
+    );
+}
+
+/**
+ * Leaving is removeMember on yourself, with one extra rule: the founder can't
+ * use it. Deleting the membership row would leave `groups.ownerId` pointing
+ * at somebody no longer in the group, and the manage page — gated on
+ * isOwner(), which checks ownerId first — would still let them back in with
+ * nobody else able to run it. Delete the group instead is the real off-ramp.
+ */
+export async function leaveGroup(groupId: number, userId: string): Promise<void> {
+  const [group] = await db
+    .select({ ownerId: groups.ownerId })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
+  if (!group) throw new GroupError('That group does not exist.');
+  if (group.ownerId === userId) {
+    throw new GroupError('The founder can\'t leave. Delete the group instead.');
+  }
+
+  const result = await db
+    .delete(groupMemberships)
+    .where(and(eq(groupMemberships.groupId, groupId), eq(groupMemberships.userId, userId)))
+    .returning({ userId: groupMemberships.userId });
+
+  if (result.length === 0) throw new GroupError('You are not in this group.');
+}
+
 export async function isOwner(groupId: number, userId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: groups.id })
