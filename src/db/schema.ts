@@ -493,6 +493,89 @@ export const duelsRelations = relations(duels, ({ many }) => ({
   participants: many(duelParticipants),
 }));
 
+/**
+ * A friend request, directional until accepted. `requesterId` sent it;
+ * `addresseeId` has to say yes. Kept as one row rather than two symmetric
+ * ones so "who asked whom" survives after acceptance — useful context, and
+ * free once the row already exists.
+ */
+export const friendships = pgTable(
+  'friendships',
+  {
+    id: serial('id').primaryKey(),
+    requesterId: text('requester_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    addresseeId: text('addressee_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 'pending' | 'accepted' | 'declined' */
+    status: varchar('status', { length: 16 }).notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('friendships_pair_idx').on(table.requesterId, table.addresseeId),
+    index('friendships_addressee_idx').on(table.addresseeId),
+  ],
+);
+
+/**
+ * One person cutting another off — from friend requests, duel challenges,
+ * and messages, all at once. Deliberately effective in both directions (see
+ * `isBlocked` in lib/friends.ts): the point is spam stops, not who gets to
+ * feel like they won the block.
+ */
+export const blocks = pgTable(
+  'blocks',
+  {
+    blockerId: text('blocker_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: text('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.blockerId, table.blockedId] })],
+);
+
+/**
+ * A direct message. Friends-only, enforced in `lib/messages.ts` rather than
+ * here — a blocked-and-later-unblocked pair should still be able to see
+ * history that predates the block, so the constraint belongs at write time,
+ * not as a schema-level guarantee.
+ */
+export const messages = pgTable(
+  'messages',
+  {
+    id: serial('id').primaryKey(),
+    senderId: text('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    recipientId: text('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('messages_sender_idx').on(table.senderId, table.createdAt),
+    index('messages_recipient_idx').on(table.recipientId, table.createdAt),
+  ],
+);
+
+export const friendshipsRelations = relations(friendships, ({ one }) => ({
+  requester: one(users, { fields: [friendships.requesterId], references: [users.id] }),
+  addressee: one(users, { fields: [friendships.addresseeId], references: [users.id] }),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  sender: one(users, { fields: [messages.senderId], references: [users.id] }),
+  recipient: one(users, { fields: [messages.recipientId], references: [users.id] }),
+}));
+
 export const duelParticipantsRelations = relations(duelParticipants, ({ one }) => ({
   duel: one(duels, { fields: [duelParticipants.duelId], references: [duels.id] }),
   account: one(accounts, { fields: [duelParticipants.puuid], references: [accounts.puuid] }),

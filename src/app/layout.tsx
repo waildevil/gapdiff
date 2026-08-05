@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { Barlow_Condensed } from 'next/font/google';
 import { auth } from '@/auth';
+import { ChatWidget } from '@/components/ChatWidget';
 import { Header } from '@/components/Header';
 import { countIncomingChallenges } from '@/lib/duels';
+import { countIncomingFriendRequests } from '@/lib/friends';
 import './globals.css';
 
 const display = Barlow_Condensed({
@@ -28,12 +30,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   const pendingDuels = user ? await countIncomingChallenges(user.id) : 0;
+  const pendingFriendRequests = user ? await countIncomingFriendRequests(user.id) : 0;
 
   return (
     <html lang="en">
       <body className={display.variable}>
-        <Header user={user} pendingDuels={pendingDuels} />
+        <Header
+          user={user}
+          pendingDuels={pendingDuels}
+          pendingFriendRequests={pendingFriendRequests}
+        />
         <main>{children}</main>
+        <ChatWidget signedIn={user !== null} />
       </body>
     </html>
   );

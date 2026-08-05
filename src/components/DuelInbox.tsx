@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { respondToDuelAction } from '@/app/actions/duels';
+import { blockUserAction } from '@/app/actions/friends';
 import type { IncomingChallenge } from '@/lib/duels';
 import styles from './DuelInbox.module.css';
 
@@ -20,6 +21,20 @@ export function DuelInbox({ challenges }: { challenges: IncomingChallenge[] }) {
     setRespondingTo(puuid);
     startTransition(async () => {
       const result = await respondToDuelAction(duelId, puuid, accept);
+      setRespondingTo(null);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function block(puuid: string, createdByUserId: string) {
+    setError(null);
+    setRespondingTo(puuid);
+    startTransition(async () => {
+      const result = await blockUserAction(createdByUserId);
       setRespondingTo(null);
       if (!result.ok) {
         setError(result.error);
@@ -47,6 +62,14 @@ export function DuelInbox({ challenges }: { challenges: IncomingChallenge[] }) {
           </div>
 
           <div className={styles.actions}>
+            <button
+              className={styles.block}
+              onClick={() => block(challenge.puuid, challenge.createdByUserId)}
+              disabled={isPending && respondingTo === challenge.puuid}
+              title={`Block ${challenge.createdByName ?? 'this person'} — they won't be able to challenge or message you again`}
+            >
+              Block
+            </button>
             <button
               className={styles.decline}
               onClick={() => respond(challenge.duelId, challenge.puuid, false)}

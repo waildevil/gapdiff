@@ -59,8 +59,24 @@
   border-color: var(--bad);
 }
 
+.block {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 7px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  color: var(--faint);
+}
+
+.block:hover:not(:disabled) {
+  color: var(--bad);
+}
+
 .accept:disabled,
-.decline:disabled {
+.decline:disabled,
+.block:disabled {
   opacity: 0.5;
   cursor: default;
 }

@@ -1,0 +1,94 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.row:last-of-type {
+  border-bottom: none;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  flex: 0 0 auto;
+}
+
+.name {
+  flex: 1;
+  min-width: 100px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.message,
+.remove,
+.block {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.message {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.message:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.remove {
+  color: var(--muted);
+}
+
+.remove:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.block {
+  color: var(--faint);
+  border-color: transparent;
+}
+
+.block:hover:not(:disabled) {
+  color: var(--bad);
+}
+
+.message:disabled,
+.remove:disabled,
+.block:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  padding: 0 16px 12px;
+  color: var(--bad);
+  font-size: 12px;
+}
+
+.empty {
+  padding: 18px 16px;
+  color: var(--muted);
+  font-size: 13px;
+}

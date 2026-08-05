@@ -11,6 +11,7 @@ import {
   trackedAccounts,
   users,
 } from '@/db/schema';
+import { isBlocked, listBlockedUserIds } from './friends';
 import { formatRank, rankPoints } from './rating/rating';
 
 /**
@@ -88,7 +89,16 @@ export async function searchDuelTargets(
     .select({ puuid: accountClaims.puuid })
     .from(accountClaims)
     .where(eq(accountClaims.userId, userId));
-  const excluded = myClaims.map((c) => c.puuid);
+
+  const blockedUserIds = await listBlockedUserIds(userId);
+  const blockedClaims = blockedUserIds.length
+    ? await db
+        .select({ puuid: accountClaims.puuid })
+        .from(accountClaims)
+        .where(inArray(accountClaims.userId, blockedUserIds))
+    : [];
+
+  const excluded = [...myClaims.map((c) => c.puuid), ...blockedClaims.map((c) => c.puuid)];
 
   const myGroupIds = await db
     .select({ groupId: groupMemberships.groupId })
@@ -191,8 +201,12 @@ export async function createDuel(
 
   const claimByPuuid = new Map(targetClaims.map((c) => [c.puuid, c]));
   for (const puuid of targets) {
-    if (!claimByPuuid.has(puuid)) {
+    const claim = claimByPuuid.get(puuid);
+    if (!claim) {
       throw new DuelError("That account hasn't been verified, so it can't be challenged.");
+    }
+    if (await isBlocked(creatorUserId, claim.userId)) {
+      throw new DuelError("You can't challenge this person.");
     }
   }
 
@@ -472,6 +486,7 @@ export interface IncomingChallenge {
   puuid: string;
   gameName: string;
   tagLine: string;
+  createdByUserId: string;
   createdByName: string | null;
   /** Everyone else already in this duel, for "anvil challenged you and 2 others". */
   otherRacerNames: string[];
@@ -486,6 +501,7 @@ export async function listIncomingChallenges(userId: string): Promise<IncomingCh
       gameName: accounts.gameName,
       tagLine: accounts.tagLine,
       code: duels.code,
+      createdByUserId: duels.createdBy,
       createdByName: users.name,
     })
     .from(duelParticipants)

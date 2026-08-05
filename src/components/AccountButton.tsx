@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { signInWithDiscord, signOutAction } from '@/app/actions/auth';
 import { getIncomingChallengeCountAction } from '@/app/actions/duels';
+import { getIncomingFriendRequestCountAction } from '@/app/actions/friends';
 import styles from './AccountButton.module.css';
 
 export interface SessionUser {
@@ -22,23 +23,33 @@ const POLL_MS = 20_000;
 export function AccountButton({
   user,
   pendingDuels,
+  pendingFriendRequests,
 }: {
   user: SessionUser | null;
   pendingDuels: number;
+  pendingFriendRequests: number;
 }) {
   const [open, setOpen] = useState(false);
   const [challengeCount, setChallengeCount] = useState(pendingDuels);
+  const [friendRequestCount, setFriendRequestCount] = useState(pendingFriendRequests);
   const wrap = useRef<HTMLDivElement>(null);
 
-  // Keeps the badge honest without a reload — a challenge sent while you're
-  // sitting on any other page still shows up here within POLL_MS.
+  // Keeps the badges honest without a reload — a challenge or friend request
+  // sent while you're sitting on any other page still shows up here.
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(async () => {
-      setChallengeCount(await getIncomingChallengeCountAction());
+      const [duels, friends] = await Promise.all([
+        getIncomingChallengeCountAction(),
+        getIncomingFriendRequestCountAction(),
+      ]);
+      setChallengeCount(duels);
+      setFriendRequestCount(friends);
     }, POLL_MS);
     return () => clearInterval(interval);
   }, [user]);
+
+  const totalBadge = challengeCount + friendRequestCount;
 
   useEffect(() => {
     if (!open) return;
@@ -82,8 +93,8 @@ export function AccountButton({
           ) : (
             <span className={styles.avatar} />
           )}
-          {challengeCount > 0 ? (
-            <span className={styles.badge}>{challengeCount > 9 ? '9+' : challengeCount}</span>
+          {totalBadge > 0 ? (
+            <span className={styles.badge}>{totalBadge > 9 ? '9+' : totalBadge}</span>
           ) : null}
         </span>
       </button>
@@ -95,6 +106,12 @@ export function AccountButton({
           </Link>
           <Link className={styles.item} href="/accounts" onClick={() => setOpen(false)}>
             My Riot accounts
+          </Link>
+          <Link className={styles.item} href="/friends" onClick={() => setOpen(false)}>
+            Friends
+            {friendRequestCount > 0 ? (
+              <span className={styles.itemBadge}>{friendRequestCount}</span>
+            ) : null}
           </Link>
           <Link className={styles.item} href="/duels" onClick={() => setOpen(false)}>
             My duels

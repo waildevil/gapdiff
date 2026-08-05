@@ -10,9 +10,11 @@ import styles from './Header.module.css';
 export function Header({
   user,
   pendingDuels,
+  pendingFriendRequests,
 }: {
   user: SessionUser | null;
   pendingDuels: number;
+  pendingFriendRequests: number;
 }) {
   const pathname = usePathname();
   // The home page has its own full-size search; a second one would be noise.
@@ -38,7 +40,11 @@ export function Header({
         ) : null}
 
         <div className={`${styles.actions} ${showSearch ? '' : styles.pushRight}`}>
-          <AccountButton user={user} pendingDuels={pendingDuels} />
+          <AccountButton
+            user={user}
+            pendingDuels={pendingDuels}
+            pendingFriendRequests={pendingFriendRequests}
+          />
         </div>
       </div>
     </header>
