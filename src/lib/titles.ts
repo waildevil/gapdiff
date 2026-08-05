@@ -401,7 +401,7 @@ export const STAT_BOARDS: StatBoard[] = [
   {
     id: 'consistency',
     label: 'Mr. Reliable',
-    metricLabel: 'score std-dev, lower is steadier',
+    metricLabel: 'most consistent score, game to game',
     value: (s) => s.scoreStdDev,
     direction: 'min',
     format: (v) => v.toFixed(1),
