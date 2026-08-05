@@ -189,58 +189,69 @@ export async function getGroupStandings(
 
   // Every scored game this season for these players, newest first. Volumes are
   // a handful of people times a few hundred games, so one pass is plenty.
+  //
+  // Fired alongside the rank snapshots and the pairings query below — none of
+  // the three depend on each other, only on `puuids`, so running them
+  // sequentially would just be adding up their round trips for no reason.
   const since = seasonStart();
-  const rows = await db
-    .select({
-      puuid: matchParticipants.puuid,
-      win: matchParticipants.win,
-      score: matchParticipants.performanceScore,
-      csPerMin: matchParticipants.csPerMin,
-      visionPerMin: matchParticipants.visionPerMin,
-      damageShare: matchParticipants.damageShare,
-      damageTakenShare: matchParticipants.damageTakenShare,
-      goldShare: matchParticipants.goldShare,
-      objectiveDamageShare: matchParticipants.objectiveDamageShare,
-      killParticipation: matchParticipants.killParticipation,
-      deathShare: matchParticipants.deathShare,
-      soloKills: matchParticipants.soloKills,
-      kills: matchParticipants.kills,
-      deaths: matchParticipants.deaths,
-      assists: matchParticipants.assists,
-      // Pre-squash composites, the only pair directly comparable to each other.
-      performanceRaw: matchParticipants.performanceRaw,
-      opponentRaw: matchParticipants.opponentRaw,
-      playedAt: matches.gameCreation,
-    })
-    .from(matchParticipants)
-    .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
-    .where(
-      and(
-        inArray(matchParticipants.puuid, puuids),
-        eq(matches.scorable, true),
-        gte(matches.gameCreation, since),
-        lt(matches.gameCreation, cutoff),
-      ),
-    )
-    .orderBy(desc(matches.gameCreation));
+  const [rows, snapshots, pairings] = await Promise.all([
+    db
+      .select({
+        puuid: matchParticipants.puuid,
+        win: matchParticipants.win,
+        score: matchParticipants.performanceScore,
+        csPerMin: matchParticipants.csPerMin,
+        visionPerMin: matchParticipants.visionPerMin,
+        damageShare: matchParticipants.damageShare,
+        damageTakenShare: matchParticipants.damageTakenShare,
+        goldShare: matchParticipants.goldShare,
+        objectiveDamageShare: matchParticipants.objectiveDamageShare,
+        killParticipation: matchParticipants.killParticipation,
+        deathShare: matchParticipants.deathShare,
+        soloKills: matchParticipants.soloKills,
+        kills: matchParticipants.kills,
+        deaths: matchParticipants.deaths,
+        assists: matchParticipants.assists,
+        // Pre-squash composites, the only pair directly comparable to each other.
+        performanceRaw: matchParticipants.performanceRaw,
+        opponentRaw: matchParticipants.opponentRaw,
+        playedAt: matches.gameCreation,
+      })
+      .from(matchParticipants)
+      .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
+      .where(
+        and(
+          inArray(matchParticipants.puuid, puuids),
+          eq(matches.scorable, true),
+          gte(matches.gameCreation, since),
+          lt(matches.gameCreation, cutoff),
+        ),
+      )
+      .orderBy(desc(matches.gameCreation)),
 
-  // Latest ranked-solo standing per player.
-  const snapshots = await db
-    .select({
-      puuid: rankSnapshots.puuid,
-      tier: rankSnapshots.tier,
-      division: rankSnapshots.division,
-      leaguePoints: rankSnapshots.leaguePoints,
-      capturedAt: rankSnapshots.capturedAt,
-    })
-    .from(rankSnapshots)
-    .where(
-      and(
-        inArray(rankSnapshots.puuid, puuids),
-        eq(rankSnapshots.queueType, 'RANKED_SOLO_5x5'),
-      ),
-    )
-    .orderBy(desc(rankSnapshots.capturedAt));
+    // Latest ranked-solo standing per player.
+    db
+      .select({
+        puuid: rankSnapshots.puuid,
+        tier: rankSnapshots.tier,
+        division: rankSnapshots.division,
+        leaguePoints: rankSnapshots.leaguePoints,
+        capturedAt: rankSnapshots.capturedAt,
+      })
+      .from(rankSnapshots)
+      .where(
+        and(
+          inArray(rankSnapshots.puuid, puuids),
+          eq(rankSnapshots.queueType, 'RANKED_SOLO_5x5'),
+        ),
+      )
+      .orderBy(desc(rankSnapshots.capturedAt)),
+
+    // Scoped to the selected period like everything else on the page, so
+    // browsing to an old week shows that week's pairings rather than a season
+    // total under that week's titles.
+    getPairings(puuids, period.start, cutoff),
+  ]);
 
   /*
    * Rank as it stood at the end of the period being viewed, not as it stands
@@ -369,11 +380,6 @@ export async function getGroupStandings(
   }
 
   const boards = buildStatBoards(members, statsByPlayer, awards, previousHolders);
-
-  // Scoped to the selected period like everything else on the page, so browsing
-  // to an old week shows that week's pairings rather than a season total under
-  // that week's titles.
-  const pairings = await getPairings(puuids, period.start, cutoff);
 
   const ranked = buildLeaderboard(
     members.map((member) => {

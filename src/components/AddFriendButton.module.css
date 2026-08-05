@@ -3,17 +3,17 @@
   font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
+  color: var(--surface);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   border-radius: var(--r-sm);
   padding: 3px 8px;
   white-space: nowrap;
+  transition: filter 120ms ease;
 }
 
 .add:hover:not(:disabled) {
-  background: var(--accent);
-  color: var(--surface);
+  filter: brightness(1.1);
 }
 
 .add:disabled {
