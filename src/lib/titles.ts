@@ -152,6 +152,19 @@ export function periodWindow(index: number, now: Date = new Date()): PeriodWindo
   };
 }
 
+/**
+ * Every period from week 0 up to the current one, most recent first — for a
+ * jump-to picker that needs the whole list rather than one window at a time.
+ * Cheap: every window is derived from the anchor, nothing here touches the
+ * database.
+ */
+export function listPeriods(now: Date = new Date()): PeriodWindow[] {
+  const latest = currentPeriodIndex(now);
+  const periods: PeriodWindow[] = [];
+  for (let i = latest; i >= 0; i--) periods.push(periodWindow(i, now));
+  return periods;
+}
+
 /** Per-player aggregates over one week window. */
 export interface TitleStats {
   puuid: string;
@@ -193,6 +206,13 @@ export interface TitleDefinition {
  * a metric and a direction.
  */
 export const TITLES: TitleDefinition[] = [
+  {
+    id: 'kda-king',
+    label: 'KDA King',
+    value: (s) => s.kda,
+    direction: 'max',
+    describe: (s) => `${s.kda.toFixed(2)} KDA over ${s.games} games`,
+  },
   {
     id: 'farm-king',
     label: 'Farm King',
@@ -295,6 +315,7 @@ export const STAT_BOARDS: StatBoard[] = [
     value: (s) => s.kda,
     direction: 'max',
     format: (v) => v.toFixed(2),
+    titleId: 'kda-king',
   },
   {
     id: 'cs',

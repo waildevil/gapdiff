@@ -66,3 +66,21 @@
   opacity: 0.45;
   pointer-events: none;
 }
+
+.select {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 5px 8px;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.select:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}

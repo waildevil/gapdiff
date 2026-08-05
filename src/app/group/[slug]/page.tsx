@@ -19,6 +19,7 @@ import { latestVersion } from '@/lib/ddragon';
 import { getRelationshipStatuses } from '@/lib/friends';
 import { listMyAccountsForGroup } from '@/lib/groups';
 import { getGroupStandings } from '@/lib/leaderboard';
+import { listPeriods } from '@/lib/titles';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -104,6 +105,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
               end={period.end}
               games={period.games}
               isCurrent={period.isCurrent}
+              weeks={listPeriods().map((w) => ({ index: w.index, label: w.label }))}
             />
 
             <StandingsHeader />

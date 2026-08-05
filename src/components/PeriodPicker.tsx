@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './PeriodPicker.module.css';
 
 interface PeriodPickerProps {
@@ -10,6 +13,8 @@ interface PeriodPickerProps {
   end: Date;
   games: number;
   isCurrent: boolean;
+  /** Every week on record, most recent first — powers the jump-to dropdown. */
+  weeks: { index: number; label: string }[];
 }
 
 function formatDay(date: Date): string {
@@ -35,7 +40,9 @@ export function PeriodPicker({
   end,
   games,
   isCurrent,
+  weeks,
 }: PeriodPickerProps) {
+  const router = useRouter();
   const inclusiveEnd = new Date(end.getTime() - 1);
   const hasPrevious = index > 0;
   const hasNext = index < latestIndex;
@@ -51,6 +58,20 @@ export function PeriodPicker({
       </div>
 
       <div className={styles.nav}>
+        {weeks.length > 1 ? (
+          <select
+            className={styles.select}
+            aria-label="Jump to week"
+            value={index}
+            onChange={(e) => router.push(`/group/${slug}?week=${e.target.value}`)}
+          >
+            {weeks.map((w) => (
+              <option key={w.index} value={w.index}>
+                {w.label}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <Link
           className={`${styles.button} ${hasPrevious ? '' : styles.disabled}`}
           href={`/group/${slug}?week=${index - 1}`}
