@@ -75,15 +75,25 @@ export default async function PlayerPage({ params }: PageProps) {
 
     // "Connected" means this Riot account is claimed by a real gapdiff user —
     // the same bar the standings page uses before offering a friend request.
+    // Unlike the compact standings row, the profile has room to spell out
+    // "already friends" or "request sent" instead of just hiding the button.
     const relationship =
       owner && session?.user?.id
         ? (await getRelationshipStatuses(session.user.id, [owner.userId])).get(owner.userId)
         : undefined;
-    const showAddFriend = Boolean(owner && relationship === 'none');
+    const friendButtonStatus: 'none' | 'friends' | 'pending' | undefined =
+      relationship === 'none' || relationship === 'friends' || relationship === 'pending'
+        ? relationship
+        : undefined;
 
     return (
       <div className={styles.wrap}>
         <div className={styles.sidebar}>
+          <div className={`card ${styles.sidebarRanks}`}>
+            <RankCard label="Ranked Solo/Duo" entry={profile.solo} />
+            <RankCard label="Ranked Flex" entry={profile.flex} />
+          </div>
+
           <ChampionSidebar
             history={championHistory.rows}
             profileHref={profileHref}
@@ -118,7 +128,12 @@ export default async function PlayerPage({ params }: PageProps) {
                   {profile.gameName}
                   <span>#{profile.tagLine}</span>
                 </h1>
-                {showAddFriend ? <AddFriendButton userId={owner!.userId} /> : null}
+                {friendButtonStatus ? (
+                  <AddFriendButton
+                    userId={owner!.userId}
+                    initialStatus={friendButtonStatus === 'none' ? undefined : friendButtonStatus}
+                  />
+                ) : null}
               </div>
               <div className={styles.meta}>
                 Level {profile.summonerLevel} · {PLATFORM_LABELS[platform]}
@@ -133,11 +148,6 @@ export default async function PlayerPage({ params }: PageProps) {
                 tagLine={profile.tagLine}
               />
             </LiveStatusProvider>
-
-            <div className={styles.ranks}>
-              <RankCard label="Ranked Solo" entry={profile.solo} />
-              <RankCard label="Ranked Flex" entry={profile.flex} />
-            </div>
           </div>
         </div>
 
