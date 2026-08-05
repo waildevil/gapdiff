@@ -1,76 +1,138 @@
 .wrap {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
 }
 
-.teams {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+/* ---------- bans ---------- */
+
+.bansCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.bans {
+.bansLabel {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  flex: 0 0 auto;
+}
+
+.bansRow {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .banIcon {
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--r-sm);
   background: var(--surface-2);
-  opacity: 0.75;
-  filter: grayscale(0.4);
+  opacity: 0.8;
+  filter: grayscale(0.5);
 }
 
-.row {
+/* ---------- team sections ---------- */
+
+.teamSection {
+  margin-bottom: 24px;
+}
+
+.teamHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+
+.teamDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.grid {
   display: grid;
-  grid-template-columns: 40px 20px 24px minmax(0, 1fr) auto;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+/* ---------- player card ---------- */
+
+.card {
+  display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line-soft);
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
-.row:last-child {
-  border-bottom: none;
+.champWrap {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .champIcon {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: var(--r-md);
   background: var(--surface-3);
+  display: block;
+}
+
+.profileBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  background: var(--surface-2);
 }
 
 .spells {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  flex: 0 0 auto;
 }
 
 .spellIcon {
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
   background: var(--surface-2);
 }
 
-.profileIcon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--surface-2);
-}
-
-.identity {
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   min-width: 0;
 }
 
 .name {
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 650;
   color: var(--text);
   text-decoration: none;
   white-space: nowrap;
@@ -86,15 +148,7 @@
 .tag {
   color: var(--faint);
   font-weight: 500;
-  margin-left: 3px;
-}
-
-.rank {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted);
-  text-align: right;
-  white-space: nowrap;
+  margin-left: 2px;
 }
 
 .backLink {
@@ -104,8 +158,8 @@
 }
 
 @media (max-width: 760px) {
-  .teams {
-    grid-template-columns: 1fr;
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 
   .wrap {

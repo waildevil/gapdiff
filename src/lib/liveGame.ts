@@ -1,5 +1,5 @@
 import { getRiotClient } from './riot/client';
-import { regionForPlatform, type Platform } from './riot/routing';
+import type { Platform } from './riot/routing';
 import type { LeagueEntry } from './riot/types';
 
 /**
@@ -46,12 +46,6 @@ export interface LiveGameParticipantView {
   soloRank: LeagueEntry | null;
 }
 
-export interface LiveGameTeam {
-  teamId: number;
-  bannedChampionIds: number[];
-  participants: LiveGameParticipantView[];
-}
-
 export interface LiveGameView {
   gameId: number;
   platform: Platform;
@@ -61,24 +55,35 @@ export interface LiveGameView {
   gameStartTime: number;
   /** Seconds elapsed as of this fetch — the caller ticks it forward locally. */
   gameLength: number;
-  teams: LiveGameTeam[];
+  /**
+   * Arena (`gameMode === 'CHERRY'`) puts every player on `teamId: 100` with
+   * no pairing data anywhere in this endpoint, so there are no real "teams"
+   * to render — the caller should lay these out as one flat grid instead of
+   * the usual two-column Blue/Red split.
+   */
+  isTeamless: boolean;
+  participants: LiveGameParticipantView[];
+  /** In pick-turn order, duplicates and all — two duos independently banning
+   *  the same champion is real information, not noise to dedupe away. */
+  bannedChampionIds: number[];
 }
 
+const TEAMLESS_MODES = new Set(['CHERRY']);
+
 /**
- * Full detail for the live game page: resolves every human participant's
- * Riot ID and solo-queue rank alongside the raw spectator payload. Bots are
- * left unresolved rather than sent through account/league lookups that would
- * always 404 for them.
+ * Full detail for the live game page. `riotId` ("Name#TAG") already rides
+ * along on every human participant in the spectator payload, so this only
+ * needs one extra Riot call per player — their solo-queue rank.
  */
 export async function getLiveGameView(platform: Platform, puuid: string): Promise<LiveGameView | null> {
   const riot = getRiotClient();
   const game = await riot.getActiveGame(platform, puuid);
   if (!game) return null;
 
-  const region = regionForPlatform(platform);
-
   const participants: LiveGameParticipantView[] = await Promise.all(
     game.participants.map(async (p) => {
+      const [gameName, tagLine] = p.riotId ? splitRiotId(p.riotId) : [null, null];
+
       if (p.bot) {
         return {
           puuid: p.puuid,
@@ -88,16 +93,13 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
           spell2Id: p.spell2Id,
           profileIconId: p.profileIconId,
           bot: true,
-          gameName: null,
-          tagLine: null,
+          gameName,
+          tagLine,
           soloRank: null,
         };
       }
 
-      const [account, leagues] = await Promise.all([
-        riot.getAccountByPuuid(region, p.puuid).catch(() => null),
-        riot.getLeagueEntries(platform, p.puuid).catch(() => []),
-      ]);
+      const leagues = await riot.getLeagueEntries(platform, p.puuid).catch(() => []);
 
       return {
         puuid: p.puuid,
@@ -107,14 +109,12 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
         spell2Id: p.spell2Id,
         profileIconId: p.profileIconId,
         bot: false,
-        gameName: account?.gameName ?? null,
-        tagLine: account?.tagLine ?? null,
+        gameName,
+        tagLine,
         soloRank: leagues.find((l) => l.queueType === 'RANKED_SOLO_5x5') ?? null,
       };
     }),
   );
-
-  const teamIds = [...new Set(game.participants.map((p) => p.teamId))].sort((a, b) => a - b);
 
   return {
     gameId: game.gameId,
@@ -124,12 +124,17 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
     mapId: game.mapId,
     gameStartTime: game.gameStartTime,
     gameLength: game.gameLength,
-    teams: teamIds.map((teamId) => ({
-      teamId,
-      bannedChampionIds: game.bannedChampions
-        .filter((b) => b.teamId === teamId)
-        .map((b) => b.championId),
-      participants: participants.filter((p) => p.teamId === teamId),
-    })),
+    isTeamless: TEAMLESS_MODES.has(game.gameMode),
+    participants,
+    bannedChampionIds: game.bannedChampions
+      .filter((b) => b.championId !== -1)
+      .sort((a, b) => a.pickTurn - b.pickTurn)
+      .map((b) => b.championId),
   };
+}
+
+function splitRiotId(riotId: string): [string, string] {
+  const hash = riotId.lastIndexOf('#');
+  if (hash <= 0) return [riotId, ''];
+  return [riotId.slice(0, hash), riotId.slice(hash + 1)];
 }

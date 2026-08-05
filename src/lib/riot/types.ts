@@ -205,11 +205,18 @@ export interface MatchTimeline {
 export interface CurrentGameParticipant {
   puuid: string;
   championId: number;
+  /**
+   * 100/200 in every classic mode. In Arena (`gameMode: 'CHERRY'`) Riot puts
+   * every player on 100 — there's no team-pairing data in this endpoint at
+   * all, so this field can't be used to split an Arena lobby into duos.
+   */
   teamId: number;
   spell1Id: number;
   spell2Id: number;
   profileIconId: number;
   bot: boolean;
+  /** `Name#TAG` — absent for bots, present for every human participant. */
+  riotId?: string;
 }
 
 export interface CurrentGameInfo {

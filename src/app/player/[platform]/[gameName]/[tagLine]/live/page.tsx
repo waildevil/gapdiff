@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { championIcon, championIdToName, latestVersion, profileIcon, spellIcon } from '@/lib/ddragon';
 import { getLiveGameView, type LiveGameParticipantView } from '@/lib/liveGame';
 import { queueName } from '@/lib/profile';
-import { formatRank } from '@/lib/rating/rating';
-import { getRiotClient, RiotApiError } from '@/lib/riot/client';
+import { RiotApiError, getRiotClient } from '@/lib/riot/client';
 import { isPlatform, PLATFORM_LABELS, regionForPlatform, type Platform } from '@/lib/riot/routing';
 import { LiveRefresh } from '@/components/LiveRefresh';
 import { LiveTimer } from '@/components/LiveTimer';
+import { RankBadge } from '@/components/RankBadge';
 import profileStyles from '../profile.module.css';
 import styles from './live.module.css';
 
@@ -20,6 +20,9 @@ interface PageProps {
 export const dynamic = 'force-dynamic';
 
 const TEAM_LABEL: Record<number, string> = { 100: 'Blue Team', 200: 'Red Team' };
+
+/** Riot has cycled the Arena queue id across patches; the mode name hasn't moved. */
+const GAME_MODE_LABEL: Record<string, string> = { CHERRY: 'Arena' };
 
 export default async function LiveGamePage({ params }: PageProps) {
   const { platform: platformParam, gameName: rawName, tagLine: rawTag } = await params;
@@ -88,13 +91,25 @@ export default async function LiveGamePage({ params }: PageProps) {
     return name ? championIcon(version, name) : undefined;
   };
 
+  const modeLabel = GAME_MODE_LABEL[game.gameMode] ?? queueName(game.queueId);
+
+  const teamSections = game.isTeamless
+    ? [{ teamId: 0, label: `${game.participants.length} players`, participants: game.participants }]
+    : [100, 200]
+        .filter((teamId) => game.participants.some((p) => p.teamId === teamId))
+        .map((teamId) => ({
+          teamId,
+          label: TEAM_LABEL[teamId] ?? `Team ${teamId}`,
+          participants: game.participants.filter((p) => p.teamId === teamId),
+        }));
+
   return (
     <div className={styles.wrap}>
       <LiveRefresh intervalMs={15000} />
 
       <div className="page-head">
         <div className="eyebrow">
-          {PLATFORM_LABELS[platform]} · {queueName(game.queueId)}
+          {PLATFORM_LABELS[platform]} · {modeLabel}
         </div>
         <h1>{gameName}&apos;s live game</h1>
         <p className="page-sub">
@@ -102,22 +117,31 @@ export default async function LiveGamePage({ params }: PageProps) {
         </p>
       </div>
 
-      <div className={styles.teams}>
-        {game.teams.map((team) => (
-          <div className="card" key={team.teamId}>
-            <div className="card-head">
-              <div className="card-title">{TEAM_LABEL[team.teamId] ?? `Team ${team.teamId}`}</div>
-              {team.bannedChampionIds.length > 0 ? (
-                <div className={styles.bans}>
-                  {team.bannedChampionIds.map((championId, i) => (
-                    <BanIcon key={i} src={champIcon(championId)} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
+      {game.bannedChampionIds.length > 0 ? (
+        <div className={styles.bansCard}>
+          <div className={styles.bansLabel}>Bans</div>
+          <div className={styles.bansRow}>
+            {game.bannedChampionIds.map((championId, i) => (
+              <BanIcon key={i} src={champIcon(championId)} />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
-            {team.participants.map((participant) => (
-              <ParticipantRow
+      {teamSections.map((section) => (
+        <div className={styles.teamSection} key={section.teamId}>
+          <div className={styles.teamHead}>
+            {section.teamId !== 0 ? (
+              <span
+                className={styles.teamDot}
+                style={{ background: section.teamId === 100 ? 'var(--accent)' : 'var(--bad)' }}
+              />
+            ) : null}
+            {section.label}
+          </div>
+          <div className={styles.grid}>
+            {section.participants.map((participant) => (
+              <ParticipantCard
                 key={participant.puuid}
                 participant={participant}
                 platform={platform}
@@ -126,13 +150,13 @@ export default async function LiveGamePage({ params }: PageProps) {
               />
             ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function ParticipantRow({
+function ParticipantCard({
   participant,
   platform,
   version,
@@ -146,44 +170,45 @@ function ParticipantRow({
   const rank = participant.soloRank;
 
   return (
-    <div className={styles.row}>
-      {iconSrc ? (
-        <img className={styles.champIcon} src={iconSrc} alt="" width={40} height={40} />
-      ) : (
-        <span className={styles.champIcon} />
-      )}
+    <div className={styles.card}>
+      <div className={styles.champWrap}>
+        {iconSrc ? (
+          <img className={styles.champIcon} src={iconSrc} alt="" width={56} height={56} />
+        ) : (
+          <span className={styles.champIcon} />
+        )}
+        <img
+          className={styles.profileBadge}
+          src={profileIcon(version, participant.profileIconId)}
+          alt=""
+          width={22}
+          height={22}
+        />
+      </div>
 
       <div className={styles.spells}>
         <SpellImg version={version} id={participant.spell1Id} />
         <SpellImg version={version} id={participant.spell2Id} />
       </div>
 
-      <img
-        className={styles.profileIcon}
-        src={profileIcon(version, participant.profileIconId)}
-        alt=""
-        width={24}
-        height={24}
-      />
-
-      <div className={styles.identity}>
+      <div className={styles.cardBody}>
         {participant.bot ? (
           <span className={styles.name}>Bot</span>
-        ) : participant.gameName && participant.tagLine ? (
+        ) : participant.gameName ? (
           <Link
             className={styles.name}
-            href={`/player/${platform}/${encodeURIComponent(participant.gameName)}/${encodeURIComponent(participant.tagLine)}`}
+            href={`/player/${platform}/${encodeURIComponent(participant.gameName)}/${encodeURIComponent(participant.tagLine ?? '')}`}
           >
             {participant.gameName}
-            <span className={styles.tag}>#{participant.tagLine}</span>
+            {participant.tagLine ? <span className={styles.tag}>#{participant.tagLine}</span> : null}
           </Link>
         ) : (
           <span className={styles.name}>Unknown summoner</span>
         )}
-      </div>
 
-      <div className={styles.rank}>
-        {rank ? formatRank(rank.tier, rank.rank, rank.leaguePoints) : 'Unranked'}
+        <RankBadge
+          rank={rank ? { tier: rank.tier, division: rank.rank, leaguePoints: rank.leaguePoints } : null}
+        />
       </div>
     </div>
   );
@@ -192,12 +217,12 @@ function ParticipantRow({
 function SpellImg({ version, id }: { version: string; id: number }) {
   const url = spellIcon(version, id);
   if (!url) return <span className={styles.spellIcon} />;
-  return <img className={styles.spellIcon} src={url} alt="" width={18} height={18} />;
+  return <img className={styles.spellIcon} src={url} alt="" width={20} height={20} />;
 }
 
 function BanIcon({ src }: { src: string | undefined }) {
   if (!src) return <span className={styles.banIcon} />;
-  return <img className={styles.banIcon} src={src} alt="" width={22} height={22} />;
+  return <img className={styles.banIcon} src={src} alt="" width={30} height={30} />;
 }
 
 function Message({ title, children }: { title: string; children: React.ReactNode }) {
