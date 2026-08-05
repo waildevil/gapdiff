@@ -1,3 +1,6 @@
+import { inArray, sql } from 'drizzle-orm';
+import { db } from '@/db';
+import { matchParticipants } from '@/db/schema';
 import { getRiotClient } from './riot/client';
 import type { Platform } from './riot/routing';
 import type { LeagueEntry } from './riot/types';
@@ -32,6 +35,12 @@ export async function getLiveStatuses(players: LivePlayerRef[]): Promise<Map<str
   return new Map(entries);
 }
 
+export interface RoleFamiliarity {
+  role: string;
+  games: number;
+  wins: number;
+}
+
 export interface LiveGameParticipantView {
   puuid: string;
   teamId: number;
@@ -44,6 +53,40 @@ export interface LiveGameParticipantView {
   gameName: string | null;
   tagLine: string | null;
   soloRank: LeagueEntry | null;
+  /**
+   * Role breakdown from matches gapdiff has already ingested — not just this
+   * player's own games, but any match a tracked group member played that
+   * this puuid also happened to be in (`storeMatch` scores the whole lobby,
+   * tracked or not). Empty for anyone who's never crossed paths with the
+   * group; there's no live Riot endpoint that gives this for an arbitrary
+   * summoner without scraping their full history per page load.
+   */
+  roleHistory: RoleFamiliarity[];
+}
+
+/** Highest-games-first role split, for every puuid gapdiff has ever scored a match for. */
+async function getRoleFamiliarity(puuids: string[]): Promise<Map<string, RoleFamiliarity[]>> {
+  if (puuids.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      puuid: matchParticipants.puuid,
+      role: matchParticipants.role,
+      games: sql<number>`count(*)::int`,
+      wins: sql<number>`sum(case when ${matchParticipants.win} then 1 else 0 end)::int`,
+    })
+    .from(matchParticipants)
+    .where(inArray(matchParticipants.puuid, puuids))
+    .groupBy(matchParticipants.puuid, matchParticipants.role);
+
+  const byPuuid = new Map<string, RoleFamiliarity[]>();
+  for (const row of rows) {
+    const list = byPuuid.get(row.puuid) ?? [];
+    list.push({ role: row.role, games: row.games, wins: row.wins });
+    byPuuid.set(row.puuid, list);
+  }
+  for (const list of byPuuid.values()) list.sort((a, b) => b.games - a.games);
+  return byPuuid;
 }
 
 export interface LiveGameView {
@@ -80,6 +123,10 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
   const game = await riot.getActiveGame(platform, puuid);
   if (!game) return null;
 
+  const roleHistoryByPuuid = await getRoleFamiliarity(
+    game.participants.filter((p) => !p.bot).map((p) => p.puuid),
+  );
+
   const participants: LiveGameParticipantView[] = await Promise.all(
     game.participants.map(async (p) => {
       const [gameName, tagLine] = p.riotId ? splitRiotId(p.riotId) : [null, null];
@@ -96,6 +143,7 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
           gameName,
           tagLine,
           soloRank: null,
+          roleHistory: [],
         };
       }
 
@@ -112,6 +160,7 @@ export async function getLiveGameView(platform: Platform, puuid: string): Promis
         gameName,
         tagLine,
         soloRank: leagues.find((l) => l.queueType === 'RANKED_SOLO_5x5') ?? null,
+        roleHistory: roleHistoryByPuuid.get(p.puuid) ?? [],
       };
     }),
   );

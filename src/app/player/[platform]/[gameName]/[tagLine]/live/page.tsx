@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { championIcon, championIdToName, latestVersion, profileIcon, spellIcon } from '@/lib/ddragon';
 import { getLiveGameView, type LiveGameParticipantView } from '@/lib/liveGame';
+import { ROLE_LABEL, winRate } from '@/lib/format';
 import { queueName } from '@/lib/profile';
 import { RiotApiError, getRiotClient } from '@/lib/riot/client';
 import { isPlatform, PLATFORM_LABELS, regionForPlatform, type Platform } from '@/lib/riot/routing';
@@ -209,6 +210,20 @@ function ParticipantCard({
         <RankBadge
           rank={rank ? { tier: rank.tier, division: rank.rank, leaguePoints: rank.leaguePoints } : null}
         />
+        {rank && rank.wins + rank.losses > 0 ? (
+          <span className={styles.record}>
+            {winRate(rank.wins, rank.losses)}% WR · {rank.wins + rank.losses}G
+          </span>
+        ) : null}
+        {participant.roleHistory.length > 0 ? (
+          <div className={styles.roles} title="From matches gapdiff has already scored — only covers players who've crossed paths with the group before">
+            {participant.roleHistory.slice(0, 2).map((r) => (
+              <span key={r.role} className={styles.roleChip}>
+                {ROLE_LABEL[r.role] ?? r.role} {r.games}G · {winRate(r.wins, r.games - r.wins)}%
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );
