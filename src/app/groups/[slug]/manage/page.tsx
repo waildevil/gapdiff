@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
@@ -10,6 +11,7 @@ import { LiveRefresh } from '@/components/LiveRefresh';
 import { MemberRole } from '@/components/MemberRole';
 import { InviteManager } from '@/components/InviteManager';
 import { RemoveMemberButton } from '@/components/RemoveMemberButton';
+import { discordInstallUrl } from '@/lib/discordBot';
 import {
   getDiscordConnection,
   isOwner,
@@ -27,10 +29,12 @@ const REFRESH_MS = 5_000;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ discordGuildId?: string; discordError?: string }>;
 }
 
-export default async function ManageGroupPage({ params }: PageProps) {
+export default async function ManageGroupPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const { discordGuildId, discordError } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect(`/signin?callbackUrl=/groups/${slug}/manage`);
 
@@ -60,6 +64,13 @@ export default async function ManageGroupPage({ params }: PageProps) {
     getDiscordConnection(group.id),
   ]);
 
+  // Must match a redirect registered on the Discord app exactly — derived
+  // from the request rather than hardcoded so dev (localhost) and prod
+  // (gapdiff.vercel.app) both work without an extra env var.
+  const host = (await headers()).get('host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https';
+  const installUrl = discordInstallUrl(slug, `${protocol}://${host}/api/discord/install/callback`);
+
   return (
     <div className={styles.wrap}>
       <LiveRefresh intervalMs={REFRESH_MS} />
@@ -77,7 +88,14 @@ export default async function ManageGroupPage({ params }: PageProps) {
         <InviteManager groupId={group.id} slug={slug} invites={invites} />
 
         <div className="section-gap">
-          <DiscordConnect groupId={group.id} slug={slug} connection={discord} />
+          <DiscordConnect
+            groupId={group.id}
+            slug={slug}
+            connection={discord}
+            installUrl={installUrl}
+            pendingGuildId={discordGuildId ?? null}
+            declined={discordError === 'declined'}
+          />
         </div>
 
         <div className="card">

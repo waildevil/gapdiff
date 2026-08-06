@@ -98,8 +98,16 @@ export const groups = pgTable('groups', {
    * purpose that was declared but never used.
    */
   discordWebhook: text('discord_webhook'),
-  /** Masked form, e.g. "…/webhooks/123/••••", so the UI never decrypts to render. */
+  /** Masked form, e.g. "…/webhooks/123/••••". Kept for debugging; the UI shows the server/channel name instead. */
   discordWebhookHint: text('discord_webhook_hint'),
+  /**
+   * Which server and channel the webhook posts to — identifiers only, not
+   * names. Names are resolved live from the bot API when the manage page
+   * renders, the same "derive, don't store" reasoning as everything else
+   * here: a renamed channel should show its current name, not a stale one.
+   */
+  discordGuildId: varchar('discord_guild_id', { length: 24 }),
+  discordChannelId: varchar('discord_channel_id', { length: 24 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

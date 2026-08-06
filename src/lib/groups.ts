@@ -3,6 +3,13 @@ import { and, count, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { connectedPayload, postToDiscord } from './discord';
 import {
+  createChannelWebhook,
+  getChannelName,
+  getGuildName,
+  listGuildTextChannels,
+  type DiscordChannel,
+} from './discordBot';
+import {
   decryptSecret,
   encryptSecret,
   hasSecretKey,
@@ -650,8 +657,14 @@ export async function listUnclaimedAccounts(groupId: number) {
 
 export interface DiscordConnection {
   connected: boolean;
-  /** Masked, e.g. "…/webhooks/123/••••". Null when nothing is stored. */
-  hint: string | null;
+  /** For "change channel" — which guild to re-list channels from. Null until connected via the bot. */
+  guildId: string | null;
+  /** For "change channel" — preselects the dropdown on the channel already in use. */
+  channelId: string | null;
+  /** The server name, resolved live from the bot API. Null if not connected, or not resolvable right now. */
+  serverName: string | null;
+  /** The channel name, same caveats as serverName. */
+  channelName: string | null;
   /**
    * True when a webhook is stored but cannot be decrypted — SECRET_KEY missing
    * or changed. Surfaced so the owner is told to reconnect rather than left
@@ -660,18 +673,48 @@ export interface DiscordConnection {
   unreadable: boolean;
 }
 
+/**
+ * Names are resolved live rather than cached — a renamed channel or server
+ * should show its current name, and the alternative is a stored string that
+ * silently goes stale. If the bot can't reach Discord right now (down, or
+ * kicked from the server), the connection is still real; only the display
+ * degrades.
+ */
 export async function getDiscordConnection(groupId: number): Promise<DiscordConnection> {
   const [row] = await db
-    .select({ blob: groups.discordWebhook, hint: groups.discordWebhookHint })
+    .select({
+      blob: groups.discordWebhook,
+      guildId: groups.discordGuildId,
+      channelId: groups.discordChannelId,
+    })
     .from(groups)
     .where(eq(groups.id, groupId))
     .limit(1);
 
-  if (!row?.blob) return { connected: false, hint: null, unreadable: false };
+  if (!row?.blob) {
+    return {
+      connected: false,
+      guildId: null,
+      channelId: null,
+      serverName: null,
+      channelName: null,
+      unreadable: false,
+    };
+  }
+
+  const [serverName, channelName] = await Promise.all([
+    row.guildId ? getGuildName(row.guildId).catch(() => null) : Promise.resolve(null),
+    row.guildId && row.channelId
+      ? getChannelName(row.guildId, row.channelId).catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   return {
     connected: true,
-    hint: row.hint,
+    guildId: row.guildId,
+    channelId: row.channelId,
+    serverName,
+    channelName,
     unreadable: decryptSecret(row.blob) === null,
   };
 }
@@ -728,13 +771,60 @@ export async function setGroupWebhook(
   return check.display!;
 }
 
+/** Channels the bot can see in a guild it has just been added to. */
+export async function listGroupDiscordChannels(
+  groupId: number,
+  userId: string,
+  guildId: string,
+): Promise<DiscordChannel[]> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can connect Discord.');
+  }
+  return listGuildTextChannels(guildId);
+}
+
+/**
+ * The second half of the install flow: mint a webhook for the channel the
+ * owner picked, then hand it to setGroupWebhook — same validation, test-post
+ * and encryption a manually pasted URL would have gone through, so there is
+ * only one code path that actually stores a webhook. Also used to change
+ * channel on an already-connected group, since it's the same operation.
+ */
+export async function connectDiscordChannel(
+  groupId: number,
+  userId: string,
+  guildId: string,
+  channelId: string,
+): Promise<{ serverName: string | null; channelName: string | null }> {
+  if (!(await isOwner(groupId, userId))) {
+    throw new GroupError('Only the group owner can connect Discord.');
+  }
+  const url = await createChannelWebhook(channelId);
+  await setGroupWebhook(groupId, userId, url);
+  await db
+    .update(groups)
+    .set({ discordGuildId: guildId, discordChannelId: channelId })
+    .where(eq(groups.id, groupId));
+
+  const [serverName, channelName] = await Promise.all([
+    getGuildName(guildId).catch(() => null),
+    getChannelName(guildId, channelId).catch(() => null),
+  ]);
+  return { serverName, channelName };
+}
+
 export async function clearGroupWebhook(groupId: number, userId: string): Promise<void> {
   if (!(await isOwner(groupId, userId))) {
     throw new GroupError('Only the group owner can disconnect Discord.');
   }
   await db
     .update(groups)
-    .set({ discordWebhook: null, discordWebhookHint: null })
+    .set({
+      discordWebhook: null,
+      discordWebhookHint: null,
+      discordGuildId: null,
+      discordChannelId: null,
+    })
     .where(eq(groups.id, groupId));
 }
 

@@ -5,18 +5,19 @@ import { auth } from '@/auth';
 import {
   addAccountToBoard,
   clearGroupWebhook,
+  connectDiscordChannel,
   createGroup,
   createInvite,
   deleteGroup,
   GroupError,
   joinGroupByInvite,
   leaveGroup,
+  listGroupDiscordChannels,
   removeAccountFromBoard,
   removeMember,
   renameGroup,
   revokeInvite,
   setMemberRole,
-  setGroupWebhook,
 } from '@/lib/groups';
 
 async function requireUserId(): Promise<string> {
@@ -108,32 +109,56 @@ export async function joinGroupAction(code: string): Promise<JoinResultAction> {
   }
 }
 
-export type WebhookResult = { ok: true; hint: string | null } | { ok: false; error: string };
+export type DisconnectResult = { ok: true } | { ok: false; error: string };
 
-export async function connectDiscordAction(
+export type DiscordChannelsResult =
+  | { ok: true; channels: { id: string; name: string }[] }
+  | { ok: false; error: string };
+
+/** Step one after the bot joins: what can it actually post into. */
+export async function listDiscordChannelsAction(
   groupId: number,
-  slug: string,
-  url: string,
-): Promise<WebhookResult> {
+  guildId: string,
+): Promise<DiscordChannelsResult> {
   try {
     const userId = await requireUserId();
-    const hint = await setGroupWebhook(groupId, userId, url);
-    revalidatePath(`/groups/${slug}/manage`);
-    return { ok: true, hint };
+    const channels = await listGroupDiscordChannels(groupId, userId, guildId);
+    return { ok: true, channels };
   } catch (error) {
-    return { ok: false, error: message(error, 'Could not save that webhook.') };
+    return { ok: false, error: message(error, 'Could not load channels from Discord.') };
+  }
+}
+
+export type ConnectChannelResult =
+  | { ok: true; serverName: string | null; channelName: string | null }
+  | { ok: false; error: string };
+
+/** Step two: mint a webhook for the chosen channel and store it. Also used to change channel later. */
+export async function connectDiscordChannelAction(
+  groupId: number,
+  slug: string,
+  guildId: string,
+  channelId: string,
+): Promise<ConnectChannelResult> {
+  try {
+    const userId = await requireUserId();
+    const { serverName, channelName } = await connectDiscordChannel(groupId, userId, guildId, channelId);
+    revalidatePath(`/groups/${slug}/manage`);
+    return { ok: true, serverName, channelName };
+  } catch (error) {
+    return { ok: false, error: message(error, 'Could not connect that channel.') };
   }
 }
 
 export async function disconnectDiscordAction(
   groupId: number,
   slug: string,
-): Promise<WebhookResult> {
+): Promise<DisconnectResult> {
   try {
     const userId = await requireUserId();
     await clearGroupWebhook(groupId, userId);
     revalidatePath(`/groups/${slug}/manage`);
-    return { ok: true, hint: null };
+    return { ok: true };
   } catch (error) {
     return { ok: false, error: message(error, 'Could not disconnect Discord.') };
   }

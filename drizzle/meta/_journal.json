@@ -71,6 +71,13 @@
       "when": 1785961027057,
       "tag": "0009_abnormal_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785982553399,
+      "tag": "0010_careful_blue_shield",
+      "breakpoints": true
     }
   ]
 }
