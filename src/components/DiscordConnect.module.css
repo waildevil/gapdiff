@@ -48,6 +48,23 @@
   text-decoration: none;
 }
 
+/*
+ * The bot joining a server isn't "connected" — a channel still has to be
+ * picked, and without a visible nudge that's an easy step to walk away from
+ * mid-flow and never come back to. Same accent already used for actionable
+ * buttons elsewhere, just turned up: a real border and a glow instead of a
+ * hairline, so the card itself reads as "unfinished" at a glance.
+ */
+.attention {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-md);
+}
+
+.attentionNote {
+  color: var(--accent);
+  font-weight: 650;
+}
+
 .primary,
 .secondary {
   font-family: var(--mono);

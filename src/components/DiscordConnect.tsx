@@ -188,12 +188,14 @@ export function DiscordConnect({
     </>
   ) : null;
 
+  const needsChannel = Boolean(activeGuildId);
+
   return (
-    <div className="card">
+    <div className={`card ${needsChannel ? styles.attention : ''}`}>
       <div className="card-head">
         <div className="card-title">Discord</div>
-        <div className="card-note">
-          {state.connected ? 'connected' : 'not connected'}
+        <div className={`card-note ${needsChannel ? styles.attentionNote : ''}`}>
+          {needsChannel ? 'pick a channel to finish' : state.connected ? 'connected' : 'not connected'}
         </div>
       </div>
 
