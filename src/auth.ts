@@ -1,5 +1,5 @@
 import NextAuth from 'next-auth';
-import Discord from 'next-auth/providers/discord';
+import Discord, { type DiscordProfile } from 'next-auth/providers/discord';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { db } from '@/db';
@@ -27,7 +27,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionsTable: authSessions,
     verificationTokensTable: authVerificationTokens,
   }),
-  providers: [Discord],
+  providers: [
+    Discord({
+      // Default scope is "identify email" — narrowed to drop email
+      // entirely. Nothing here ever reads it, and it's real PII to be
+      // holding for people who only ever wanted a leaderboard login.
+      authorization: { params: { scope: 'identify' } },
+      profile(profile: DiscordProfile) {
+        const avatar = profile.avatar;
+        const image =
+          avatar === null
+            ? `https://cdn.discordapp.com/embed/avatars/${
+                profile.discriminator === '0'
+                  ? Number(BigInt(profile.id) >> BigInt(22)) % 6
+                  : parseInt(profile.discriminator) % 5
+              }.png`
+            : `https://cdn.discordapp.com/avatars/${profile.id}/${avatar}.${avatar.startsWith('a_') ? 'gif' : 'png'}`;
+        return {
+          id: profile.id,
+          name: profile.global_name ?? profile.username,
+          email: null,
+          image,
+        };
+      },
+    }),
+  ],
   session: { strategy: 'database' },
   callbacks: {
     session({ session, user }) {
