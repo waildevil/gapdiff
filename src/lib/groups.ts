@@ -442,13 +442,18 @@ export async function createInvite(
   return { ...row, active: inviteIsActive(row) };
 }
 
+/**
+ * Only ever the usable ones — a revoked, expired or used-up invite has
+ * nothing left for the owner to do with it, so it drops off here rather than
+ * lingering as a dead row forever.
+ */
 export async function listInvites(groupId: number): Promise<InviteView[]> {
   const rows = await db
     .select()
     .from(invites)
     .where(eq(invites.groupId, groupId))
     .orderBy(desc(invites.createdAt));
-  return rows.map((row) => ({ ...row, active: inviteIsActive(row) }));
+  return rows.filter((row) => inviteIsActive(row)).map((row) => ({ ...row, active: true }));
 }
 
 export async function revokeInvite(

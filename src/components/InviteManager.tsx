@@ -87,35 +87,27 @@ export function InviteManager({ groupId, slug, invites }: Props) {
       ) : (
         invites.map((invite) => (
           <div className={styles.row} key={invite.code}>
-            <div className={`${styles.link} ${invite.active ? '' : styles.dead}`}>
-              /join/{invite.code}
-            </div>
+            <div className={styles.link}>/join/{invite.code}</div>
 
             <span className={styles.meta}>
               {invite.uses} used
               {invite.maxUses !== null ? ` / ${invite.maxUses}` : ''}
-              {invite.revokedAt
-                ? ' · revoked'
-                : invite.expiresAt
-                  ? ` · until ${invite.expiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                  : ' · no expiry'}
+              {invite.expiresAt
+                ? ` · until ${invite.expiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                : ' · no expiry'}
             </span>
 
-            {invite.active ? (
-              <>
-                <button
-                  className={`${styles.button} ${copied === invite.code ? styles.copied : ''}`}
-                  onClick={() => copy(invite.code)}
-                >
-                  {copied === invite.code ? 'Copied' : 'Copy link'}
-                </button>
-                <form action={() => revokeInviteAction(invite.code, slug)}>
-                  <button className={`${styles.button} ${styles.danger}`} type="submit">
-                    Revoke
-                  </button>
-                </form>
-              </>
-            ) : null}
+            <button
+              className={`${styles.button} ${copied === invite.code ? styles.copied : ''}`}
+              onClick={() => copy(invite.code)}
+            >
+              {copied === invite.code ? 'Copied' : 'Copy link'}
+            </button>
+            <form action={() => revokeInviteAction(invite.code, slug)}>
+              <button className={`${styles.button} ${styles.danger}`} type="submit">
+                Revoke
+              </button>
+            </form>
           </div>
         ))
       )}
