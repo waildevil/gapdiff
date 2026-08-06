@@ -18,6 +18,12 @@ const COLOUR = 0xf0a020;
 
 export interface WebhookPayload {
   username: string;
+  /**
+   * A webhook's avatar is its own setting, entirely separate from the bot
+   * Application's icon in the Developer Portal — Discord otherwise falls
+   * back to a generic default per webhook, unrelated to gapdiff's mark.
+   */
+  avatar_url: string;
   embeds: {
     title: string;
     url?: string;
@@ -32,6 +38,7 @@ export interface WebhookPayload {
 function envelope(title: string, slug: string, description: string, footer?: string): WebhookPayload {
   return {
     username: 'gapdiff',
+    avatar_url: `${SITE}/discord-icon.png`,
     embeds: [
       {
         title,
