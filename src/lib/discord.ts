@@ -104,32 +104,14 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
     .join(' · ');
 
   /*
-   * Deliberately a standing, not an announcement. Titles are decided at month
-   * end — mid-month one flips on a handful of games and flips back two days
-   * later — so this says who is holding them right now and points at the board
-   * rather than declaring anybody the winner.
+   * No title line here anymore — with a dozen-plus titles now live, a
+   * "holding right now" recap repeated every single day stopped being news
+   * and started being clutter. Titles get their moment once, in the weekly
+   * final, when they're actually decided rather than a mid-week snapshot.
    */
-  const titles = movement.currentTitles
-    .slice(0, 3)
-    .map((t) => `**${t.label}** ${t.holder}`)
-    .join(' · ');
+  const sections = [stories.join('\n'), movers ? `Moved today — ${movers}` : ''].filter(Boolean);
 
-  const sections = [
-    stories.join('\n'),
-    movers ? `Moved today — ${movers}` : '',
-    titles
-      ? movement.titlesFrom === 'current'
-        ? `Holding the titles right now — ${titles}`
-        : `${movement.titlesPeriodLabel} titles — ${titles}`
-      : '',
-  ].filter(Boolean);
-
-  return envelope(
-    `${movement.groupName} — what changed`,
-    movement.slug,
-    sections.join('\n\n'),
-    'Titles are provisional until the month ends. Tap the title to see the board.',
-  );
+  return envelope(`${movement.groupName} — what changed`, movement.slug, sections.join('\n\n'));
 }
 
 /** The games worth a sentence. Numbers alone are a spreadsheet, not banter. */
@@ -175,6 +157,17 @@ export function weeklyPayload(
   const rated = standings.entries.filter((e) => e.rating.rated);
   if (rated.length === 0) return null;
 
+  /*
+   * Kept out of the code block on purpose — Discord's monospace font gives
+   * these three glyphs roughly double width, which would throw off every
+   * padStart/padEnd alignment below them if they were inline in the table.
+   */
+  const MEDALS = ['🏆', '🥈', '🥉'];
+  const podium = rated
+    .slice(0, 3)
+    .map((e, i) => `${MEDALS[i]} **${e.player.nickname ?? e.player.gameName}**`)
+    .join('  ');
+
   const table = rated
     .map(
       (e, i) =>
@@ -196,6 +189,7 @@ export function weeklyPayload(
   }
 
   const description =
+    podium + '\n\n' +
     (titles.length ? titles.join('\n') + '\n\n' : '') +
     '```\n' + table + '\n```';
 
@@ -262,7 +256,7 @@ export function connectedPayload(groupName: string, slug: string): WebhookPayloa
   return envelope(
     `${groupName} — connected`,
     slug,
-    'This channel will get the evening digest and the monthly results. ' +
+    'This channel will get the evening digest and the weekly results. ' +
       'Quiet days post nothing, so silence here means nothing happened rather ' +
       'than something broken.',
   );
