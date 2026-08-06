@@ -120,16 +120,17 @@
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--muted);
-  border: 1px solid var(--line);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-sm);
   padding: 6px 11px;
   white-space: nowrap;
 }
 
 .action:hover {
-  color: var(--accent);
-  border-color: var(--accent-line);
+  background: var(--accent);
+  color: var(--surface);
 }
 
 .empty {

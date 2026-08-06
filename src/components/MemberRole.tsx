@@ -58,7 +58,7 @@ export function MemberRole({
           Owner
         </span>
       ) : manager ? (
-        <span className={styles.badge}>Manager</span>
+        <span className={`${styles.badge} ${styles.manager}`}>Manager</span>
       ) : null}
 
       {viewerCanManage && !isFounder ? (

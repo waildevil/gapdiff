@@ -22,6 +22,15 @@
 .founder {
   color: var(--accent);
   border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* A manager is a real, changeable role too — same treatment as founder,
+   just without the "this is permanent" implication. */
+.manager {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
 }
 
 .button {
@@ -31,16 +40,16 @@
   letter-spacing: 0.08em;
   padding: 3px 8px;
   border-radius: var(--r-sm);
-  border: 1px dashed var(--line);
+  border: 1px solid var(--accent-line);
   background: transparent;
-  color: var(--faint);
+  color: var(--accent);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
-  color: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
 }
 
 .button:disabled {
