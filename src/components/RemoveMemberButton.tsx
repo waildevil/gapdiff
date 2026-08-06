@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { removeMemberAction } from '@/app/actions/groups';
-import styles from './MemberRole.module.css';
+import styles from './RemoveMemberButton.module.css';
 
 interface Props {
   groupId: number;
@@ -46,7 +46,7 @@ export function RemoveMemberButton({ groupId, slug, userId, name }: Props) {
     <div className={styles.wrap}>
       <button
         type="button"
-        className={styles.button}
+        className={`${styles.button} ${confirming ? styles.confirming : ''}`}
         onClick={handleClick}
         onBlur={() => setConfirming(false)}
         disabled={pending}

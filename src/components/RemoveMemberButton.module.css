@@ -2,21 +2,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   flex: 0 0 auto;
 }
 
 .button {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
   color: var(--bad);
   background: var(--bad-soft);
   border: 1px solid var(--bad);
-  border-radius: var(--r-sm);
-  padding: 6px 11px;
-  white-space: nowrap;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
@@ -37,4 +38,5 @@
 .error {
   font-size: 10.5px;
   color: var(--bad);
+  flex-basis: 100%;
 }
