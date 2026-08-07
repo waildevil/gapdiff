@@ -5,6 +5,7 @@ import {
   accountClaims,
   accounts,
   trackedAccounts,
+  groupMemberships,
   groups,
   matchParticipants,
   matches,
@@ -670,7 +671,16 @@ function toTitleStats(
   };
 }
 
-/** Groups available to link to from the home page. */
-export async function listGroups(): Promise<{ slug: string; name: string }[]> {
-  return db.select({ slug: groups.slug, name: groups.name }).from(groups);
+/** The groups a signed-in user belongs to, most recently joined first. Shown on the home page. */
+export async function listUserGroups(
+  userId: string,
+  limit = 3,
+): Promise<{ slug: string; name: string }[]> {
+  return db
+    .select({ slug: groups.slug, name: groups.name })
+    .from(groupMemberships)
+    .innerJoin(groups, eq(groups.id, groupMemberships.groupId))
+    .where(eq(groupMemberships.userId, userId))
+    .orderBy(desc(groupMemberships.joinedAt))
+    .limit(limit);
 }

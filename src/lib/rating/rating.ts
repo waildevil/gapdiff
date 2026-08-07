@@ -24,7 +24,7 @@ export const TIERS = [
 
 export type Tier = (typeof TIERS)[number];
 
-const DIVISIONS = ['IV', 'III', 'II', 'I'] as const;
+export const DIVISIONS = ['IV', 'III', 'II', 'I'] as const;
 export type Division = (typeof DIVISIONS)[number];
 
 /** Diamond I 100 LP, the point where divisions stop existing. */

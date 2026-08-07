@@ -11,6 +11,7 @@ import { AddFriendButton } from '@/components/AddFriendButton';
 import { ChampionSidebar } from '@/components/ChampionSidebar';
 import { getChampionHistory } from '@/lib/championHistory';
 import { getRelationshipStatuses, getVerifiedOwner } from '@/lib/friends';
+import { recordSearch } from '@/lib/searchHistory';
 import { LiveBanner } from '@/components/LiveBanner';
 import { LiveStatusProvider } from '@/components/LiveStatusProvider';
 import { MatchSection } from '@/components/MatchSection';
@@ -62,6 +63,16 @@ export default async function PlayerPage({ params }: PageProps) {
       latestVersion(),
       auth(),
     ]);
+
+    // Fire-and-forget: the page shouldn't wait on (or fail from) this write.
+    if (session?.user?.id) {
+      void recordSearch(session.user.id, {
+        puuid: profile.puuid,
+        gameName: profile.gameName,
+        tagLine: profile.tagLine,
+        platform,
+      }).catch(() => {});
+    }
 
     // Empty for anybody the ingester doesn't track, which the sidebar handles
     // by fetching a deeper batch of live matches instead (below).

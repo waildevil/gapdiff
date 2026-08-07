@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/db/schema';
 import { RANKED_QUEUES } from '@/lib/riot/types';
 import { getGroupStandings } from './leaderboard';
-import { rankPoints } from './rating/rating';
+import { DIVISIONS, rankPoints, TIERS, type Division, type Tier } from './rating/rating';
 
 /**
  * What changed on a board, and when.
@@ -76,6 +76,29 @@ export interface TitleChange {
   takenFrom: string;
 }
 
+/** A ranked-solo division or tier promotion, spotted between two snapshots. */
+export interface RankUp {
+  puuid: string;
+  gameName: string;
+  tier: string;
+  division: string;
+  fromTier: string;
+  fromDivision: string;
+}
+
+/** A single game that beat this player's own all-time performance score. */
+export interface PersonalBest {
+  puuid: string;
+  gameName: string;
+  championName: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  score: number;
+  win: boolean;
+  previousBest: number;
+}
+
 export interface GroupMovement {
   slug: string;
   groupName: string;
@@ -97,6 +120,10 @@ export interface GroupMovement {
   titleChanges: TitleChange[];
   /** Individual games worth talking about, which is what people actually read. */
   highlights: Highlights;
+  /** Ranked-solo promotions inside the window. */
+  rankUps: RankUp[];
+  /** Games that broke a player's own all-time performance record. */
+  personalBests: PersonalBest[];
 }
 
 /**
@@ -149,6 +176,158 @@ async function lpDeltas(puuids: string[], since: Date): Promise<Map<string, numb
   }
 
   return deltas;
+}
+
+/**
+ * Tier + division only, ignoring LP — coarser than {@link rankPoints}, on
+ * purpose. Gaining LP inside the same division is already reported as the
+ * daily LP delta; this is only for the rarer, more exciting event of
+ * actually moving up a division or tier.
+ */
+function tierDivisionRank(tier: string, division: string): number {
+  const tierIndex = TIERS.indexOf(tier.toUpperCase() as Tier);
+  if (tierIndex < 0) return -1;
+  if (tierIndex >= TIERS.indexOf('MASTER')) return tierIndex * DIVISIONS.length;
+  const divisionIndex = DIVISIONS.indexOf(division.toUpperCase() as Division);
+  return tierIndex * DIVISIONS.length + Math.max(0, divisionIndex);
+}
+
+/**
+ * Ranked-solo promotions over a window, from the same snapshot history
+ * {@link lpDeltas} reads. Needs a snapshot on either side to say anything, so
+ * this stays quiet until the scheduled ingest has run at least twice.
+ */
+async function rankPromotions(
+  puuids: string[],
+  since: Date,
+): Promise<Map<string, { tier: string; division: string; fromTier: string; fromDivision: string }>> {
+  if (puuids.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      puuid: rankSnapshots.puuid,
+      tier: rankSnapshots.tier,
+      division: rankSnapshots.division,
+      capturedAt: rankSnapshots.capturedAt,
+    })
+    .from(rankSnapshots)
+    .where(
+      and(inArray(rankSnapshots.puuid, puuids), eq(rankSnapshots.queueType, 'RANKED_SOLO_5x5')),
+    )
+    .orderBy(desc(rankSnapshots.capturedAt));
+
+  const newest = new Map<string, { tier: string; division: string }>();
+  const oldestInWindow = new Map<string, { tier: string; division: string }>();
+  const baseline = new Map<string, { tier: string; division: string }>();
+
+  for (const row of rows) {
+    const rank = { tier: row.tier, division: row.division };
+    if (!newest.has(row.puuid)) newest.set(row.puuid, rank);
+    if (row.capturedAt >= since) oldestInWindow.set(row.puuid, rank);
+    else if (!baseline.has(row.puuid)) baseline.set(row.puuid, rank);
+  }
+
+  const promotions = new Map<
+    string,
+    { tier: string; division: string; fromTier: string; fromDivision: string }
+  >();
+  for (const [puuid, now] of newest) {
+    const then = baseline.get(puuid) ?? oldestInWindow.get(puuid);
+    if (!then) continue;
+    if (tierDivisionRank(now.tier, now.division) > tierDivisionRank(then.tier, then.division)) {
+      promotions.set(puuid, {
+        tier: now.tier,
+        division: now.division,
+        fromTier: then.tier,
+        fromDivision: then.division,
+      });
+    }
+  }
+  return promotions;
+}
+
+/**
+ * Games inside the window that beat a player's own all-time performance
+ * score. Players with no game before the window are skipped entirely — a
+ * first-ever tracked game trivially "beats" nothing, and treating it as a
+ * record would fire on every account added to the group.
+ */
+async function getPersonalBests(puuids: string[], since: Date): Promise<PersonalBest[]> {
+  if (puuids.length === 0) return [];
+
+  const priorBest = await db
+    .select({
+      puuid: matchParticipants.puuid,
+      best: sql<number>`max(${matchParticipants.performanceScore})`,
+    })
+    .from(matchParticipants)
+    .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
+    .where(
+      and(
+        inArray(matchParticipants.puuid, puuids),
+        eq(matches.scorable, true),
+        inArray(matches.queueId, RANKED_QUEUES),
+        lt(matches.gameCreation, since),
+        isNotNull(matchParticipants.performanceScore),
+      ),
+    )
+    .groupBy(matchParticipants.puuid);
+  const priorBestByPuuid = new Map(priorBest.map((r) => [r.puuid, r.best]));
+
+  const withHistory = puuids.filter((p) => priorBestByPuuid.has(p));
+  if (withHistory.length === 0) return [];
+
+  const windowRows = await db
+    .select({
+      puuid: matchParticipants.puuid,
+      gameName: accounts.gameName,
+      nickname: trackedAccounts.nickname,
+      championName: matchParticipants.championName,
+      kills: matchParticipants.kills,
+      deaths: matchParticipants.deaths,
+      assists: matchParticipants.assists,
+      score: matchParticipants.performanceScore,
+      win: matchParticipants.win,
+    })
+    .from(matchParticipants)
+    .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
+    .innerJoin(accounts, eq(accounts.puuid, matchParticipants.puuid))
+    .innerJoin(trackedAccounts, eq(trackedAccounts.puuid, matchParticipants.puuid))
+    .where(
+      and(
+        inArray(matchParticipants.puuid, withHistory),
+        eq(matches.scorable, true),
+        inArray(matches.queueId, RANKED_QUEUES),
+        gte(matches.gameCreation, since),
+        isNotNull(matchParticipants.performanceScore),
+      ),
+    )
+    .orderBy(desc(matchParticipants.performanceScore));
+
+  // Rows are ordered best-first, so the first hit per puuid is their best
+  // game of the window — exactly the one worth comparing to their record.
+  const seen = new Set<string>();
+  const bests: PersonalBest[] = [];
+  for (const row of windowRows) {
+    if (seen.has(row.puuid)) continue;
+    seen.add(row.puuid);
+
+    const previousBest = priorBestByPuuid.get(row.puuid)!;
+    if (row.score! <= previousBest) continue;
+
+    bests.push({
+      puuid: row.puuid,
+      gameName: row.nickname ?? row.gameName,
+      championName: row.championName,
+      kills: row.kills,
+      deaths: row.deaths,
+      assists: row.assists,
+      score: Math.round(row.score!),
+      win: row.win,
+      previousBest: Math.round(previousBest),
+    });
+  }
+  return bests;
 }
 
 /**
@@ -278,9 +457,11 @@ export async function getGroupMovement(
     .where(eq(groups.slug, slug));
 
   const puuidList = memberPuuids.map((m) => m.puuid);
-  const [lp, highlights] = await Promise.all([
+  const [lp, highlights, promotions, personalBests] = await Promise.all([
     lpDeltas(puuidList, since),
     getHighlights(puuidList, since),
+    rankPromotions(puuidList, since),
+    getPersonalBests(puuidList, since),
   ]);
 
   const players: PlayerMovement[] = now.entries.map((entry) => {
@@ -325,6 +506,10 @@ export async function getGroupMovement(
     }
   }
 
+  const rankUps: RankUp[] = players
+    .filter((p) => promotions.has(p.puuid))
+    .map((p) => ({ puuid: p.puuid, gameName: p.gameName, ...promotions.get(p.puuid)! }));
+
   return {
     slug,
     groupName: now.group.name,
@@ -333,6 +518,8 @@ export async function getGroupMovement(
     players,
     titleChanges,
     highlights,
+    rankUps,
+    personalBests,
   };
 }
 
@@ -344,6 +531,8 @@ export function hasNews(movement: GroupMovement): boolean {
       (p) => (p.positionDelta ?? 0) !== 0 || (p.lpDelta ?? 0) !== 0,
     ) ||
     movement.highlights.best !== null ||
-    movement.highlights.worst !== null
+    movement.highlights.worst !== null ||
+    movement.rankUps.length > 0 ||
+    movement.personalBests.length > 0
   );
 }

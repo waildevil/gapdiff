@@ -1,6 +1,6 @@
 import { ordinal } from './format';
 import type { GroupStandings } from './leaderboard';
-import type { GroupMovement, Highlights, NotableGame } from './movement';
+import type { GroupMovement, Highlights, NotableGame, PersonalBest, RankUp } from './movement';
 
 /**
  * Rendering group news as Discord messages.
@@ -72,6 +72,8 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
   );
 
   const stories = highlightLines(movement.highlights);
+  const climbs = rankUpLines(movement.rankUps);
+  const records = personalBestLines(movement.personalBests);
 
   /*
    * Movement is not the only news.
@@ -81,7 +83,9 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
    * single most postworthy thing the scoring has ever produced. Standings shift
    * slowly; individual games are the part worth interrupting people for.
    */
-  if (moved.length === 0 && stories.length === 0) return null;
+  if (moved.length === 0 && stories.length === 0 && climbs.length === 0 && records.length === 0) {
+    return null;
+  }
 
   // Biggest movers first — that is the bit people read.
   moved.sort(
@@ -109,9 +113,43 @@ export function digestPayload(movement: GroupMovement): WebhookPayload | null {
    * and started being clutter. Titles get their moment once, in the weekly
    * final, when they're actually decided rather than a mid-week snapshot.
    */
-  const sections = [stories.join('\n'), movers ? `Moved today — ${movers}` : ''].filter(Boolean);
+  const sections = [
+    climbs.join('\n'),
+    records.join('\n'),
+    stories.join('\n'),
+    movers ? `Moved today — ${movers}` : '',
+  ].filter(Boolean);
 
   return envelope(`${movement.groupName} — what changed`, movement.slug, sections.join('\n\n'));
+}
+
+/** Tier only, title-cased — divisions are already upper-case Roman numerals. */
+function prettyTier(tier: string): string {
+  const upper = tier.toUpperCase();
+  return upper.charAt(0) + upper.slice(1).toLowerCase();
+}
+
+function formatTierDivision(tier: string, division: string): string {
+  const pretty = prettyTier(tier);
+  return division ? `${pretty} ${division}` : pretty;
+}
+
+/** Division/tier promotions — rare enough to lead with. */
+function rankUpLines(rankUps: RankUp[]): string[] {
+  return rankUps.map(
+    (r) =>
+      `📈 **${r.gameName}** climbed to ${formatTierDivision(r.tier, r.division)} ` +
+      `(from ${formatTierDivision(r.fromTier, r.fromDivision)})`,
+  );
+}
+
+/** A game that beat a player's own all-time performance score. */
+function personalBestLines(bests: PersonalBest[]): string[] {
+  return bests.map(
+    (b) =>
+      `🏆 **${b.gameName}** new personal best — ${b.kills}/${b.deaths}/${b.assists} ` +
+      `${b.championName}, ${b.score} (prev ${b.previousBest})`,
+  );
 }
 
 /** The games worth a sentence. Numbers alone are a spreadsheet, not banter. */

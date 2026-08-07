@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { auth } from '@/auth';
 import { SearchForm } from '@/components/SearchForm';
-import { listGroups } from '@/lib/leaderboard';
+import { listUserGroups } from '@/lib/leaderboard';
+import { getRecentSearches } from '@/lib/searchHistory';
 import styles from './page.module.css';
 
 const EXAMPLES = [
@@ -10,8 +12,16 @@ const EXAMPLES = [
 ];
 
 export default async function HomePage() {
-  // Empty until a group has been seeded, so the link only appears when real.
-  const groups = await listGroups().catch(() => []);
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  // Both empty (and their sections hidden) for a signed-out visitor.
+  const [groups, recentSearches] = userId
+    ? await Promise.all([
+        listUserGroups(userId).catch(() => []),
+        getRecentSearches(userId).catch(() => []),
+      ])
+    : [[], []];
 
   return (
     <>
@@ -28,20 +38,37 @@ export default async function HomePage() {
           <SearchForm size="large" />
         </div>
 
-        <div className={styles.examples}>
-          <span className={styles.examplesLabel}>Try</span>
-          {EXAMPLES.map((example) => (
-            <Link
-              key={example.label}
-              className={styles.example}
-              href={`/player/${example.platform}/${example.gameName}/${example.tagLine}`}
-            >
-              {example.label}
-            </Link>
-          ))}
-        </div>
+        {userId ? (
+          recentSearches.length > 0 ? (
+            <div className={styles.examples}>
+              <span className={styles.examplesLabel}>Recent</span>
+              {recentSearches.map((player) => (
+                <Link
+                  key={player.puuid}
+                  className={styles.example}
+                  href={`/player/${player.platform}/${encodeURIComponent(player.gameName)}/${encodeURIComponent(player.tagLine)}`}
+                >
+                  {player.gameName}#{player.tagLine}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.examples}>
+              <span className={styles.examplesLabel}>Try</span>
+              {EXAMPLES.map((example) => (
+                <Link
+                  key={example.label}
+                  className={styles.example}
+                  href={`/player/${example.platform}/${example.gameName}/${example.tagLine}`}
+                >
+                  {example.label}
+                </Link>
+              ))}
+            </div>
+          )
+        ) : null}
 
-        {groups.length > 0 ? (
+        {userId && groups.length > 0 ? (
           <div className={styles.examples}>
             <span className={styles.examplesLabel}>Standings</span>
             {groups.map((group) => (

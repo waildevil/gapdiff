@@ -584,6 +584,31 @@ export const messages = pgTable(
   ],
 );
 
+/**
+ * The players a signed-in user has recently looked up.
+ *
+ * One row per (user, puuid) rather than one row per visit — repeat searches
+ * bump `searchedAt` instead of piling up duplicates, so "last 3 searched"
+ * means last 3 *distinct* players.
+ */
+export const searchHistory = pgTable(
+  'search_history',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    puuid: varchar('puuid', { length: 78 }).notNull(),
+    gameName: text('game_name').notNull(),
+    tagLine: varchar('tag_line', { length: 8 }).notNull(),
+    platform: varchar('platform', { length: 8 }).notNull(),
+    searchedAt: timestamp('searched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.puuid] }),
+    index('search_history_user_idx').on(table.userId, table.searchedAt),
+  ],
+);
+
 /** How far into a group's chat each member has read — a group message has no single recipient. */
 export const groupChatReads = pgTable(
   'group_chat_reads',
