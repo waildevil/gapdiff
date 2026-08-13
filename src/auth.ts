@@ -6,19 +6,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { authAccounts, authSessions, authVerificationTokens, users } from '@/db/schema';
-
-/** Discord's avatar CDN URL for a profile, or that discriminator's default. */
-function discordImageFor(profile: DiscordProfile): string {
-  const avatar = profile.avatar;
-  if (avatar === null) {
-    const index =
-      profile.discriminator === '0'
-        ? Number(BigInt(profile.id) >> BigInt(22)) % 6
-        : parseInt(profile.discriminator) % 5;
-    return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
-  }
-  return `https://cdn.discordapp.com/avatars/${profile.id}/${avatar}.${avatar.startsWith('a_') ? 'gif' : 'png'}`;
-}
+import { discordImageFor } from '@/lib/discord';
 
 /**
  * Discord sign-in.

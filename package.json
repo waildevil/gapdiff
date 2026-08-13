@@ -18,7 +18,8 @@
     "build-index": "tsx src/scripts/build-index.ts",
     "check-key": "tsx src/scripts/check-key.ts",
     "seed": "tsx src/scripts/seed-group.ts",
-    "ingest": "tsx src/scripts/ingest.ts"
+    "ingest": "tsx src/scripts/ingest.ts",
+    "discord:refresh-avatars": "tsx src/scripts/refresh-discord-avatars.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

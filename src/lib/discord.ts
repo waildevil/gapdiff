@@ -11,6 +11,26 @@ import type { GroupMovement, Highlights, NotableGame, PersonalBest, RankUp } fro
  * week, so every payload here is allowed to be null and the caller stays quiet.
  */
 
+/** The shape both the OAuth profile and the bot's `GET /users/{id}` share. */
+export interface DiscordAvatarSource {
+  id: string;
+  avatar: string | null;
+  discriminator: string;
+}
+
+/** Discord's avatar CDN URL for a user, or that discriminator's default. */
+export function discordImageFor(user: DiscordAvatarSource): string {
+  const { id, avatar, discriminator } = user;
+  if (avatar === null) {
+    const index =
+      discriminator === '0'
+        ? Number(BigInt(id) >> BigInt(22)) % 6
+        : parseInt(discriminator) % 5;
+    return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+  }
+  return `https://cdn.discordapp.com/avatars/${id}/${avatar}.${avatar.startsWith('a_') ? 'gif' : 'png'}`;
+}
+
 const SITE = 'https://gapdiff.vercel.app';
 
 /** Amber, matching the site's accent. */

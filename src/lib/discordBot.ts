@@ -39,6 +39,24 @@ export interface DiscordChannel {
   name: string;
 }
 
+export interface DiscordUser {
+  id: string;
+  username: string;
+  discriminator: string;
+  global_name: string | null;
+  avatar: string | null;
+}
+
+/**
+ * A user's public profile, by id. Bots can read this for anybody Discord
+ * knows about — no shared guild or that person's own token needed — which is
+ * what lets avatar/name resync run on a schedule instead of waiting for each
+ * person to sign back into the site.
+ */
+export async function getUser(userId: string): Promise<DiscordUser> {
+  return botRequest<DiscordUser>(`/users/${userId}`);
+}
+
 /** GUILD_TEXT and GUILD_ANNOUNCEMENT — the channel types a webhook can post into. */
 const POSTABLE_TYPES = new Set([0, 5]);
 

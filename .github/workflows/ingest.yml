@@ -63,3 +63,10 @@ jobs:
           if [ -n "${{ inputs.player }}" ]; then args="$args --player=${{ inputs.player }}"; fi
 
           npm run ingest -- $args
+
+      - name: Resync Discord names and avatars
+        if: ${{ secrets.DISCORD_BOT_TOKEN != '' }}
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run discord:refresh-avatars
