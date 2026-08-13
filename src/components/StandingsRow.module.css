@@ -44,19 +44,26 @@
   font-variant-numeric: tabular-nums;
 }
 
+.lead {
+  background: linear-gradient(90deg, var(--accent-soft), transparent 70%);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .lead .position,
 .lead .score {
   color: var(--accent);
+  text-shadow: 0 0 16px var(--accent-soft);
 }
 
 .avatar {
   width: 36px;
   height: 36px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--line);
+  border-radius: 50%;
+  border: 2px solid var(--accent);
   background: var(--surface-3);
   flex: 0 0 auto;
   object-fit: cover;
+  box-shadow: 0 0 8px var(--accent-soft);
 }
 
 .identity {

@@ -16,22 +16,22 @@
 :root {
   color-scheme: light;
 
-  --bg: #f5f7fa;
-  --surface: #ffffff;
-  --surface-2: #eef1f5;
-  --surface-3: #e2e7ee;
-  --line: #dbe1e8;
-  --line-soft: #e9edf1;
-  --text: #141b22;
-  --muted: #526271;
-  --faint: #7d8b98;
-  --accent: #2f6fed;
-  --accent-soft: rgba(47, 111, 237, 0.1);
-  --accent-line: rgba(47, 111, 237, 0.32);
-  --good: #0f8a58;
-  --bad: #c32e42;
-  --good-soft: rgba(15, 138, 88, 0.1);
-  --bad-soft: rgba(195, 46, 66, 0.1);
+  --bg: #e6dcc3;
+  --surface: #f2ecda;
+  --surface-2: #e9e0c6;
+  --surface-3: #ddd1ab;
+  --line: rgba(120, 90, 40, 0.38);
+  --line-soft: rgba(120, 90, 40, 0.18);
+  --text: #1a1410;
+  --muted: #5c5340;
+  --faint: #857a5e;
+  --accent: #8a5a1a;
+  --accent-soft: rgba(138, 90, 26, 0.12);
+  --accent-line: rgba(138, 90, 26, 0.4);
+  --good: #0d7d72;
+  --bad: #a5303a;
+  --good-soft: rgba(13, 125, 114, 0.12);
+  --bad-soft: rgba(165, 48, 58, 0.12);
   /* Saturation is pushed by driving the lowest channel toward zero rather than
      by lightening, which keeps every tier at or above 4.5:1 on white. */
   --iron: #5f6a70;
@@ -48,10 +48,10 @@
   --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 14px;
-  --rail-w: 208px;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --r-lg: 6px;
+  --rail-w: 216px;
   /* Chamfered corner for primary CTAs — the angular esports-HUD look, not a soft pill. */
   --chamfer: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
 
@@ -67,22 +67,22 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #0b0f14;
-  --surface: #11161d;
-  --surface-2: #171d26;
-  --surface-3: #1f2733;
-  --line: #2a323f;
-  --line-soft: #1c232d;
-  --text: #eef2f6;
-  --muted: #9aa7b4;
-  --faint: #6b7885;
-  --accent: #5b8dff;
-  --accent-soft: rgba(91, 141, 255, 0.16);
-  --accent-line: rgba(91, 141, 255, 0.4);
-  --good: #2fbf82;
-  --bad: #ef5468;
-  --good-soft: rgba(47, 191, 130, 0.14);
-  --bad-soft: rgba(239, 84, 104, 0.14);
+  --bg: #04070a;
+  --surface: #0a1428;
+  --surface-2: #0d1b30;
+  --surface-3: #122442;
+  --line: rgba(200, 170, 110, 0.38);
+  --line-soft: rgba(200, 170, 110, 0.16);
+  --text: #f0e6d2;
+  --muted: #a4a2ad;
+  --faint: #6b6a78;
+  --accent: #c8aa6e;
+  --accent-soft: rgba(200, 170, 110, 0.15);
+  --accent-line: rgba(200, 170, 110, 0.48);
+  --good: #0ac8b9;
+  --bad: #e0484f;
+  --good-soft: rgba(10, 200, 185, 0.13);
+  --bad-soft: rgba(224, 72, 79, 0.14);
 
   --iron: #9aa4ab;
   --bronze: #d99a4e;
@@ -195,6 +195,7 @@ h1 {
   letter-spacing: 0.005em;
   margin: 0 0 8px;
   text-wrap: balance;
+  text-shadow: 0 0 26px var(--accent-soft);
 }
 
 h2 {
@@ -219,11 +220,37 @@ h2 {
 /* ---------- primitives ---------- */
 
 .card {
-  background: var(--surface);
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  position: relative;
+}
+
+.card::before,
+.card::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 1;
+}
+
+.card::before {
+  top: 0;
+  right: 0;
+  border-top: 1px solid var(--accent-line);
+  border-right: 1px solid var(--accent-line);
+}
+
+.card::after {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid var(--accent-line);
+  border-left: 1px solid var(--accent-line);
 }
 
 .card-head {
@@ -236,9 +263,12 @@ h2 {
 }
 
 .card-title {
+  font-family: var(--font-display), var(--sans);
   font-size: 13px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .card-note {
@@ -382,6 +412,7 @@ tbody tr:hover {
   letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px var(--accent-soft);
 }
 
 .stat-foot {
@@ -428,7 +459,7 @@ tbody tr:hover {
 .seg button[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 10px var(--accent-soft);
+  box-shadow: inset 0 -2px 0 var(--accent), 0 0 10px var(--accent-soft);
 }
 
 .seg button:hover {
@@ -439,9 +470,10 @@ tbody tr:hover {
 
 .note {
   margin-top: 28px;
-  padding: 13px 15px;
-  background: var(--surface);
-  border: 1px dashed var(--line);
+  padding: 13px 15px 13px 16px;
+  background: linear-gradient(90deg, var(--accent-soft), transparent 35%), var(--surface);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
   border-radius: var(--r-md);
   font-size: 12px;
   color: var(--muted);
