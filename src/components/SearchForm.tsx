@@ -120,7 +120,7 @@ export function SearchForm({
   return (
     <div className={styles.wrap} ref={wrap}>
       <form
-        className={`${styles.form} ${size === 'large' ? styles.large : ''} ${size === 'rail' ? styles.rail : ''}`}
+        className={`${styles.form} ${size === 'large' ? styles.large : ''} ${size === 'rail' ? styles.rail : ''} ${size === 'compact' ? styles.compact : ''}`}
         onSubmit={handleSubmit}
         autoComplete="off"
       >
