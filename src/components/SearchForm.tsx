@@ -8,7 +8,7 @@ import { PLATFORMS, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import styles from './SearchForm.module.css';
 
 interface SearchFormProps {
-  size?: 'large' | 'compact';
+  size?: 'large' | 'compact' | 'rail';
   defaultPlatform?: Platform;
   defaultValue?: string;
 }
@@ -120,7 +120,7 @@ export function SearchForm({
   return (
     <div className={styles.wrap} ref={wrap}>
       <form
-        className={`${styles.form} ${size === 'large' ? styles.large : ''}`}
+        className={`${styles.form} ${size === 'large' ? styles.large : ''} ${size === 'rail' ? styles.rail : ''}`}
         onSubmit={handleSubmit}
         autoComplete="off"
       >

@@ -13,6 +13,18 @@
   max-width: 560px;
 }
 
+.rail {
+  flex-wrap: wrap;
+}
+
+.rail .select {
+  flex: 0 0 auto;
+}
+
+.rail .inputWrap {
+  flex: 1 1 100%;
+}
+
 .select {
   font-family: var(--mono);
   font-size: 12px;

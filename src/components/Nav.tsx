@@ -2,7 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MOCK_GROUP } from '@/lib/mock';
+import { useEffect, useState } from 'react';
+import { AccountButton, type SessionUser } from './AccountButton';
+import { Logo } from './Logo';
+import { SearchForm } from './SearchForm';
+import { ThemeToggle } from './ThemeToggle';
 import styles from './Nav.module.css';
 
 interface NavItem {
@@ -10,84 +14,143 @@ interface NavItem {
   glyph: string;
   label: string;
   short: string;
-  section: 'group' | 'analysis';
+  section: 'group' | 'account';
+  badge?: number;
 }
 
-const ITEMS: NavItem[] = [
-  { href: '/', glyph: '▤', label: 'Standings', short: 'Rank', section: 'group' },
-  { href: '/live', glyph: '◉', label: 'Live now', short: 'Live', section: 'group' },
-  { href: '/awards', glyph: '★', label: 'Weekly awards', short: 'Awards', section: 'group' },
-  { href: '/h2h', glyph: '⇄', label: 'Head to head', short: 'H2H', section: 'analysis' },
-  { href: '/champions', glyph: '◈', label: 'Champions', short: 'Champs', section: 'analysis' },
-  { href: '/duos', glyph: '⊞', label: 'Duo synergy', short: 'Duos', section: 'analysis' },
-];
-
-/** Player and match pages live under the standings tab. */
-function isActive(pathname: string, href: string): boolean {
-  if (href === '/') return pathname === '/' || pathname.startsWith('/player') || pathname.startsWith('/match');
-  return pathname.startsWith(href);
+interface RailProps {
+  user: SessionUser | null;
+  pendingDuels: number;
+  pendingFriendRequests: number;
+  /** The user's own group, first one joined. Null hides the Group section entirely. */
+  group: { slug: string; name: string } | null;
 }
 
-export function Rail() {
+function buildItems({ pendingDuels, pendingFriendRequests, group }: RailProps): NavItem[] {
+  const groupItems: NavItem[] = group
+    ? [
+        { href: `/group/${group.slug}#standings`, glyph: '▤', label: 'Standings', short: 'Rank', section: 'group' },
+        { href: `/group/${group.slug}#awards`, glyph: '★', label: 'Weekly awards', short: 'Awards', section: 'group' },
+        { href: `/group/${group.slug}#duos`, glyph: '⊞', label: 'Duo synergy', short: 'Duos', section: 'group' },
+      ]
+    : [];
+
+  return [
+    ...groupItems,
+    { href: '/friends', glyph: '⚑', label: 'Friends', short: 'Friends', section: 'account', badge: pendingFriendRequests },
+    { href: '/duels', glyph: '⇄', label: 'My duels', short: 'Duels', section: 'account', badge: pendingDuels },
+    { href: '/accounts', glyph: '◈', label: 'My Riot accounts', short: 'Accounts', section: 'account' },
+    { href: '/groups', glyph: '⊙', label: 'My groups', short: 'Groups', section: 'account' },
+  ];
+}
+
+/** Player and match pages read as part of the group they're scored against. */
+function isActive(pathname: string, hash: string, href: string): boolean {
+  const [hrefPath, hrefHash] = href.split('#');
+  if (!pathname.startsWith(hrefPath!)) return false;
+  // Several group items share the same pathname and differ only by hash.
+  if (!hrefHash) return true;
+  return hash === `#${hrefHash}`;
+}
+
+export function Rail(props: RailProps) {
   const pathname = usePathname();
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, [pathname]);
+
+  const items = buildItems(props);
+  const showSearch = pathname !== '/';
   const sections: { key: NavItem['section']; label: string }[] = [
-    { key: 'group', label: 'Group' },
-    { key: 'analysis', label: 'Analysis' },
+    { key: 'group', label: props.group ? props.group.name : 'Group' },
+    { key: 'account', label: 'Account' },
   ];
 
   return (
     <aside className={styles.rail}>
-      <div className={styles.brand}>
-        <div className={styles.mark}>
-          gap<span>diff</span>
+      <Link href="/" className={styles.brand}>
+        <Logo />
+        <span className={styles.brandText}>
+          <span className={styles.mark}>
+            gap<span>diff</span>
+          </span>
+          <span className={styles.sub}>League stats</span>
+        </span>
+      </Link>
+
+      {showSearch ? (
+        <div className={styles.search}>
+          <SearchForm size="rail" />
         </div>
-        <div className={styles.sub}>
-          {MOCK_GROUP.name} · {MOCK_GROUP.platform.toUpperCase()}
-        </div>
-      </div>
+      ) : null}
 
       <nav className={styles.nav}>
-        {sections.map((section) => (
-          <div key={section.key} style={{ display: 'contents' }}>
-            <div className={styles.navLabel}>{section.label}</div>
-            {ITEMS.filter((item) => item.section === section.key).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={styles.item}
-                aria-current={isActive(pathname, item.href) ? 'page' : undefined}
-              >
-                <span className={styles.glyph}>{item.glyph}</span>
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        ))}
+        {sections.map((section) => {
+          const sectionItems = items.filter((item) => item.section === section.key);
+          if (sectionItems.length === 0) return null;
+          return (
+            <div key={section.key} style={{ display: 'contents' }}>
+              <div className={styles.navLabel}>{section.label}</div>
+              {sectionItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={styles.item}
+                  aria-current={isActive(pathname, hash, item.href) ? 'page' : undefined}
+                >
+                  <span className={styles.glyph}>{item.glyph}</span>
+                  {item.label}
+                  {item.badge ? <span className={styles.badge}>{item.badge > 9 ? '9+' : item.badge}</span> : null}
+                </Link>
+              ))}
+            </div>
+          );
+        })}
       </nav>
 
       <div className={styles.foot}>
-        <div className={styles.sub}>
-          <span className={styles.dot} />2 in game
-        </div>
+        <ThemeToggle />
+        <AccountButton
+          user={props.user}
+          pendingDuels={props.pendingDuels}
+          pendingFriendRequests={props.pendingFriendRequests}
+          openUpward
+        />
       </div>
     </aside>
   );
 }
 
-export function TabBar() {
+export function TabBar(props: RailProps) {
   const pathname = usePathname();
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, [pathname]);
+
+  const items = buildItems(props);
 
   return (
     <nav className={styles.tabbar}>
-      {ITEMS.map((item) => (
+      {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           className={styles.tab}
-          aria-current={isActive(pathname, item.href) ? 'page' : undefined}
+          aria-current={isActive(pathname, hash, item.href) ? 'page' : undefined}
         >
           <span className={styles.glyph}>{item.glyph}</span>
           {item.short}
+          {item.badge ? <span className={styles.badge}>{item.badge > 9 ? '9+' : item.badge}</span> : null}
         </Link>
       ))}
     </nav>

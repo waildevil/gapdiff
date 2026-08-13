@@ -24,10 +24,13 @@ export function AccountButton({
   user,
   pendingDuels,
   pendingFriendRequests,
+  openUpward,
 }: {
   user: SessionUser | null;
   pendingDuels: number;
   pendingFriendRequests: number;
+  /** Set when the button sits at the bottom of the screen (the rail foot), so its menu doesn't run off-viewport. */
+  openUpward?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [challengeCount, setChallengeCount] = useState(pendingDuels);
@@ -100,7 +103,7 @@ export function AccountButton({
       </button>
 
       {open ? (
-        <div className={styles.menu} role="menu">
+        <div className={`${styles.menu} ${openUpward ? styles.menuUp : ''}`} role="menu">
           <Link className={styles.item} href="/groups" onClick={() => setOpen(false)}>
             My groups
           </Link>

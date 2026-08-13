@@ -12,20 +12,28 @@
 }
 
 .brand {
-  padding: 20px 18px 16px;
+  padding: 18px 18px 16px;
   border-bottom: 1px solid var(--accent-line);
   background: linear-gradient(180deg, var(--accent-soft), transparent);
   display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandText {
+  display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .mark {
   font-family: var(--font-display), var(--sans);
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  line-height: 1;
 }
 
 .mark span {
@@ -41,6 +49,13 @@
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search {
+  padding: 12px 14px 4px;
 }
 
 .nav {
@@ -97,35 +112,27 @@
   color: var(--accent);
 }
 
+.badge {
+  margin-left: auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
 .foot {
   padding: 14px 18px;
   border-top: 1px solid var(--line-soft);
-}
-
-.dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--bad);
-  margin-right: 7px;
-  vertical-align: middle;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .dot {
-    animation: pulse 2s ease-in-out infinite;
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .tabbar {
@@ -150,6 +157,7 @@
   }
 
   .tab {
+    position: relative;
     flex: 1;
     padding: 9px 2px;
     display: flex;
@@ -169,5 +177,12 @@
 
   .tab .glyph {
     font-size: 14px;
+  }
+
+  .tab .badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 22px);
+    margin-left: 0;
   }
 }

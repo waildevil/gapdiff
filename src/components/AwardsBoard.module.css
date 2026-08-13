@@ -1,0 +1,206 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.titleCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.titleCard:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-1px);
+}
+
+.unclaimed {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.unclaimed:hover {
+  border-color: var(--line);
+  transform: none;
+}
+
+.titleCardHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleLabel {
+  font-family: var(--font-display), var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.titleMetric {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.titleHolder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleHolderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.titleHolderName {
+  font-size: 14px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleHolderValue {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.unclaimedRow {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  font-style: italic;
+}
+
+.takenFrom {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.avatarImg {
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface-3);
+  object-fit: cover;
+  box-shadow: 0 0 8px var(--accent-soft);
+  flex: 0 0 auto;
+}
+
+.duoPair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.duoPlayer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.duoPlus {
+  color: var(--faint);
+  font-family: var(--mono);
+}
+
+.rosterHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 26px 0 12px;
+}
+
+.rosterLabel {
+  font-family: var(--font-display), var(--sans);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.rosterGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rosterCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.rosterCard:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-1px);
+}
+
+.rosterInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rosterName {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rosterNickname {
+  font-size: 11px;
+  color: var(--faint);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rosterTitle {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+@media (max-width: 1040px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rosterGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rosterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

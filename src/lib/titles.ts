@@ -26,6 +26,16 @@ export const MIN_GAMES_FOR_TITLE = (() => {
 })();
 
 /**
+ * Games together needed before a pair can contend for Duo Bond. Lower than
+ * MIN_GAMES_FOR_TITLE — two specific people queuing together that often in a
+ * week is already a smaller pool than one person just playing that often.
+ */
+export const MIN_GAMES_FOR_DUO_BOND = (() => {
+  const configured = Number.parseInt(process.env.DUO_BOND_MIN_GAMES ?? '', 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : 5;
+})();
+
+/**
  * Riot does not publish split boundaries through the API, so this is a setting.
  * Point SEASON_START at the current split's start date in .env. Used for the
  * standings; titles run on the weekly window below.
@@ -189,6 +199,10 @@ export interface TitleStats {
   laneDuels: number;
   /** Share of those duels this player scored higher in, 0-1. */
   laneWinRate: number;
+  /** Games this window that immediately followed one of this player's own losses. */
+  tiltGames: number;
+  /** Win rate in those games. -1 (never wins a 'max' title) when tiltGames is 0. */
+  tiltWinRate: number;
 }
 
 export interface TitleDefinition {
@@ -289,6 +303,14 @@ export const TITLES: TitleDefinition[] = [
     value: (s) => s.scoreStdDev,
     direction: 'min',
     describe: (s) => `the steadiest performance in the group over ${s.games} games`,
+  },
+  {
+    id: 'tilt-proof',
+    label: 'Tilt Proof',
+    value: (s) => s.tiltWinRate,
+    direction: 'max',
+    describe: (s) =>
+      `won ${Math.round(s.tiltWinRate * 100)}% of ${s.tiltGames} games right after a loss`,
   },
 ];
 
@@ -406,6 +428,15 @@ export const STAT_BOARDS: StatBoard[] = [
     direction: 'min',
     format: (v) => v.toFixed(1),
     titleId: 'mr-reliable',
+  },
+  {
+    id: 'tilt',
+    label: 'Tilt Proof',
+    metricLabel: 'win rate right after a loss',
+    value: (s) => s.tiltWinRate,
+    direction: 'max',
+    format: (v) => (v < 0 ? '—' : `${Math.round(v * 100)}%`),
+    titleId: 'tilt-proof',
   },
 ];
 

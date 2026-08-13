@@ -11,15 +11,15 @@ import {
   UnratedDivider,
 } from '@/components/StandingsRow';
 import { Pairings } from '@/components/Pairings';
+import { AwardsBoard } from '@/components/AwardsBoard';
 import { LiveStatusProvider } from '@/components/LiveStatusProvider';
 import { MyBoardAccounts } from '@/components/MyBoardAccounts';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { ScoreBreakdown } from '@/components/ScoreBreakdown';
-import { Titles } from '@/components/Titles';
 import { latestVersion } from '@/lib/ddragon';
 import { getRelationshipStatuses } from '@/lib/friends';
 import { listMyAccountsForGroup } from '@/lib/groups';
-import { getGroupStandings, type GroupStandings } from '@/lib/leaderboard';
+import { getGroupStandings, pickDuoBond, type GroupStandings } from '@/lib/leaderboard';
 import { currentPeriodIndex, listPeriods } from '@/lib/titles';
 
 interface PageProps {
@@ -95,6 +95,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
 
   const { group, entries, totalGames, period, boards, pairings } = standings;
   const scored = entries.filter((entry) => entry.rating.games > 0);
+  const duoBond = pickDuoBond(pairings);
 
   const ownerIds = entries
     .map((entry) => entry.player.ownerId)
@@ -128,7 +129,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
         />
       ) : (
         <>
-          <div className="card">
+          <div className="card" id="standings">
             <div className="card-head">
               <div className="card-title">Standings</div>
               <div className="card-note">
@@ -201,30 +202,29 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
             />
           ) : null}
 
-          <div className="section-gap grid grid-2">
-            <div>
-              <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
-                <div className="eyebrow">{period.label} · click a title for the full ranking</div>
-                <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
-                  Who leads what
-                </h2>
-              </div>
-              <Titles boards={boards} />
+          <div className="section-gap" id="awards">
+            <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
+              <div className="eyebrow">{period.label} · click a title for its holder</div>
+              <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>Weekly awards</h2>
             </div>
+            <AwardsBoard
+              boards={boards}
+              duoBond={duoBond}
+              players={entries.map((entry) => entry.player)}
+              version={version}
+            />
+          </div>
 
-            <div>
-              <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
-                <div className="eyebrow">Who queues with whom</div>
-                <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>
-                  Duos
-                </h2>
-              </div>
-              <Pairings
-                pairs={pairings}
-                players={entries.map((entry) => entry.player)}
-                periodLabel={period.label}
-              />
+          <div className="section-gap" id="duos">
+            <div className="page-head" style={{ marginTop: 24, marginBottom: 14 }}>
+              <div className="eyebrow">Who queues with whom</div>
+              <h2 style={{ fontSize: 19, margin: 0, letterSpacing: '-0.02em' }}>Duos</h2>
             </div>
+            <Pairings
+              pairs={pairings}
+              players={entries.map((entry) => entry.player)}
+              periodLabel={period.label}
+            />
           </div>
 
           <div className="section-gap">

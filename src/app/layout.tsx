@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import { Barlow_Condensed } from 'next/font/google';
 import { auth } from '@/auth';
 import { ChatWidget } from '@/components/ChatWidget';
-import { Header } from '@/components/Header';
+import { Rail, TabBar } from '@/components/Nav';
 import { countIncomingChallenges } from '@/lib/duels';
 import { countIncomingFriendRequests } from '@/lib/friends';
+import { listUserGroups } from '@/lib/leaderboard';
 import './globals.css';
 
 const display = Barlow_Condensed({
@@ -38,6 +39,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const pendingDuels = user ? await countIncomingChallenges(user.id) : 0;
   const pendingFriendRequests = user ? await countIncomingFriendRequests(user.id) : 0;
+  // Most recently joined first (see listUserGroups) — the first entry stands
+  // in for "your group" in the rail; nothing in the data model names a default.
+  const groups = user ? await listUserGroups(user.id) : [];
+  const group = groups[0] ?? null;
+
+  const navProps = { user, pendingDuels, pendingFriendRequests, group };
 
   return (
     <html lang="en">
@@ -45,12 +52,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className={display.variable}>
-        <Header
-          user={user}
-          pendingDuels={pendingDuels}
-          pendingFriendRequests={pendingFriendRequests}
-        />
-        <main>{children}</main>
+        <div className="app">
+          <Rail {...navProps} />
+          <main>{children}</main>
+        </div>
+        <TabBar {...navProps} />
         <ChatWidget signedIn={user !== null} />
       </body>
     </html>

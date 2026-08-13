@@ -17,6 +17,7 @@ import { buildLeaderboard, type Rating } from './rating/rating';
 import {
   assignTitles,
   currentPeriodIndex,
+  MIN_GAMES_FOR_DUO_BOND,
   MIN_GAMES_FOR_TITLE,
   periodWindow,
   seasonStart,
@@ -589,12 +590,39 @@ async function getPairings(
     );
 }
 
+export interface DuoBond {
+  aPuuid: string;
+  bPuuid: string;
+  games: number;
+  wins: number;
+  winRate: number;
+}
+
+/**
+ * The pair with the best win rate while queued together this window, among
+ * pairs with enough games together to mean something. Unlike every other
+ * title this is about two people at once, so it lives outside the
+ * per-player TITLES/assignTitles machinery rather than bending it to fit.
+ */
+export function pickDuoBond(pairings: PairRecord[]): DuoBond | null {
+  let best: DuoBond | null = null;
+  for (const pair of pairings) {
+    if (pair.togetherGames < MIN_GAMES_FOR_DUO_BOND) continue;
+    const winRate = pair.togetherWins / pair.togetherGames;
+    if (!best || winRate > best.winRate) {
+      best = { aPuuid: pair.aPuuid, bPuuid: pair.bPuuid, games: pair.togetherGames, wins: pair.togetherWins, winRate };
+    }
+  }
+  return best;
+}
+
 /** Titles run on the week window, not the whole season. */
 function toTitleStats(
   puuid: string,
   bucket: {
     windowScores: number[];
     windowRows: {
+      win: boolean;
       csPerMin: number;
       visionPerMin: number;
       damageShare: number;
@@ -644,6 +672,16 @@ function toTitleStats(
     { kills: 0, deaths: 0, assists: 0 },
   );
 
+  // rows is newest-first, so rows[i + 1] is the game immediately before rows[i]:
+  // rows[i] "follows a loss" when the game right before it (rows[i + 1]) was a loss.
+  let tiltGames = 0;
+  let tiltWins = 0;
+  for (let i = 0; i < rows.length - 1; i++) {
+    if (rows[i + 1]!.win) continue;
+    tiltGames++;
+    if (rows[i]!.win) tiltWins++;
+  }
+
   return {
     puuid,
     games: rows.length,
@@ -668,6 +706,8 @@ function toTitleStats(
     scoreStdDev,
     laneDuels: duels.length,
     laneWinRate: duels.length ? laneWins / duels.length : 0,
+    tiltGames,
+    tiltWinRate: tiltGames ? tiltWins / tiltGames : -1,
   };
 }
 
