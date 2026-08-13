@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { championIcon, itemIcon, spellIcon } from '@/lib/ddragon';
 import {
   formatDuration,
+  matchTimeTooltip,
   queueName,
   timeAgo,
   type LobbyPlayer,
@@ -72,7 +73,10 @@ export function MatchCard({ match, version, platform }: MatchCardProps) {
         <div className={styles.nameCell}>
           <div className={styles.champName}>{match.championName}</div>
           <div className={styles.sub}>
-            {queueName(match.queueId)} · {timeAgo(match.playedAt)}
+            {queueName(match.queueId)} ·{' '}
+            <span title={matchTimeTooltip(match.playedAt, match.durationSeconds)}>
+              {timeAgo(match.playedAt)}
+            </span>
           </div>
           <MatchBadges match={match} />
         </div>

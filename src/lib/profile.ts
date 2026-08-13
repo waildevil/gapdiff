@@ -471,3 +471,20 @@ export function formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
+
+const TOOLTIP_DATE = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+});
+const TOOLTIP_TIME = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** "Tue, Aug 10 2026 · 14:32 - 15:04" — start and end, in the viewer's local time. */
+export function matchTimeTooltip(playedAt: Date, durationSeconds: number): string {
+  const endedAt = new Date(playedAt.getTime() + durationSeconds * 1000);
+  return `${TOOLTIP_DATE.format(playedAt)} · ${TOOLTIP_TIME.format(playedAt)} - ${TOOLTIP_TIME.format(endedAt)}`;
+}
