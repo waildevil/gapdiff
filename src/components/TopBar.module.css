@@ -1,0 +1,10 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  padding: 10px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--accent-line);
+}

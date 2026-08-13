@@ -3,6 +3,7 @@ import { Barlow_Condensed } from 'next/font/google';
 import { auth } from '@/auth';
 import { ChatWidget } from '@/components/ChatWidget';
 import { Rail, TabBar } from '@/components/Nav';
+import { TopBar } from '@/components/TopBar';
 import { VercelAnalytics } from '@/components/VercelAnalytics';
 import { countIncomingChallenges } from '@/lib/duels';
 import { countIncomingFriendRequests } from '@/lib/friends';
@@ -54,7 +55,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={display.variable}>
         <div className="app">
           <Rail {...navProps} />
-          <main>{children}</main>
+          <main>
+            <TopBar />
+            {children}
+          </main>
         </div>
         <TabBar {...navProps} />
         <ChatWidget signedIn={user !== null} />
