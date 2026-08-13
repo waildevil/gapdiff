@@ -15,7 +15,11 @@ function profileHref(account: ScopedAccount) {
   return `/player/${account.platform}/${encodeURIComponent(account.gameName)}/${encodeURIComponent(account.tagLine)}`;
 }
 
+/** Discord avatar when verified, League profile icon otherwise, initials as a last resort. */
 function PlayerAvatar({ account, version }: { account: ScopedAccount; version: string }) {
+  if (account.ownerImage) {
+    return <img className={styles.avatarImg} src={account.ownerImage} alt="" width={28} height={28} />;
+  }
   if (account.profileIconId !== null) {
     return (
       <img

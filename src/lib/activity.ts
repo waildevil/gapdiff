@@ -39,13 +39,15 @@ export interface ScopedAccount {
   profileIconId: number | null;
   ownerUserId: string | null;
   ownerName: string | null;
+  ownerImage: string | null;
 }
 
 /**
  * Every account worth watching for a signed-in user: everyone tracked in any
  * group they belong to, plus every verified account of any accepted friend
  * (not `listFriends`' one-account-per-friend view — a friend's smurf matters
- * here). Deduped by puuid, capped defensively.
+ * here) — minus the viewer's own accounts, since you already know what you
+ * yourself are doing. Deduped by puuid, capped defensively.
  */
 export async function getActivityScope(userId: string): Promise<ScopedAccount[]> {
   const myGroups = await db
@@ -67,6 +69,12 @@ export async function getActivityScope(userId: string): Promise<ScopedAccount[]>
     r.requesterId === userId ? r.addresseeId : r.requesterId,
   );
 
+  const myOwnAccounts = await db
+    .select({ puuid: accountClaims.puuid })
+    .from(accountClaims)
+    .where(and(eq(accountClaims.userId, userId), isNotNull(accountClaims.verifiedAt)));
+  const myOwnPuuids = new Set(myOwnAccounts.map((a) => a.puuid));
+
   const accountColumns = {
     puuid: accounts.puuid,
     platform: accounts.platform,
@@ -75,6 +83,7 @@ export async function getActivityScope(userId: string): Promise<ScopedAccount[]>
     profileIconId: accounts.profileIconId,
     ownerUserId: accountClaims.userId,
     ownerName: users.name,
+    ownerImage: users.image,
   };
 
   const [groupAccounts, friendAccounts] = await Promise.all([
@@ -102,6 +111,7 @@ export async function getActivityScope(userId: string): Promise<ScopedAccount[]>
 
   const merged = new Map<string, ScopedAccount>();
   for (const row of [...groupAccounts, ...friendAccounts]) {
+    if (myOwnPuuids.has(row.puuid)) continue;
     if (!merged.has(row.puuid)) {
       merged.set(row.puuid, { ...row, platform: row.platform as Platform });
     }
