@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import NextAuth from 'next-auth';
 import Discord, { type DiscordProfile } from 'next-auth/providers/discord';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
@@ -5,6 +6,19 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { authAccounts, authSessions, authVerificationTokens, users } from '@/db/schema';
+
+/** Discord's avatar CDN URL for a profile, or that discriminator's default. */
+function discordImageFor(profile: DiscordProfile): string {
+  const avatar = profile.avatar;
+  if (avatar === null) {
+    const index =
+      profile.discriminator === '0'
+        ? Number(BigInt(profile.id) >> BigInt(22)) % 6
+        : parseInt(profile.discriminator) % 5;
+    return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+  }
+  return `https://cdn.discordapp.com/avatars/${profile.id}/${avatar}.${avatar.startsWith('a_') ? 'gif' : 'png'}`;
+}
 
 /**
  * Discord sign-in.
@@ -34,20 +48,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // holding for people who only ever wanted a leaderboard login.
       authorization: { params: { scope: 'identify' } },
       profile(profile: DiscordProfile) {
-        const avatar = profile.avatar;
-        const image =
-          avatar === null
-            ? `https://cdn.discordapp.com/embed/avatars/${
-                profile.discriminator === '0'
-                  ? Number(BigInt(profile.id) >> BigInt(22)) % 6
-                  : parseInt(profile.discriminator) % 5
-              }.png`
-            : `https://cdn.discordapp.com/avatars/${profile.id}/${avatar}.${avatar.startsWith('a_') ? 'gif' : 'png'}`;
         return {
           id: profile.id,
           name: profile.global_name ?? profile.username,
           email: null,
-          image,
+          image: discordImageFor(profile),
         };
       },
     }),
@@ -59,6 +64,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // keys off it.
       if (session.user) session.user.id = user.id;
       return session;
+    },
+  },
+  events: {
+    // The adapter only writes name/image from the provider profile the first
+    // time an account links — a Discord avatar or nickname change afterward
+    // never reaches `users` on its own. Every subsequent sign-in is a free
+    // resync: overwrite with whatever Discord says right now.
+    async signIn({ user, profile }) {
+      if (!user.id || !profile) return;
+      const image = discordImageFor(profile as DiscordProfile);
+      const name = (profile as DiscordProfile).global_name ?? (profile as DiscordProfile).username;
+      await db.update(users).set({ image, name }).where(eq(users.id, user.id));
     },
   },
   pages: {
