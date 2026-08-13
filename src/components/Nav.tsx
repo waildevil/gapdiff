@@ -1,13 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AccountButton, type SessionUser } from './AccountButton';
 import { Logo } from './Logo';
 import { SearchForm } from './SearchForm';
 import { ThemeToggle } from './ThemeToggle';
 import styles from './Nav.module.css';
+
+export interface RailGroup {
+  slug: string;
+  name: string;
+}
 
 interface NavItem {
   href: string;
@@ -22,16 +27,16 @@ interface RailProps {
   user: SessionUser | null;
   pendingDuels: number;
   pendingFriendRequests: number;
-  /** The user's own group, first one joined. Null hides the Group section entirely. */
-  group: { slug: string; name: string } | null;
+  /** Every group the user belongs to. Empty hides the Group section. */
+  groups: RailGroup[];
 }
 
-function buildItems({ pendingDuels, pendingFriendRequests, group }: RailProps): NavItem[] {
-  const groupItems: NavItem[] = group
+function buildItems({ pendingDuels, pendingFriendRequests, groups }: RailProps, activeSlug: string | null): NavItem[] {
+  const groupItems: NavItem[] = activeSlug
     ? [
-        { href: `/group/${group.slug}#standings`, glyph: '▤', label: 'Standings', short: 'Rank', section: 'group' },
-        { href: `/group/${group.slug}#awards`, glyph: '★', label: 'Weekly awards', short: 'Awards', section: 'group' },
-        { href: `/group/${group.slug}#duos`, glyph: '⊞', label: 'Duo synergy', short: 'Duos', section: 'group' },
+        { href: `/group/${activeSlug}#standings`, glyph: '▤', label: 'Standings', short: 'Rank', section: 'group' },
+        { href: `/group/${activeSlug}#awards`, glyph: '★', label: 'Weekly awards', short: 'Awards', section: 'group' },
+        { href: `/group/${activeSlug}#duos`, glyph: '⊞', label: 'Duo synergy', short: 'Duos', section: 'group' },
       ]
     : [];
 
@@ -53,9 +58,52 @@ function isActive(pathname: string, hash: string, href: string): boolean {
   return hash === `#${hrefHash}`;
 }
 
+/**
+ * Whichever group's page you're actually looking at, or the first one you're
+ * in otherwise — there's no "default group" in the data model, only however
+ * many you belong to.
+ */
+function useActiveGroup(groups: RailGroup[]): RailGroup | null {
+  const pathname = usePathname();
+  const onGroupPage = pathname.match(/^\/group\/([^/]+)/)?.[1];
+  if (onGroupPage) return groups.find((g) => g.slug === onGroupPage) ?? groups[0] ?? null;
+  return groups[0] ?? null;
+}
+
+function GroupSwitcher({ groups, active }: { groups: RailGroup[]; active: RailGroup | null }) {
+  const router = useRouter();
+
+  return (
+    <div className={styles.groupSwitch}>
+      {groups.length > 1 ? (
+        <select
+          className={styles.groupSelect}
+          value={active?.slug ?? ''}
+          onChange={(event) => router.push(`/group/${event.target.value}#standings`)}
+          aria-label="Switch group"
+        >
+          {groups.map((g) => (
+            <option key={g.slug} value={g.slug}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <span className={styles.navLabel} style={{ padding: 0 }}>
+          {active ? active.name : 'Group'}
+        </span>
+      )}
+      <Link href="/groups" className={styles.groupAdd} title="Add or manage a group" aria-label="Add or manage a group">
+        +
+      </Link>
+    </div>
+  );
+}
+
 export function Rail(props: RailProps) {
   const pathname = usePathname();
   const [hash, setHash] = useState('');
+  const active = useActiveGroup(props.groups);
 
   useEffect(() => {
     const sync = () => setHash(window.location.hash);
@@ -64,10 +112,10 @@ export function Rail(props: RailProps) {
     return () => window.removeEventListener('hashchange', sync);
   }, [pathname]);
 
-  const items = buildItems(props);
+  const items = buildItems(props, active?.slug ?? null);
   const showSearch = pathname !== '/';
   const sections: { key: NavItem['section']; label: string }[] = [
-    { key: 'group', label: props.group ? props.group.name : 'Group' },
+    { key: 'group', label: 'Group' },
     { key: 'account', label: 'Account' },
   ];
 
@@ -92,10 +140,15 @@ export function Rail(props: RailProps) {
       <nav className={styles.nav}>
         {sections.map((section) => {
           const sectionItems = items.filter((item) => item.section === section.key);
-          if (sectionItems.length === 0) return null;
+          if (section.key === 'group' && props.groups.length === 0 && !props.user) return null;
+
           return (
             <div key={section.key} style={{ display: 'contents' }}>
-              <div className={styles.navLabel}>{section.label}</div>
+              {section.key === 'group' && props.user ? (
+                <GroupSwitcher groups={props.groups} active={active} />
+              ) : (
+                <div className={styles.navLabel}>{section.label}</div>
+              )}
               {sectionItems.map((item) => (
                 <Link
                   key={item.href}
@@ -129,6 +182,7 @@ export function Rail(props: RailProps) {
 export function TabBar(props: RailProps) {
   const pathname = usePathname();
   const [hash, setHash] = useState('');
+  const active = useActiveGroup(props.groups);
 
   useEffect(() => {
     const sync = () => setHash(window.location.hash);
@@ -137,7 +191,7 @@ export function TabBar(props: RailProps) {
     return () => window.removeEventListener('hashchange', sync);
   }, [pathname]);
 
-  const items = buildItems(props);
+  const items = buildItems(props, active?.slug ?? null);
 
   return (
     <nav className={styles.tabbar}>

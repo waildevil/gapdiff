@@ -5,7 +5,7 @@ import { ChatWidget } from '@/components/ChatWidget';
 import { Rail, TabBar } from '@/components/Nav';
 import { countIncomingChallenges } from '@/lib/duels';
 import { countIncomingFriendRequests } from '@/lib/friends';
-import { listUserGroups } from '@/lib/leaderboard';
+import { listUserGroups } from '@/lib/groups';
 import './globals.css';
 
 const display = Barlow_Condensed({
@@ -39,12 +39,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const pendingDuels = user ? await countIncomingChallenges(user.id) : 0;
   const pendingFriendRequests = user ? await countIncomingFriendRequests(user.id) : 0;
-  // Most recently joined first (see listUserGroups) — the first entry stands
-  // in for "your group" in the rail; nothing in the data model names a default.
+  // Every group the user is in — the rail switches between them; nothing in
+  // the data model names a "default" one.
   const groups = user ? await listUserGroups(user.id) : [];
-  const group = groups[0] ?? null;
 
-  const navProps = { user, pendingDuels, pendingFriendRequests, group };
+  const navProps = { user, pendingDuels, pendingFriendRequests, groups };
 
   return (
     <html lang="en">

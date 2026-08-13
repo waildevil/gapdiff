@@ -66,6 +66,51 @@
   flex: 1;
 }
 
+.groupSwitch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 6px;
+}
+
+.groupSelect {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupSelect:hover {
+  color: var(--text);
+}
+
+.groupAdd {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.groupAdd:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
 .navLabel {
   font-family: var(--mono);
   font-size: 10px;

@@ -43,36 +43,39 @@ function PlayerAvatar({
 function TitleCard({ board, version }: { board: StatBoardResult; version: string }) {
   const holder = board.rows.find((row) => row.holdsTitle);
 
-  return (
-    <Link
-      href={holder ? profileHref(holder) : '#'}
-      className={`card ${styles.titleCard} ${holder ? '' : styles.unclaimed}`}
-      aria-disabled={!holder}
-      onClick={(event) => {
-        if (!holder) event.preventDefault();
-      }}
-    >
-      <div className={styles.titleCardHead}>
-        <span className={styles.titleLabel}>{board.label}</span>
-        <span className={styles.titleMetric}>{board.metricLabel}</span>
-      </div>
+  const head = (
+    <div className={styles.titleCardHead}>
+      <span className={styles.titleLabel}>{board.label}</span>
+      <span className={styles.titleMetric}>{board.metricLabel}</span>
+    </div>
+  );
 
-      {holder ? (
-        <div className={styles.titleHolder}>
-          <PlayerAvatar
-            player={{ gameName: holder.gameName, ownerImage: null, profileIconId: null }}
-            version={version}
-          />
-          <div className={styles.titleHolderInfo}>
-            <span className={styles.titleHolderName}>{holder.gameName}</span>
-            <span className={styles.titleHolderValue}>{holder.formatted}</span>
-          </div>
-        </div>
-      ) : (
+  // Nothing to link to when nobody leads this week — a plain div, not a
+  // disabled-looking Link (event handlers can't cross into a Link, a Client
+  // Component, from this Server Component anyway).
+  if (!holder) {
+    return (
+      <div className={`card ${styles.titleCard} ${styles.unclaimed}`}>
+        {head}
         <div className={styles.unclaimedRow}>nobody leads this week</div>
-      )}
+      </div>
+    );
+  }
 
-      {holder?.takenFrom ? <div className={styles.takenFrom}>taken from {holder.takenFrom}</div> : null}
+  return (
+    <Link href={profileHref(holder)} className={`card ${styles.titleCard}`}>
+      {head}
+      <div className={styles.titleHolder}>
+        <PlayerAvatar
+          player={{ gameName: holder.gameName, ownerImage: null, profileIconId: null }}
+          version={version}
+        />
+        <div className={styles.titleHolderInfo}>
+          <span className={styles.titleHolderName}>{holder.gameName}</span>
+          <span className={styles.titleHolderValue}>{holder.formatted}</span>
+        </div>
+      </div>
+      {holder.takenFrom ? <div className={styles.takenFrom}>taken from {holder.takenFrom}</div> : null}
     </Link>
   );
 }
