@@ -3,6 +3,7 @@ import type { DuoBond, LeaderboardPlayer, StatBoardResult } from '@/lib/leaderbo
 import { profileIcon } from '@/lib/ddragon';
 import { Avatar } from './Avatar';
 import { RankBadge } from './RankBadge';
+import { TitleCard } from './TitleCard';
 import styles from './AwardsBoard.module.css';
 
 function profileHref(player: { platform: string; gameName: string; tagLine: string }) {
@@ -38,46 +39,6 @@ function PlayerAvatar({
     );
   }
   return <Avatar name={player.gameName} size={size} />;
-}
-
-function TitleCard({ board, version }: { board: StatBoardResult; version: string }) {
-  const holder = board.rows.find((row) => row.holdsTitle);
-
-  const head = (
-    <div className={styles.titleCardHead}>
-      <span className={styles.titleLabel}>{board.label}</span>
-      <span className={styles.titleMetric}>{board.metricLabel}</span>
-    </div>
-  );
-
-  // Nothing to link to when nobody leads this week — a plain div, not a
-  // disabled-looking Link (event handlers can't cross into a Link, a Client
-  // Component, from this Server Component anyway).
-  if (!holder) {
-    return (
-      <div className={`card ${styles.titleCard} ${styles.unclaimed}`}>
-        {head}
-        <div className={styles.unclaimedRow}>nobody leads this week</div>
-      </div>
-    );
-  }
-
-  return (
-    <Link href={profileHref(holder)} className={`card ${styles.titleCard}`}>
-      {head}
-      <div className={styles.titleHolder}>
-        <PlayerAvatar
-          player={{ gameName: holder.gameName, ownerImage: null, profileIconId: null }}
-          version={version}
-        />
-        <div className={styles.titleHolderInfo}>
-          <span className={styles.titleHolderName}>{holder.gameName}</span>
-          <span className={styles.titleHolderValue}>{holder.formatted}</span>
-        </div>
-      </div>
-      {holder.takenFrom ? <div className={styles.takenFrom}>taken from {holder.takenFrom}</div> : null}
-    </Link>
-  );
 }
 
 function DuoBondCard({
@@ -138,7 +99,7 @@ export function AwardsBoard({
     <div>
       <div className={styles.grid}>
         {boards.map((board) => (
-          <TitleCard key={board.id} board={board} version={version} />
+          <TitleCard key={board.id} board={board} />
         ))}
         {duoBond ? <DuoBondCard duoBond={duoBond} players={players} version={version} /> : null}
       </div>

@@ -19,7 +19,6 @@
 
 .unclaimed {
   opacity: 0.6;
-  cursor: default;
 }
 
 .unclaimed:hover {
@@ -27,10 +26,82 @@
   transform: none;
 }
 
+.cardToggle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
 .titleCardHead {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.expandHint {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+
+.rankedList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rankedRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  transition: background-color 120ms ease;
+}
+
+.rankedRow:hover {
+  background: var(--surface-3);
+}
+
+.rankedIneligible {
+  opacity: 0.5;
+}
+
+.rankedPosition {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  width: 16px;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.rankedName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankedValue {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
 }
 
 .titleLabel {
