@@ -3,6 +3,7 @@ import { Barlow_Condensed } from 'next/font/google';
 import { auth } from '@/auth';
 import { ChatWidget } from '@/components/ChatWidget';
 import { Rail, TabBar } from '@/components/Nav';
+import { VercelAnalytics } from '@/components/VercelAnalytics';
 import { countIncomingChallenges } from '@/lib/duels';
 import { countIncomingFriendRequests } from '@/lib/friends';
 import { listUserGroups } from '@/lib/groups';
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </div>
         <TabBar {...navProps} />
         <ChatWidget signedIn={user !== null} />
+        <VercelAnalytics />
       </body>
     </html>
   );

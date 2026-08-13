@@ -23,6 +23,7 @@
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
     "@electric-sql/pglite": "^0.5.4",
+    "@vercel/analytics": "^2.0.1",
     "drizzle-orm": "^0.38.3",
     "next": "^15.1.4",
     "next-auth": "^5.0.0-beta.32",
