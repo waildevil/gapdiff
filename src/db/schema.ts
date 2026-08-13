@@ -624,6 +624,49 @@ export const groupChatReads = pgTable(
   (table) => [primaryKey({ columns: [table.groupId, table.userId] })],
 );
 
+// --- live activity -----------------------------------------------------
+
+/**
+ * Current spectator snapshot per tracked puuid, upserted by whichever
+ * viewer's activity-feed poll last checked that player — there is no cron
+ * for this. Doubles as a shared cache: a poll skips re-querying Riot for a
+ * puuid whose lastCheckedAt is still fresh (see src/lib/activity.ts).
+ */
+export const playerLiveState = pgTable('player_live_state', {
+  puuid: varchar('puuid', { length: 78 })
+    .primaryKey()
+    .references(() => accounts.puuid, { onDelete: 'cascade' }),
+  live: boolean('live').notNull().default(false),
+  // Text, not integer — Riot's raw gameId can exceed Postgres integer's 2.1B
+  // ceiling, and it's only ever compared for equality/grouping, never math.
+  gameId: text('game_id'),
+  queueId: integer('queue_id'),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Append-only log of live-state transitions — the activity feed's data source. */
+export const activityEvents = pgTable(
+  'activity_events',
+  {
+    id: serial('id').primaryKey(),
+    puuid: varchar('puuid', { length: 78 })
+      .notNull()
+      .references(() => accounts.puuid, { onDelete: 'cascade' }),
+    kind: varchar('kind', { length: 16 }).notNull(), // 'started' | 'finished'
+    gameId: text('game_id'),
+    queueId: integer('queue_id'),
+    // Game-start time for 'started'; detection time for 'finished' — Riot's
+    // spectator feed has no end timestamp to read.
+    at: timestamp('at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('activity_events_created_idx').on(table.createdAt),
+    index('activity_events_puuid_idx').on(table.puuid, table.createdAt),
+  ],
+);
+
 export const friendshipsRelations = relations(friendships, ({ one }) => ({
   requester: one(users, { fields: [friendships.requesterId], references: [users.id] }),
   addressee: one(users, { fields: [friendships.addresseeId], references: [users.id] }),
