@@ -1,6 +1,7 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import type { LeaderboardPlayer, PairRecord } from '@/lib/leaderboard';
-import { perfColor, winRate } from '@/lib/format';
+import { winRate } from '@/lib/format';
 import styles from './Pairings.module.css';
 
 interface PairingsProps {
@@ -20,6 +21,17 @@ interface PairingsProps {
  */
 export function Pairings({ pairs, players, periodLabel }: PairingsProps) {
   const byPuuid = new Map(players.map((p) => [p.puuid, p]));
+  const pairByKey = new Map(pairs.map((p) => [`${p.aPuuid}|${p.bPuuid}`, p]));
+
+  // Only members who show up in at least one pair get a row/column — an idle
+  // member would otherwise draw a matrix full of empty cells.
+  const activePuuids = new Set<string>();
+  for (const pair of pairs) {
+    if (pair.togetherGames === 0) continue;
+    activePuuids.add(pair.aPuuid);
+    activePuuids.add(pair.bPuuid);
+  }
+  const roster = players.filter((p) => activePuuids.has(p.puuid));
 
   return (
     <div className="card">
@@ -28,83 +40,61 @@ export function Pairings({ pairs, players, periodLabel }: PairingsProps) {
         <div className="card-note">Games in the same lobby · {periodLabel}</div>
       </div>
 
-      {pairs.length === 0 ? (
+      {roster.length === 0 ? (
         <div className={styles.empty}>
           Nobody has shared a lobby this period. Two members only land in one
           game by queueing together, so this fills up as soon as anybody duos.
         </div>
       ) : (
-        <div>
-          {pairs.map((pair) => {
-            const a = byPuuid.get(pair.aPuuid);
-            const b = byPuuid.get(pair.bPuuid);
-            if (!a || !b) return null;
-
-            const losses = pair.togetherGames - pair.togetherWins;
-            const rate = winRate(pair.togetherWins, losses);
-
-            return (
-              <div key={`${pair.aPuuid}|${pair.bPuuid}`} className={styles.row}>
-                <div className={styles.names}>
-                  <PlayerName player={a} />
-                  <span className={styles.amp}>+</span>
-                  <PlayerName player={b} />
-                </div>
-
-                <div className={styles.middle}>
-                  {pair.togetherGames > 0 ? (
-                    <>
-                      <div className={styles.record}>
-                        <span className={styles.wins}>{pair.togetherWins}W</span>{' '}
-                        <span className={styles.losses}>{losses}L</span>
-                        <span className={styles.rate} style={{ color: rateColor(rate) }}>
-                          {rate}%
-                        </span>
-                      </div>
-                      <div className={styles.bar}>
-                        <div
-                          className={styles.barWins}
-                          style={{ width: `${rate}%` }}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className={styles.record}>
-                      <span className={styles.faint}>never queued together</span>
-                    </div>
-                  )}
-
-                  <div className={styles.foot}>
-                    {pair.togetherGames} together
-                    {pair.aScore !== null && pair.bScore !== null ? (
-                      <>
-                        {' · '}
-                        <span style={{ color: perfColor(pair.aScore) }}>
-                          {pair.aScore.toFixed(0)}
-                        </span>
-                        {' / '}
-                        <span style={{ color: perfColor(pair.bScore) }}>
-                          {pair.bScore.toFixed(0)}
-                        </span>
-                        {' avg'}
-                      </>
-                    ) : null}
-                    {/* Only shown when it has ever happened, so the common case
-                        isn't cluttered with a permanent "0 against". */}
-                    {pair.againstGames > 0 ? (
-                      <>
-                        {' · '}
-                        <span className={styles.versus}>
-                          {pair.againstGames} against, {a.gameName} won{' '}
-                          {pair.againstAWins}
-                        </span>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
+        <div className={styles.matrixWrap}>
+          <div
+            className={styles.matrix}
+            style={{ gridTemplateColumns: `minmax(90px, auto) repeat(${roster.length}, 46px)` }}
+          >
+            <div className={styles.corner} />
+            {roster.map((p) => (
+              <div key={p.puuid} className={styles.colHead} title={p.nickname ?? p.gameName}>
+                {(p.nickname ?? p.gameName).slice(0, 4)}
               </div>
-            );
-          })}
+            ))}
+
+            {roster.map((rowPlayer) => (
+              <Fragment key={rowPlayer.puuid}>
+                <div className={styles.rowHead}>
+                  <PlayerName player={rowPlayer} />
+                </div>
+                {roster.map((colPlayer) => {
+                  if (colPlayer.puuid === rowPlayer.puuid) {
+                    return <div key={colPlayer.puuid} className={styles.selfCell} />;
+                  }
+                  const pair =
+                    pairByKey.get(`${rowPlayer.puuid}|${colPlayer.puuid}`) ??
+                    pairByKey.get(`${colPlayer.puuid}|${rowPlayer.puuid}`);
+
+                  if (!pair || pair.togetherGames === 0) {
+                    return <div key={colPlayer.puuid} className={styles.emptyCell} />;
+                  }
+
+                  const losses = pair.togetherGames - pair.togetherWins;
+                  const rate = winRate(pair.togetherWins, losses);
+
+                  return (
+                    <div
+                      key={colPlayer.puuid}
+                      className={styles.cell}
+                      style={{ background: cellTint(rate) }}
+                      title={`${rowPlayer.nickname ?? rowPlayer.gameName} + ${colPlayer.nickname ?? colPlayer.gameName}: ${pair.togetherWins}W ${losses}L over ${pair.togetherGames} games`}
+                    >
+                      <span className={styles.cellRate} style={{ color: rateColor(rate) }}>
+                        {rate}%
+                      </span>
+                      <span className={styles.cellGames}>{pair.togetherGames}g</span>
+                    </div>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -119,6 +109,15 @@ function rateColor(rate: number): string {
   if (rate >= 60) return 'var(--good)';
   if (rate <= 40) return 'var(--bad)';
   return 'var(--muted)';
+}
+
+/** Tints a cell toward good/bad soft, strength scaled by distance from 50%. */
+function cellTint(rate: number): string {
+  const strength = Math.min(Math.abs(rate - 50) / 50, 1);
+  if (strength < 0.08) return 'var(--surface-2)';
+  return rate >= 50
+    ? `color-mix(in srgb, var(--good-soft) ${Math.round(strength * 100)}%, var(--surface-2))`
+    : `color-mix(in srgb, var(--bad-soft) ${Math.round(strength * 100)}%, var(--surface-2))`;
 }
 
 function PlayerName({ player }: { player: LeaderboardPlayer }) {
