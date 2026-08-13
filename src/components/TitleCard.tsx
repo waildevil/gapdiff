@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { StatBoardResult } from '@/lib/leaderboard';
 import { Avatar } from './Avatar';
+import { Logo } from './Logo';
 import styles from './AwardsBoard.module.css';
 
 function profileHref(player: { platform: string; gameName: string; tagLine: string }) {
@@ -29,6 +30,7 @@ export function TitleCard({ board }: { board: StatBoardResult }) {
         aria-expanded={expanded}
       >
         <div className={styles.titleCardHead}>
+          <Logo size={16} />
           <span className={styles.titleLabel}>{board.label}</span>
           <span className={styles.titleMetric}>{board.metricLabel}</span>
           <span className={styles.expandHint}>{expanded ? 'hide ranking' : 'show ranking'}</span>

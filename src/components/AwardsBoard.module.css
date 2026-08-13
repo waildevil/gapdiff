@@ -41,9 +41,16 @@
 }
 
 .titleCardHead {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.titleCardHead > svg {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .expandHint {
