@@ -1,44 +1,12 @@
 import Link from 'next/link';
 import type { DuoBond, LeaderboardPlayer, StatBoardResult } from '@/lib/leaderboard';
-import { profileIcon } from '@/lib/ddragon';
-import { Avatar } from './Avatar';
+import { PlayerAvatar } from './PlayerAvatar';
 import { RankBadge } from './RankBadge';
 import { TitleCard } from './TitleCard';
 import styles from './AwardsBoard.module.css';
 
 function profileHref(player: { platform: string; gameName: string; tagLine: string }) {
   return `/player/${player.platform}/${encodeURIComponent(player.gameName)}/${encodeURIComponent(player.tagLine)}`;
-}
-
-/** Discord avatar when verified, League profile icon otherwise, initials as a last resort. */
-function PlayerAvatar({
-  player,
-  version,
-  size = 'md',
-}: {
-  player: Pick<LeaderboardPlayer, 'gameName' | 'ownerImage' | 'profileIconId'>;
-  version: string;
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  const px = size === 'lg' ? 54 : size === 'sm' ? 28 : 36;
-
-  if (player.ownerImage) {
-    return (
-      <img className={styles.avatarImg} src={player.ownerImage} alt="" width={px} height={px} />
-    );
-  }
-  if (player.profileIconId !== null) {
-    return (
-      <img
-        className={styles.avatarImg}
-        src={profileIcon(version, player.profileIconId)}
-        alt=""
-        width={px}
-        height={px}
-      />
-    );
-  }
-  return <Avatar name={player.gameName} size={size} />;
 }
 
 function DuoBondCard({
@@ -99,7 +67,7 @@ export function AwardsBoard({
     <div>
       <div className={styles.grid}>
         {boards.map((board) => (
-          <TitleCard key={board.id} board={board} />
+          <TitleCard key={board.id} board={board} players={players} version={version} />
         ))}
         {duoBond ? <DuoBondCard duoBond={duoBond} players={players} version={version} /> : null}
       </div>
