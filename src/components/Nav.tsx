@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AccountButton, type SessionUser } from './AccountButton';
 import { Logo } from './Logo';
-import { SearchForm } from './SearchForm';
 import { ThemeToggle } from './ThemeToggle';
 import styles from './Nav.module.css';
 
@@ -113,7 +112,6 @@ export function Rail(props: RailProps) {
   }, [pathname]);
 
   const items = buildItems(props, active?.slug ?? null);
-  const showSearch = pathname !== '/';
   const sections: { key: NavItem['section']; label: string }[] = [
     { key: 'group', label: 'Group' },
     { key: 'account', label: 'Account' },
@@ -130,12 +128,6 @@ export function Rail(props: RailProps) {
           <span className={styles.sub}>League stats</span>
         </span>
       </Link>
-
-      {showSearch ? (
-        <div className={styles.search}>
-          <SearchForm size="rail" />
-        </div>
-      ) : null}
 
       <nav className={styles.nav}>
         {sections.map((section) => {

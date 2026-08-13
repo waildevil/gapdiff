@@ -151,6 +151,13 @@ button {
 main {
   flex: 1;
   min-width: 0;
+  margin-left: var(--rail-w);
+}
+
+@media (max-width: 900px) {
+  main {
+    margin-left: 0;
+  }
 }
 
 .page {
