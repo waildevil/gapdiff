@@ -28,7 +28,7 @@ async function requireUserId(): Promise<string> {
 
 function message(error: unknown, fallback: string): string {
   if (error instanceof GroupError) return error.message;
-  return error instanceof Error ? error.message : fallback;
+  return fallback;
 }
 
 export type CreateGroupResult =

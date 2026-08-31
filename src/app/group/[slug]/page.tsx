@@ -24,7 +24,7 @@ import { currentPeriodIndex, listPeriods } from '@/lib/titles';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; previewError?: string }>;
 }
 
 /**
@@ -68,7 +68,7 @@ function reviveDates(standings: GroupStandings): GroupStandings {
 
 export default async function GroupPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { week: weekParam } = await searchParams;
+  const { week: weekParam, previewError } = await searchParams;
 
   const session = await auth();
   const access = await checkGroupAccess(slug, session?.user?.id);
@@ -76,6 +76,11 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
   if (!access.allowed) {
     if (access.reason === 'not-found') notFound();
     return <PrivateGroup name={access.groupName} slug={slug} signedIn={access.signedIn} />;
+  }
+
+  // Lets us review the route error boundary locally without affecting visitors.
+  if (process.env.NODE_ENV === 'development' && previewError === '1') {
+    throw new Error('Previewing the group error state');
   }
 
   const requested = Number.parseInt(weekParam ?? '', 10);
@@ -117,8 +122,7 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
       {entries.length === 0 ? (
         <EmptyState
           title="No members yet"
-          body="Add Riot IDs to config/group.json and run the seed script."
-          command="npm run seed"
+          body="This group is still being set up. Check back soon."
         />
       ) : (
         <>
@@ -283,29 +287,14 @@ function PrivateGroup({
 function EmptyState({
   title,
   body,
-  command,
 }: {
   title: string;
   body: string;
-  command: string;
 }) {
   return (
     <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
       <h2 style={{ fontSize: 18, margin: '0 0 8px', letterSpacing: '-0.01em' }}>{title}</h2>
       <p style={{ color: 'var(--muted)', margin: '0 0 18px' }}>{body}</p>
-      <code
-        style={{
-          fontFamily: 'var(--mono)',
-          fontSize: 12,
-          background: 'var(--surface-2)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--r-sm)',
-          padding: '7px 12px',
-          color: 'var(--accent)',
-        }}
-      >
-        {command}
-      </code>
       <p style={{ marginTop: 24 }}>
         <Link href="/" style={{ color: 'var(--accent)', fontFamily: 'var(--mono)', fontSize: 12 }}>
           ← Back to search

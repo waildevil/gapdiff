@@ -26,7 +26,7 @@ async function requireUserId(): Promise<string> {
 
 function message(error: unknown, fallback: string): string {
   if (error instanceof MessageError) return error.message;
-  return error instanceof Error ? error.message : fallback;
+  return fallback;
 }
 
 export type SendMessageResult = { ok: true } | { ok: false; error: string };

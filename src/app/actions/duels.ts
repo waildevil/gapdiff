@@ -19,7 +19,7 @@ async function requireUserId(): Promise<string> {
 
 function message(error: unknown, fallback: string): string {
   if (error instanceof DuelError) return error.message;
-  return error instanceof Error ? error.message : fallback;
+  return fallback;
 }
 
 export async function searchDuelTargetsAction(query: string): Promise<DuelTargetCandidate[]> {

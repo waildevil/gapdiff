@@ -25,7 +25,7 @@ async function requireUserId(): Promise<string> {
 
 function message(error: unknown, fallback: string): string {
   if (error instanceof FriendError) return error.message;
-  return error instanceof Error ? error.message : fallback;
+  return fallback;
 }
 
 export async function getIncomingFriendRequestCountAction(): Promise<number> {

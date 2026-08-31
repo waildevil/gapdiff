@@ -4,6 +4,7 @@ import { getLiveGameView, LANE_ROLES, type LiveGameParticipantView } from '@/lib
 import { ROLE_LABEL, winRate } from '@/lib/format';
 import { queueName } from '@/lib/profile';
 import { RiotApiError, getRiotClient } from '@/lib/riot/client';
+import { riotProblem } from '@/lib/riot/problem';
 import { isPlatform, PLATFORM_LABELS, regionForPlatform, type Platform } from '@/lib/riot/routing';
 import { LiveGameExpand, type LiveGameExpandProps } from '@/components/LiveGameExpand';
 import { LiveRefresh } from '@/components/LiveRefresh';
@@ -61,16 +62,20 @@ export default async function LiveGamePage({ params }: PageProps) {
         </Message>
       );
     }
+    const problem = riotProblem(error);
+    if (problem) return <RiotMessage problem={problem} />;
     throw error;
   }
 
-  const [game, version] = await Promise.all([
-    getLiveGameView(platform, puuid).catch((error) => {
-      if (error instanceof RiotApiError && (error.status === 401 || error.status === 403)) throw error;
-      return null;
-    }),
-    latestVersion(),
-  ]);
+  let game: Awaited<ReturnType<typeof getLiveGameView>>;
+  let version: string;
+  try {
+    [game, version] = await Promise.all([getLiveGameView(platform, puuid), latestVersion()]);
+  } catch (error) {
+    const problem = riotProblem(error);
+    if (problem) return <RiotMessage problem={problem} />;
+    throw error;
+  }
 
   if (!game) {
     return (
@@ -338,5 +343,14 @@ function Message({ title, children }: { title: string; children: React.ReactNode
       <h1 className={profileStyles.messageTitle}>{title}</h1>
       {children}
     </div>
+  );
+}
+
+function RiotMessage({ problem }: { problem: NonNullable<ReturnType<typeof riotProblem>> }) {
+  return (
+    <Message title={problem.title}>
+      <p className={profileStyles.messageBody}>{problem.body}</p>
+      {problem.hint ? <p className={profileStyles.messageBody}>{problem.hint}</p> : null}
+    </Message>
   );
 }

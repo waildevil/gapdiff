@@ -91,8 +91,8 @@ export function DiscordConnect({
     startTransition(async () => {
       try {
         apply(await action());
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Something went wrong saving that.');
+      } catch {
+        setError('Something went wrong saving that.');
       }
     });
   }

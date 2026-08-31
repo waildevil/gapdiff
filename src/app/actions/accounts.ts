@@ -9,6 +9,7 @@ import {
   VerificationError,
   type CheckResult,
 } from '@/lib/verification';
+import { riotProblem } from '@/lib/riot/problem';
 
 /** Every action here mutates one user's own claims, so the session is the authority. */
 async function requireUserId(): Promise<string> {
@@ -35,9 +36,11 @@ export async function claimAccount(riotId: string, platform: string): Promise<Cl
     };
   } catch (error) {
     if (error instanceof VerificationError) return { ok: false, error: error.message };
+    const problem = riotProblem(error);
+    if (problem) return { ok: false, error: [problem.body, problem.hint].filter(Boolean).join(' ') };
     return {
       ok: false,
-      error: error instanceof Error ? error.message : 'Could not look that account up.',
+      error: 'Could not look that account up.',
     };
   }
 }
@@ -51,9 +54,10 @@ export async function verifyAccount(
     if (result.status === 'verified') revalidatePath('/accounts');
     return result;
   } catch (error) {
+    const problem = riotProblem(error);
     return {
       status: 'error',
-      error: error instanceof Error ? error.message : 'Verification failed.',
+      error: problem ? [problem.body, problem.hint].filter(Boolean).join(' ') : 'Verification failed.',
     };
   }
 }

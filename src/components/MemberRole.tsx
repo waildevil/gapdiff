@@ -45,8 +45,8 @@ export function MemberRole({
           return;
         }
         setManager(!manager);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'That did not go through.');
+      } catch {
+        setError('That did not go through.');
       }
     });
   }

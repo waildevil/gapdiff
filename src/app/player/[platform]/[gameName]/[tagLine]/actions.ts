@@ -2,6 +2,7 @@
 
 import { getMatches, type MatchPage } from '@/lib/profile';
 import { isPlatform } from '@/lib/riot/routing';
+import { riotProblem } from '@/lib/riot/problem';
 
 /**
  * Backs both the queue tabs (start = 0) and the "Load more" button.
@@ -22,11 +23,12 @@ export async function fetchMatches(
   try {
     return await getMatches(platform, puuid, start, undefined, filterId);
   } catch (error) {
+    const problem = riotProblem(error);
     return {
       matches: [],
       hasMore: true,
       nextStart: start,
-      error: error instanceof Error ? error.message : 'Could not load games.',
+      error: problem ? [problem.body, problem.hint].filter(Boolean).join(' ') : 'Could not load games.',
     };
   }
 }

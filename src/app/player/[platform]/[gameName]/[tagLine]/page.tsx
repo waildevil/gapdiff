@@ -6,7 +6,7 @@ import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank, rankPoints } from '@/lib/rating/rating';
 import { getPeakRank, type PeakRank } from '@/lib/rankHistory';
 import { tierColor, winRate } from '@/lib/format';
-import { RiotApiError } from '@/lib/riot/client';
+import { riotProblem } from '@/lib/riot/problem';
 import { AddFriendButton } from '@/components/AddFriendButton';
 import { ChampionSidebar } from '@/components/ChampionSidebar';
 import { getChampionHistory } from '@/lib/championHistory';
@@ -205,27 +205,12 @@ export default async function PlayerPage({ params }: PageProps) {
       );
     }
 
-    if (error instanceof RiotApiError && (error.status === 401 || error.status === 403)) {
+    const problem = riotProblem(error);
+    if (problem) {
       return (
-        <Message title="Riot key expired">
-          <p className={styles.messageBody}>
-            The API key was rejected. Development keys last 24 hours.
-          </p>
-          <div className={styles.messageHint}>
-            Regenerate at developer.riotgames.com, then update RIOT_API_KEY in gapdiff/.env
-            and restart the dev server.
-          </div>
-        </Message>
-      );
-    }
-
-    if (error instanceof RiotApiError && error.status === 429) {
-      return (
-        <Message title="Rate limited">
-          <p className={styles.messageBody}>
-            Riot is throttling us. Development keys allow 20 requests per second and 100
-            every two minutes, and a profile costs about a dozen. Wait a moment and retry.
-          </p>
+        <Message title={problem.title}>
+          <p className={styles.messageBody}>{problem.body}</p>
+          {problem.hint ? <div className={styles.messageHint}>{problem.hint}</div> : null}
         </Message>
       );
     }

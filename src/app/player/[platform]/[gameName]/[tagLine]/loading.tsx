@@ -14,7 +14,7 @@ export default function Loading() {
           color: 'var(--faint)',
         }}
       >
-        Fetching from Riot
+        Loading player
       </div>
       <div
         style={{
@@ -29,7 +29,7 @@ export default function Loading() {
         <div className="loadingBar" />
       </div>
       <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 18 }}>
-        Resolving the account, then scoring the last ten games against their lobbies.
+        Getting the latest player summary…
       </p>
     </div>
   );

@@ -3,6 +3,7 @@ import { latestVersion } from '@/lib/ddragon';
 import { getChampionHistory, getChampionMatchups } from '@/lib/championHistory';
 import { getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
+import { riotProblem } from '@/lib/riot/problem';
 import { ChampionTable } from '@/components/ChampionTable';
 import styles from './champions.module.css';
 
@@ -38,6 +39,8 @@ export default async function ChampionsPage({ params }: PageProps) {
     if (error instanceof ProfileNotFound) {
       return <Missing gameName={gameName} tagLine={tagLine} />;
     }
+    const problem = riotProblem(error);
+    if (problem) return <Unavailable problem={problem} profileHref={profileHref} />;
     throw error;
   }
 
@@ -83,6 +86,29 @@ export default async function ChampionsPage({ params }: PageProps) {
       ) : (
         <ChampionTable history={history.rows} matchups={matchups} version={version} />
       )}
+    </div>
+  );
+}
+
+function Unavailable({
+  problem,
+  profileHref,
+}: {
+  problem: NonNullable<ReturnType<typeof riotProblem>>;
+  profileHref: string;
+}) {
+  return (
+    <div className={styles.wrap}>
+      <div className="card">
+        <div className={styles.empty}>
+          <b>{problem.title}</b>
+          <p>{problem.body}</p>
+          {problem.hint ? <p>{problem.hint}</p> : null}
+          <Link href={profileHref} className={styles.link}>
+            Back to profile →
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
