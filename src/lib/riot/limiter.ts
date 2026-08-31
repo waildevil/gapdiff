@@ -98,6 +98,14 @@ class WindowSet {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Thrown when a caller has opted not to wait for a rate-limit window. */
+export class RiotRateLimitWaitError extends Error {
+  constructor(readonly waitMs: number) {
+    super(`Riot rate limit requires waiting ${waitMs}ms`);
+    this.name = 'RiotRateLimitWaitError';
+  }
+}
+
 export class RiotRateLimiter {
   private app: WindowSet;
   private methods = new Map<string, WindowSet>();
@@ -123,14 +131,14 @@ export class RiotRateLimiter {
    * Waits until a request to `method` is allowed, then records it.
    * Calls are serialised, so the recorded slot is genuinely reserved.
    */
-  async acquire(method: string): Promise<void> {
-    const run = this.chain.then(() => this.gate(method));
+  async acquire(method: string, maxWaitMs?: number): Promise<void> {
+    const run = this.chain.then(() => this.gate(method, maxWaitMs));
     // Keep the chain alive even if one waiter rejects.
     this.chain = run.catch(() => undefined);
     return run;
   }
 
-  private async gate(method: string): Promise<void> {
+  private async gate(method: string, maxWaitMs?: number): Promise<void> {
     const methodWindows = this.methodWindows(method);
 
     // Loop rather than wait once: sleeping can push us into a different window.
@@ -147,6 +155,9 @@ export class RiotRateLimiter {
         this.app.record(now);
         methodWindows.record(now);
         return;
+      }
+      if (maxWaitMs !== undefined && wait > maxWaitMs) {
+        throw new RiotRateLimitWaitError(wait);
       }
       await sleep(wait);
     }

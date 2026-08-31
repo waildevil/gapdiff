@@ -1,4 +1,4 @@
-import { RiotRateLimiter } from './limiter';
+import { RiotRateLimiter, RiotRateLimitWaitError } from './limiter';
 import {
   platformHost,
   regionForPlatform,
@@ -36,6 +36,10 @@ export interface RiotClientOptions {
   apiKey: string;
   /** Attempts per request, including the first. */
   maxRetries?: number;
+  /** Hard cap for one HTTP request, so a stalled upstream cannot hang a page. */
+  requestTimeoutMs?: number;
+  /** Maximum time to wait for Riot's rate-limit window before failing. */
+  maxRateLimitWaitMs?: number;
   /** Shared across clients so one budget covers the whole process. */
   limiter?: RiotRateLimiter;
   fetch?: typeof fetch;
@@ -43,10 +47,13 @@ export interface RiotClientOptions {
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
 export class RiotClient {
   private readonly apiKey: string;
   private readonly maxRetries: number;
+  private readonly requestTimeoutMs: number;
+  private readonly maxRateLimitWaitMs: number | undefined;
   private readonly limiter: RiotRateLimiter;
   private readonly doFetch: typeof fetch;
 
@@ -56,6 +63,8 @@ export class RiotClient {
     }
     this.apiKey = options.apiKey;
     this.maxRetries = options.maxRetries ?? 4;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.maxRateLimitWaitMs = options.maxRateLimitWaitMs;
     this.limiter = options.limiter ?? new RiotRateLimiter();
     this.doFetch = options.fetch ?? globalThis.fetch;
   }
@@ -81,12 +90,20 @@ export class RiotClient {
     let lastError: unknown;
 
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-      await this.limiter.acquire(method);
+      try {
+        await this.limiter.acquire(method, this.maxRateLimitWaitMs);
+      } catch (error) {
+        if (error instanceof RiotRateLimitWaitError) {
+          throw new RiotApiError(429, method, url, 'Riot rate limit is active');
+        }
+        throw error;
+      }
 
       let response: Response;
       try {
         response = await this.doFetch(url, {
           headers: { 'X-Riot-Token': this.apiKey },
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
           ...(cache ? { next: cache } : {}),
         });
       } catch (error) {
@@ -122,9 +139,8 @@ export class RiotClient {
       );
     }
 
-    throw lastError instanceof Error
-      ? lastError
-      : new RiotApiError(0, method, url, 'Request failed after retries');
+    if (lastError instanceof RiotApiError) throw lastError;
+    throw new RiotApiError(0, method, url, 'Could not reach Riot after retries');
   }
 
   /** Wraps a call so a missing resource yields null instead of throwing. */
@@ -308,7 +324,14 @@ let shared: RiotClient | undefined;
 
 export function getRiotClient(): RiotClient {
   if (!shared) {
-    shared = new RiotClient({ apiKey: process.env.RIOT_API_KEY ?? '' });
+    // A visitor should get a helpful rate-limit message, not wait through
+    // Riot's Retry-After period. The ingestion worker creates its own client
+    // with retries enabled because it runs in the background.
+    shared = new RiotClient({
+      apiKey: process.env.RIOT_API_KEY ?? '',
+      maxRetries: 1,
+      maxRateLimitWaitMs: 0,
+    });
   }
   return shared;
 }
