@@ -94,7 +94,6 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
   const standings = reviveDates(standingsRaw);
 
   const { group, entries, totalGames, period, boards, pairings } = standings;
-  const scored = entries.filter((entry) => entry.rating.games > 0);
   const duoBond = pickDuoBond(pairings);
 
   const ownerIds = entries
@@ -120,12 +119,6 @@ export default async function GroupPage({ params, searchParams }: PageProps) {
           title="No members yet"
           body="Add Riot IDs to config/group.json and run the seed script."
           command="npm run seed"
-        />
-      ) : scored.length === 0 ? (
-        <EmptyState
-          title="No games ingested yet"
-          body="The group exists but no match history has been pulled in."
-          command="npm run ingest"
         />
       ) : (
         <>
