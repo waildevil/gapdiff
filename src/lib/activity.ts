@@ -6,6 +6,8 @@ import {
   activityEvents,
   friendships,
   groupMemberships,
+  matchParticipants,
+  matches,
   playerLiveState,
   trackedAccounts,
   users,
@@ -18,10 +20,10 @@ import type { CurrentGameInfo } from './riot/types';
  * The live activity feed: what the viewer's friends and group-mates are doing
  * right now. There is no cron for this (see docs/DESIGN.md / CLAUDE.md) — a
  * poll from any viewer's open feed both reads and refreshes shared state, so
- * `player_live_state` doubles as a cache and `activity_events` as the log.
- * As long as *someone* with an overlapping friend/group circle has the feed
- * open, everyone who shares that circle sees transitions detected on their
- * behalf.
+ * `player_live_state` doubles as a cache and `activity_events` retains an
+ * internal log of observed live-state transitions. Completed-match history is
+ * read from the ingestion pipeline instead, so it does not depend on a viewer
+ * having the feed open at exactly the right time.
  */
 
 /** Same ceiling as MAX_PLAYERS in src/app/api/live-status/route.ts. */
@@ -129,8 +131,9 @@ export interface LiveGroup {
 }
 
 export interface ActivityEventView {
-  id: number;
-  kind: 'started' | 'finished';
+  /** The completed-match id, so this history survives missed live polls. */
+  id: string;
+  kind: 'played';
   at: Date;
   queueId: number | null;
   account: ScopedAccount;
@@ -143,9 +146,9 @@ export interface ActivityFeed {
 
 /**
  * Refreshes whichever of the viewer's scoped accounts haven't been checked
- * recently, then reads back the current feed. The refresh and the read are
- * one call on purpose — every viewer's poll both consumes and maintains the
- * shared state.
+ * recently, then reads back the current feed. The refresh maintains the
+ * "live now" cache; completed-match history comes from the ingestion pipeline
+ * so games remain visible even when nobody had this page open at the time.
  */
 export async function refreshAndListActivity(userId: string, limit = 30): Promise<ActivityFeed> {
   const scope = await getActivityScope(userId);
@@ -216,21 +219,30 @@ export async function refreshAndListActivity(userId: string, limit = 30): Promis
     }))
     .sort((a, b) => (b.startedAt?.getTime() ?? 0) - (a.startedAt?.getTime() ?? 0));
 
-  const eventRows = await db
-    .select()
-    .from(activityEvents)
-    .where(inArray(activityEvents.puuid, scopePuuids))
-    .orderBy(desc(activityEvents.createdAt))
+  const completedMatches = await db
+    .select({
+      matchId: matches.matchId,
+      puuid: matchParticipants.puuid,
+      queueId: matches.queueId,
+      gameCreation: matches.gameCreation,
+      durationSeconds: matches.durationSeconds,
+    })
+    .from(matchParticipants)
+    .innerJoin(matches, eq(matches.matchId, matchParticipants.matchId))
+    .where(inArray(matchParticipants.puuid, scopePuuids))
+    .orderBy(desc(matches.gameCreation))
     .limit(limit);
 
-  const recentEvents: ActivityEventView[] = eventRows
-    .map((row) => {
+  const recentEvents: ActivityEventView[] = completedMatches
+    .map((row): ActivityEventView | null => {
       const account = byPuuid.get(row.puuid);
       if (!account) return null;
       return {
-        id: row.id,
-        kind: row.kind as 'started' | 'finished',
-        at: row.at,
+        id: row.matchId,
+        kind: 'played' as const,
+        // A completed match should read as recent activity when it ends, not
+        // when champion select began.
+        at: new Date(row.gameCreation.getTime() + row.durationSeconds * 1_000),
         queueId: row.queueId,
         account,
       };

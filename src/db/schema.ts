@@ -645,7 +645,7 @@ export const playerLiveState = pgTable('player_live_state', {
   lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** Append-only log of live-state transitions — the activity feed's data source. */
+/** Append-only diagnostic log of observed live-state transitions. */
 export const activityEvents = pgTable(
   'activity_events',
   {

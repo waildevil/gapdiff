@@ -79,14 +79,13 @@ function LiveRow({ group, version }: { group: LiveGroup; version: string }) {
 
 function EventRow({ event, version }: { event: ActivityEventView; version: string }) {
   const queue = event.queueId !== null ? queueName(event.queueId) : 'a game';
-  const verb = event.kind === 'started' ? 'started' : 'finished';
 
   return (
     <Link href={profileHref(event.account)} className={`${styles.row} ${styles.rowLinkable}`}>
       <PlayerAvatar account={event.account} version={version} />
       <div className={styles.rowBody}>
         <div className={styles.rowText}>
-          {event.account.gameName} {verb} {queue}
+          {event.account.gameName} played {queue}
         </div>
         <div className={styles.rowMeta}>{timeAgo(event.at)}</div>
       </div>
