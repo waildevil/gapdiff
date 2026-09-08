@@ -4,6 +4,8 @@ name: Refresh avatars
 # the stored image used across boards, activity and friends fresh without
 # requiring that person to sign in again.
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch: {}

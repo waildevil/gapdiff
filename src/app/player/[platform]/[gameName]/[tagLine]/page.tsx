@@ -1,6 +1,6 @@
 ﻿import Link from 'next/link';
 import { auth } from '@/auth';
-import { latestVersion, profileIcon, rankEmblem } from '@/lib/ddragon';
+import { latestVersion, rankEmblem } from '@/lib/ddragon';
 import { getMatches, getProfile, ProfileNotFound } from '@/lib/profile';
 import { isPlatform, PLATFORM_LABELS, type Platform } from '@/lib/riot/routing';
 import { formatRank, rankPoints } from '@/lib/rating/rating';
@@ -16,6 +16,7 @@ import { LiveBanner } from '@/components/LiveBanner';
 import { LiveStatusProvider } from '@/components/LiveStatusProvider';
 import { MatchSection } from '@/components/MatchSection';
 import { RecentlyPlayedWith } from '@/components/RecentlyPlayedWith';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import styles from './profile.module.css';
 
 interface PageProps {
@@ -131,12 +132,14 @@ export default async function PlayerPage({ params }: PageProps) {
         <div className={styles.main}>
           <div className="card">
             <div className={styles.identity}>
-            <img
-              className={styles.icon}
-              src={profileIcon(version, profile.profileIconId)}
-              alt=""
-              width={72}
-              height={72}
+            <PlayerAvatar
+              player={{
+                gameName: profile.gameName,
+                ownerImage: owner?.image ?? null,
+                profileIconId: profile.profileIconId,
+              }}
+              version={version}
+              size="xl"
             />
 
             <div className={styles.names}>

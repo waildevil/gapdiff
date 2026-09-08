@@ -18,10 +18,13 @@ const SEARCH_LIMIT = 8;
 
 /** Who, if anyone, has proved they own this Riot account — the bar a profile
  *  page checks before it can offer a friend request. */
-export async function getVerifiedOwner(puuid: string): Promise<{ userId: string } | null> {
+export async function getVerifiedOwner(
+  puuid: string,
+): Promise<{ userId: string; image: string | null } | null> {
   const [row] = await db
-    .select({ userId: accountClaims.userId })
+    .select({ userId: accountClaims.userId, image: users.image })
     .from(accountClaims)
+    .innerJoin(users, eq(users.id, accountClaims.userId))
     .where(and(eq(accountClaims.puuid, puuid), isNotNull(accountClaims.verifiedAt)))
     .limit(1);
   return row ?? null;
