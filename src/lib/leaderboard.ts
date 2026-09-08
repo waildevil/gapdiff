@@ -178,11 +178,12 @@ export async function getGroupStandings(
     .leftJoin(users, eq(users.id, accountClaims.userId))
     .where(eq(trackedAccounts.groupId, group.id));
 
-  // A scheduled refresh keeps the normal path cheap, but a verified user with
-  // a missing stored image should repair itself on the first board visit.
+  // A scheduled refresh handles the normal path. The bounded repair also
+  // refreshes verified owners on a board visit, because a stored CDN URL can
+  // exist while still being unusable in the browser.
   await Promise.all(
     members
-      .filter((member) => member.verifiedAt !== null && member.ownerId !== null && !member.ownerImage)
+      .filter((member) => member.verifiedAt !== null && member.ownerId !== null)
       .map(async (member) => {
         const repaired = await repairDiscordProfile(member.ownerId!);
         if (repaired) member.ownerImage = repaired.image;

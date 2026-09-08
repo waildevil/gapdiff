@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { authAccounts, users } from '@/db/schema';
 import { discordImageFor } from './discord';
@@ -32,7 +32,7 @@ export async function repairDiscordProfile(userId: string): Promise<{ image: str
   const [linked] = await db
     .select({ discordId: authAccounts.providerAccountId })
     .from(authAccounts)
-    .where(eq(authAccounts.userId, userId))
+    .where(and(eq(authAccounts.userId, userId), eq(authAccounts.provider, 'discord')))
     .limit(1);
   if (!linked) return null;
 
