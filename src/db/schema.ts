@@ -291,6 +291,112 @@ export const matches = pgTable(
   (table) => [index('matches_game_creation_idx').on(table.gameCreation)],
 );
 
+// --- public champion-meta collector --------------------------------------
+
+/**
+ * Accounts the public-meta worker may sample. This is intentionally separate
+ * from `accounts`: a seed is an ingestion lead, not someone who signed in or
+ * joined a GapDiff group. Participant expansion adds more leads gradually,
+ * while the worker's cap keeps the sample bounded and auditable.
+ */
+export const metaCollectorSeeds = pgTable(
+  'meta_collector_seeds',
+  {
+    puuid: varchar('puuid', { length: 78 }).primaryKey(),
+    platform: varchar('platform', { length: 8 }).notNull(),
+    region: varchar('region', { length: 12 }).notNull(),
+    source: varchar('source', { length: 24 }).notNull(),
+    discoveredAt: timestamp('discovered_at', { withTimezone: true }).notNull().defaultNow(),
+    lastCollectedAt: timestamp('last_collected_at', { withTimezone: true }),
+    lastError: text('last_error'),
+  },
+  (table) => [index('meta_seeds_next_idx').on(table.platform, table.lastCollectedAt)],
+);
+
+/** Raw immutable match payload for the public sample, deduplicated by match ID. */
+export const metaSampleMatches = pgTable(
+  'meta_sample_matches',
+  {
+    matchId: varchar('match_id', { length: 32 }).primaryKey(),
+    platform: varchar('platform', { length: 8 }).notNull(),
+    region: varchar('region', { length: 12 }).notNull(),
+    queueId: integer('queue_id').notNull(),
+    patch: varchar('patch', { length: 32 }).notNull(),
+    gameCreation: timestamp('game_creation', { withTimezone: true }).notNull(),
+    raw: jsonb('raw').notNull(),
+    collectedAt: timestamp('collected_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('meta_matches_filter_idx').on(table.region, table.queueId, table.patch, table.gameCreation),
+  ],
+);
+
+/** One played champion per sampled match participant. */
+export const metaChampionObservations = pgTable(
+  'meta_champion_observations',
+  {
+    matchId: varchar('match_id', { length: 32 })
+      .notNull()
+      .references(() => metaSampleMatches.matchId, { onDelete: 'cascade' }),
+    participantId: integer('participant_id').notNull(),
+    championId: integer('champion_id').notNull(),
+    championName: varchar('champion_name', { length: 32 }).notNull(),
+    role: varchar('role', { length: 16 }).notNull(),
+    win: boolean('win').notNull(),
+    kills: integer('kills').notNull(),
+    deaths: integer('deaths').notNull(),
+    assists: integer('assists').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.matchId, table.participantId] }),
+    index('meta_observations_champion_idx').on(table.championId, table.role),
+  ],
+);
+
+/** Riot returns bans in the finished match payload; keep them separately for a real ban-rate. */
+export const metaChampionBans = pgTable(
+  'meta_champion_bans',
+  {
+    matchId: varchar('match_id', { length: 32 })
+      .notNull()
+      .references(() => metaSampleMatches.matchId, { onDelete: 'cascade' }),
+    teamId: integer('team_id').notNull(),
+    pickTurn: integer('pick_turn').notNull(),
+    championId: integer('champion_id').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.matchId, table.teamId, table.pickTurn] }),
+    index('meta_bans_champion_idx').on(table.championId),
+  ],
+);
+
+/**
+ * Read model for the public Champion Meta page. Counts are retained alongside
+ * rates so a small sample can always be labelled honestly in the UI.
+ */
+export const championMetaRollups = pgTable(
+  'champion_meta_rollups',
+  {
+    patch: varchar('patch', { length: 32 }).notNull(),
+    region: varchar('region', { length: 12 }).notNull(),
+    queueId: integer('queue_id').notNull(),
+    role: varchar('role', { length: 16 }).notNull(),
+    championId: integer('champion_id').notNull(),
+    championName: varchar('champion_name', { length: 32 }).notNull(),
+    games: integer('games').notNull(),
+    wins: integer('wins').notNull(),
+    roleGames: integer('role_games').notNull(),
+    bans: integer('bans').notNull(),
+    sampledMatches: integer('sampled_matches').notNull(),
+    averageKda: real('average_kda').notNull(),
+    refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.patch, table.region, table.queueId, table.role, table.championId] }),
+    index('meta_rollups_lookup_idx').on(table.region, table.queueId, table.patch, table.role),
+  ],
+);
+
 /** The denormalised per-player row that every stats query actually reads. */
 export const matchParticipants = pgTable(
   'match_participants',

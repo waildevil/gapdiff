@@ -36,6 +36,7 @@ function buildItems({ pendingDuels, pendingFriendRequests, groups }: RailProps, 
         { href: `/group/${activeSlug}#standings`, glyph: '▤', label: 'Standings', short: 'Rank', section: 'group' },
         { href: `/group/${activeSlug}#awards`, glyph: '★', label: 'Weekly awards', short: 'Awards', section: 'group' },
         { href: `/group/${activeSlug}#duos`, glyph: '⊞', label: 'Duo synergy', short: 'Duos', section: 'group' },
+        { href: `/group/${activeSlug}/champions`, glyph: '◈', label: 'Champion pool', short: 'Champs', section: 'group' },
       ]
     : [];
 

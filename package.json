@@ -19,6 +19,7 @@
     "check-key": "tsx src/scripts/check-key.ts",
     "seed": "tsx src/scripts/seed-group.ts",
     "ingest": "tsx src/scripts/ingest.ts",
+    "meta:collect": "tsx src/scripts/collect-champion-meta.ts",
     "discord:refresh-avatars": "tsx src/scripts/refresh-discord-avatars.ts"
   },
   "dependencies": {

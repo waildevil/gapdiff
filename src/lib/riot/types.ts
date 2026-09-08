@@ -124,6 +124,8 @@ export interface MatchTeamObjective {
 export interface MatchTeam {
   teamId: number;
   win: boolean;
+  /** Present in finished match payloads; absent on a handful of old games. */
+  bans?: { championId: number; pickTurn: number }[];
   objectives: {
     baron: MatchTeamObjective;
     champion: MatchTeamObjective;
