@@ -210,12 +210,24 @@ async function syncAccount(
   let calls = 0;
 
   // Ranked standing first — it's one call and it drives 40% of the Gap Score.
-  const leagues = await riot.getLeagueEntries(
-    platform,
-    account.puuid,
-    account.summonerId ?? undefined,
-  );
-  calls++;
+  const [leagues, summoner] = await Promise.all([
+    riot.getLeagueEntries(platform, account.puuid, account.summonerId ?? undefined),
+    riot.getSummonerByPuuid(platform, account.puuid),
+  ]);
+  calls += 2;
+
+  // Every scheduled sync also refreshes the stored Riot icon used by boards,
+  // activity and account lists. Profile pages already read this live; these
+  // shared surfaces should not lag a profile-icon change by weeks.
+  await db
+    .update(accounts)
+    .set({
+      summonerId: summoner.id ?? null,
+      profileIconId: summoner.profileIconId,
+      summonerLevel: summoner.summonerLevel,
+      updatedAt: new Date(),
+    })
+    .where(eq(accounts.puuid, account.puuid));
 
   let snapshots = 0;
   for (const entry of leagues) {

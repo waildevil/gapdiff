@@ -18,6 +18,8 @@ import { parsePlatform, parseRiotId, type Platform } from './riot/routing';
 const DEFAULT_ICON_POOL = Array.from({ length: 28 }, (_, i) => i + 1);
 
 const CHALLENGE_TTL_MS = 15 * 60 * 1000;
+/** Account-page reads refresh stale Riot profile details without polling on every render. */
+const ACCOUNT_SNAPSHOT_STALE_MS = 5 * 60 * 1000;
 
 export class VerificationError extends Error {}
 
@@ -219,7 +221,42 @@ export interface ClaimedAccount {
   pendingExpiresAt: Date | null;
 }
 
+/**
+ * The account page is the owner-facing source of truth for claimed Riot
+ * accounts. Refresh stale snapshots here so an icon changed in League is not
+ * held until the next overnight ingestion run.
+ *
+ * Failure is intentionally non-fatal: an account list is still useful with a
+ * slightly older icon, and a later page visit or scheduled ingest will retry.
+ */
+async function refreshStaleClaimSnapshots(userId: string): Promise<void> {
+  const cutoff = new Date(Date.now() - ACCOUNT_SNAPSHOT_STALE_MS);
+  const claims = await db
+    .select({ puuid: accounts.puuid, platform: accounts.platform, updatedAt: accounts.updatedAt })
+    .from(accountClaims)
+    .innerJoin(accounts, eq(accounts.puuid, accountClaims.puuid))
+    .where(eq(accountClaims.userId, userId));
+  const stale = claims.filter((account) => account.updatedAt < cutoff);
+
+  const riot = getRiotClient();
+  await Promise.allSettled(
+    stale.map(async (account) => {
+      const summoner = await riot.getSummonerByPuuid(account.platform as Platform, account.puuid);
+      await db
+        .update(accounts)
+        .set({
+          summonerId: summoner.id ?? null,
+          profileIconId: summoner.profileIconId,
+          summonerLevel: summoner.summonerLevel,
+          updatedAt: new Date(),
+        })
+        .where(eq(accounts.puuid, account.puuid));
+    }),
+  );
+}
+
 export async function listClaims(userId: string): Promise<ClaimedAccount[]> {
+  await refreshStaleClaimSnapshots(userId);
   const rows = await db
     .select({
       puuid: accounts.puuid,
