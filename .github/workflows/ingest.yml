@@ -7,8 +7,10 @@ name: Ingest
 # retroactively with --days.
 on:
   schedule:
-    # 03:00 UTC, after European late-night games have settled.
-    - cron: '0 3 * * *'
+    # Every six hours. GitHub cron is UTC: 02:00/08:00/14:00/20:00 in Berlin
+    # during CEST, one hour earlier during CET; the six-hour catch-up interval
+    # stays constant across daylight saving changes.
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       backfill:
