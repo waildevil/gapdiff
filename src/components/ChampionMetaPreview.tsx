@@ -5,6 +5,7 @@ import { championIcon } from '@/lib/ddragon';
 import styles from './ChampionMetaPreview.module.css';
 
 type Role = 'All' | 'Top' | 'Jungle' | 'Middle' | 'Bottom' | 'Support';
+type SortKey = 'tier' | 'winRate' | 'pickRate' | 'banRate' | 'kda';
 
 export type ChampionMetaRow = {
   name: string;
@@ -54,13 +55,39 @@ export function ChampionMetaPreview({
 }) {
   const [role, setRole] = useState<Role>('All');
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<SortKey>('tier');
+  const [descending, setDescending] = useState(true);
+
+  const setSorting = (next: SortKey) => {
+    if (next === sort) setDescending((current) => !current);
+    else {
+      setSort(next);
+      setDescending(true);
+    }
+  };
 
   const champions = useMemo(
-    () => rows.filter((champion) =>
-      (role === 'All' || champion.role === role) &&
-      champion.name.toLowerCase().includes(query.trim().toLowerCase()),
-    ),
-    [query, role, rows],
+    () => rows
+      .filter((champion) =>
+        (role === 'All' || champion.role === role) &&
+        champion.name.toLowerCase().includes(query.trim().toLowerCase()),
+      )
+      .sort((a, b) => {
+        // A building sample can be examined, but it never jumps ahead of an
+        // established pick simply because two games happened to go well.
+        if (a.established !== b.established) return Number(b.established !== false) - Number(a.established !== false);
+        const tierValue = (row: ChampionMetaRow) => ({ 'S+': 4, S: 3, A: 2, B: 1 })[row.tier];
+        const left = sort === 'tier' ? tierValue(a) : a[sort];
+        const right = sort === 'tier' ? tierValue(b) : b[sort];
+        return (right - left || b.winRate - a.winRate) * (descending ? 1 : -1);
+      }),
+    [descending, query, role, rows, sort],
+  );
+
+  const sortHeader = (label: string, key: SortKey) => (
+    <button type="button" className={styles.sortButton} onClick={() => setSorting(key)} aria-pressed={sort === key}>
+      {label}<span aria-hidden="true">{sort === key ? (descending ? ' ↓' : ' ↑') : ''}</span>
+    </button>
   );
 
   return (
@@ -110,12 +137,12 @@ export function ChampionMetaPreview({
               <tr>
                 <th>Rank</th>
                 <th>Champion</th>
-                <th>Tier</th>
+                <th>{sortHeader('Tier', 'tier')}</th>
                 <th>Role</th>
-                <th>{rows.some((row) => row.rawWinRate !== undefined) ? 'Adjusted WR' : 'Win rate'}</th>
-                <th>Pick rate</th>
-                <th>Ban rate</th>
-                <th>KDA</th>
+                <th>{sortHeader(rows.some((row) => row.rawWinRate !== undefined) ? 'Adjusted WR' : 'Win rate', 'winRate')}</th>
+                <th>{sortHeader('Pick rate', 'pickRate')}</th>
+                <th>{sortHeader('Ban rate', 'banRate')}</th>
+                <th>{sortHeader('KDA', 'kda')}</th>
                 <th>Strong into</th>
               </tr>
             </thead>

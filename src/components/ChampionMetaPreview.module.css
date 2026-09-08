@@ -19,6 +19,8 @@
 .tableWrap { overflow-x:auto; }
 .tableWrap table { min-width:890px; }
 .tableWrap th { background:var(--surface-2); }
+.sortButton { color:inherit; font:inherit; letter-spacing:inherit; padding:0; text-transform:inherit; white-space:nowrap; }
+.sortButton:hover, .sortButton[aria-pressed="true"] { color:var(--accent); }
 .tableWrap td { font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums; }
 .rank { color:var(--faint); }
 .champion { align-items:center; display:flex; font-family:var(--sans); gap:10px; min-width:152px; text-align:left; }

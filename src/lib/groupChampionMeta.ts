@@ -20,7 +20,7 @@ export type GroupChampionMetaRow = {
 };
 
 /** A champion needs enough games before it can be ranked as a group comfort pick. */
-const QUALIFICATION_GAMES = 8;
+const QUALIFICATION_GAMES = 10;
 /** Prevent a handful of games from outweighing the group’s normal role win rate. */
 const PRIOR_GAMES = 12;
 
