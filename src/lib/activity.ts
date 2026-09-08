@@ -15,6 +15,7 @@ import {
 import { getRiotClient } from './riot/client';
 import type { Platform } from './riot/routing';
 import type { CurrentGameInfo } from './riot/types';
+import { repairDiscordProfile } from './discordProfiles';
 
 /**
  * The live activity feed: what the viewer's friends and group-mates are doing
@@ -118,6 +119,15 @@ export async function getActivityScope(userId: string): Promise<ScopedAccount[]>
       merged.set(row.puuid, { ...row, platform: row.platform as Platform });
     }
   }
+
+  await Promise.all(
+    [...merged.values()]
+      .filter((account) => account.ownerUserId !== null && !account.ownerImage)
+      .map(async (account) => {
+        const repaired = await repairDiscordProfile(account.ownerUserId!);
+        if (repaired) account.ownerImage = repaired.image;
+      }),
+  );
 
   return [...merged.values()].slice(0, MAX_SCOPE);
 }

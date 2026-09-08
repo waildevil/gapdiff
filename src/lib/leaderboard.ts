@@ -14,6 +14,7 @@ import {
 } from '@/db/schema';
 import { RANKED_QUEUES } from '@/lib/riot/types';
 import { buildLeaderboard, type Rating } from './rating/rating';
+import { repairDiscordProfile } from './discordProfiles';
 import {
   assignTitles,
   currentPeriodIndex,
@@ -176,6 +177,17 @@ export async function getGroupStandings(
     )
     .leftJoin(users, eq(users.id, accountClaims.userId))
     .where(eq(trackedAccounts.groupId, group.id));
+
+  // A scheduled refresh keeps the normal path cheap, but a verified user with
+  // a missing stored image should repair itself on the first board visit.
+  await Promise.all(
+    members
+      .filter((member) => member.verifiedAt !== null && member.ownerId !== null && !member.ownerImage)
+      .map(async (member) => {
+        const repaired = await repairDiscordProfile(member.ownerId!);
+        if (repaired) member.ownerImage = repaired.image;
+      }),
+  );
 
   if (members.length === 0) {
     return {

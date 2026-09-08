@@ -20,6 +20,33 @@ export interface RefreshSummary {
   failed: { discordId: string; error: string }[];
 }
 
+const repairCache = new Map<string, number>();
+const REPAIR_COOLDOWN_MS = 10 * 60 * 1000;
+
+/** Repair one verified user's missing Discord profile without refreshing everybody. */
+export async function repairDiscordProfile(userId: string): Promise<{ image: string; name: string } | null> {
+  const lastAttempt = repairCache.get(userId) ?? 0;
+  if (Date.now() - lastAttempt < REPAIR_COOLDOWN_MS) return null;
+  repairCache.set(userId, Date.now());
+
+  const [linked] = await db
+    .select({ discordId: authAccounts.providerAccountId })
+    .from(authAccounts)
+    .where(eq(authAccounts.userId, userId))
+    .limit(1);
+  if (!linked) return null;
+
+  try {
+    const profile = await getUser(linked.discordId);
+    const image = discordImageFor(profile);
+    const name = profile.global_name ?? profile.username;
+    await db.update(users).set({ image, name }).where(eq(users.id, userId));
+    return { image, name };
+  } catch {
+    return null;
+  }
+}
+
 export async function refreshDiscordProfiles(): Promise<RefreshSummary> {
   const rows = await db
     .select({
