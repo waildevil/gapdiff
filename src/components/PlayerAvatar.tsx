@@ -18,11 +18,11 @@ export function PlayerAvatar({
 }: {
   player: Pick<LeaderboardPlayer, 'gameName' | 'ownerImage' | 'profileIconId'>;
   version: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg';
 }) {
   const [discordFailed, setDiscordFailed] = useState(false);
   const [iconFailed, setIconFailed] = useState(false);
-  const px = size === 'xl' ? 72 : size === 'lg' ? 54 : size === 'sm' ? 28 : 36;
+  const px = size === 'lg' ? 54 : size === 'sm' ? 28 : 36;
 
   // A scheduled refresh supplies a new Discord hash (or Riot icon id). Try
   // the replacement rather than retaining a failure from the old URL.
@@ -53,5 +53,5 @@ export function PlayerAvatar({
       />
     );
   }
-  return <Avatar name={player.gameName} size={size === 'xl' ? 'lg' : size} />;
+  return <Avatar name={player.gameName} size={size} />;
 }

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, count, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { connectedPayload, postToDiscord } from './discord';
 import {
@@ -127,7 +127,7 @@ async function trackClaimedAccounts(groupId: number, userId: string): Promise<nu
   const claimed = await db
     .select({ puuid: accountClaims.puuid })
     .from(accountClaims)
-    .where(eq(accountClaims.userId, userId));
+    .where(and(eq(accountClaims.userId, userId), isNotNull(accountClaims.verifiedAt)));
 
   if (claimed.length === 0) return 0;
 
@@ -150,7 +150,7 @@ export async function syncClaimsToGroups(userId: string): Promise<number> {
   const claimed = await db
     .select({ puuid: accountClaims.puuid })
     .from(accountClaims)
-    .where(eq(accountClaims.userId, userId));
+    .where(and(eq(accountClaims.userId, userId), isNotNull(accountClaims.verifiedAt)));
 
   const memberships = await db
     .select({ groupId: groupMemberships.groupId })
@@ -233,12 +233,13 @@ async function assertCanManageAccount(
   if (!membership) throw new GroupError('You are not a member of that group.');
 
   const [claim] = await db
-    .select({ puuid: accountClaims.puuid })
+    .select({ verifiedAt: accountClaims.verifiedAt })
     .from(accountClaims)
     .where(and(eq(accountClaims.userId, userId), eq(accountClaims.puuid, puuid)))
     .limit(1);
 
   if (!claim) throw new GroupError('That account is not yours.');
+  if (!claim.verifiedAt) throw new GroupError('Verify this Riot account before adding it to a group.');
 }
 
 export async function addAccountToBoard(

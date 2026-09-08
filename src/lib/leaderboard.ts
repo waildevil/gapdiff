@@ -397,9 +397,11 @@ export async function getGroupStandings(
           platform: member.platform,
           nickname: member.nickname,
           profileIconId: member.profileIconId,
-          ownerImage: member.verifiedAt ? member.ownerImage : null,
-          ownerName: member.verifiedAt ? member.ownerName : null,
-          ownerId: member.verifiedAt ? member.ownerId : null,
+          // Board membership requires a verified Riot claim, so private group
+          // surfaces can always use that member's Discord identity directly.
+          ownerImage: member.ownerImage,
+          ownerName: member.ownerName,
+          ownerId: member.ownerId,
           verified: member.verifiedAt !== null,
           kda:
             bucket.deaths === 0
