@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { AddFriendButton } from './AddFriendButton';
-import { Avatar } from './Avatar';
 import { LiveDot } from './LiveDot';
+import { PlayerAvatar } from './PlayerAvatar';
 import { Sparkline } from './Sparkline';
-import { profileIcon } from '@/lib/ddragon';
 import { winRate } from '@/lib/format';
 import { RankBadge } from './RankBadge';
 import type { LeaderboardEntry } from '@/lib/leaderboard';
@@ -172,43 +171,4 @@ export function StandingsRow({
       </div>
     </div>
   );
-}
-
-/**
- * Discord avatar when somebody has proved they own the account, the League
- * profile icon otherwise, and generated initials only as a last resort.
- */
-function PlayerAvatar({
-  player,
-  version,
-}: {
-  player: LeaderboardEntry['player'];
-  version: string;
-}) {
-  if (player.ownerImage) {
-    return (
-      <img
-        className={styles.avatar}
-        src={player.ownerImage}
-        alt=""
-        width={36}
-        height={36}
-        title={`Verified as ${player.ownerName ?? 'a member'}`}
-      />
-    );
-  }
-
-  if (player.profileIconId !== null) {
-    return (
-      <img
-        className={styles.avatar}
-        src={profileIcon(version, player.profileIconId)}
-        alt=""
-        width={36}
-        height={36}
-      />
-    );
-  }
-
-  return <Avatar name={player.gameName} />;
 }

@@ -4,34 +4,14 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getActivityFeedAction } from '@/app/actions/activity';
 import type { ActivityEventView, ActivityFeed, LiveGroup, ScopedAccount } from '@/lib/activity';
-import { profileIcon } from '@/lib/ddragon';
 import { queueName, timeAgo } from '@/lib/profile';
-import { Avatar } from './Avatar';
+import { PlayerAvatar } from './PlayerAvatar';
 import styles from './ActivityFeedSidebar.module.css';
 
 const POLL_MS = 20_000;
 
 function profileHref(account: ScopedAccount) {
   return `/player/${account.platform}/${encodeURIComponent(account.gameName)}/${encodeURIComponent(account.tagLine)}`;
-}
-
-/** Discord avatar when verified, League profile icon otherwise, initials as a last resort. */
-function PlayerAvatar({ account, version }: { account: ScopedAccount; version: string }) {
-  if (account.ownerImage) {
-    return <img className={styles.avatarImg} src={account.ownerImage} alt="" width={28} height={28} />;
-  }
-  if (account.profileIconId !== null) {
-    return (
-      <img
-        className={styles.avatarImg}
-        src={profileIcon(version, account.profileIconId)}
-        alt=""
-        width={28}
-        height={28}
-      />
-    );
-  }
-  return <Avatar name={account.gameName} size="sm" />;
 }
 
 /** "A", "A and B", or "A, B and C". */
@@ -50,7 +30,7 @@ function LiveRow({ group, version }: { group: LiveGroup; version: string }) {
     <div className={styles.row}>
       <div className={styles.avatars}>
         {group.players.slice(0, 3).map((p) => (
-          <PlayerAvatar key={p.puuid} account={p} version={version} />
+          <PlayerAvatar key={p.puuid} player={p} version={version} size="sm" />
         ))}
       </div>
       <div className={styles.rowBody}>
@@ -82,7 +62,7 @@ function EventRow({ event, version }: { event: ActivityEventView; version: strin
 
   return (
     <Link href={profileHref(event.account)} className={`${styles.row} ${styles.rowLinkable}`}>
-      <PlayerAvatar account={event.account} version={version} />
+      <PlayerAvatar player={event.account} version={version} size="sm" />
       <div className={styles.rowBody}>
         <div className={styles.rowText}>
           {event.account.gameName} played {queue}

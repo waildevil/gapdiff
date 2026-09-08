@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { LeaderboardPlayer } from '@/lib/leaderboard';
 import { profileIcon } from '@/lib/ddragon';
 import { Avatar } from './Avatar';
@@ -9,8 +9,7 @@ import styles from './AwardsBoard.module.css';
 /**
  * Discord avatar when verified, League profile icon otherwise, initials as a
  * last resort. A stale Discord avatar hash 404s once someone changes their
- * picture — `onError` drops down a tier instead of leaving a broken image
- * until they next sign in and resync it (see `events.signIn` in auth.ts).
+ * picture — `onError` drops down a tier instead of leaving a broken image.
  */
 export function PlayerAvatar({
   player,
@@ -24,6 +23,11 @@ export function PlayerAvatar({
   const [discordFailed, setDiscordFailed] = useState(false);
   const [iconFailed, setIconFailed] = useState(false);
   const px = size === 'lg' ? 54 : size === 'sm' ? 28 : 36;
+
+  // A scheduled refresh supplies a new Discord hash (or Riot icon id). Try
+  // the replacement rather than retaining a failure from the old URL.
+  useEffect(() => setDiscordFailed(false), [player.ownerImage]);
+  useEffect(() => setIconFailed(false), [player.profileIconId]);
 
   if (player.ownerImage && !discordFailed) {
     return (
