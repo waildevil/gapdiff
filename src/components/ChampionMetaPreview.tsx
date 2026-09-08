@@ -11,11 +11,13 @@ export type ChampionMetaRow = {
   role: Exclude<Role, 'All'>;
   tier: 'S+' | 'S' | 'A' | 'B';
   winRate: number;
+  rawWinRate?: number;
   pickRate: number;
   banRate: number;
   games: string;
   kda: number;
   strongInto: string[];
+  established?: boolean;
 };
 
 const ROLES: Role[] = ['All', 'Top', 'Jungle', 'Middle', 'Bottom', 'Support'];
@@ -110,7 +112,7 @@ export function ChampionMetaPreview({
                 <th>Champion</th>
                 <th>Tier</th>
                 <th>Role</th>
-                <th>Win rate</th>
+                <th>{rows.some((row) => row.rawWinRate !== undefined) ? 'Adjusted WR' : 'Win rate'}</th>
                 <th>Pick rate</th>
                 <th>Ban rate</th>
                 <th>KDA</th>
@@ -120,16 +122,16 @@ export function ChampionMetaPreview({
             <tbody>
               {champions.map((champion, index) => (
                 <tr key={`${champion.name}-${champion.role}`}>
-                  <td className={styles.rank}>{index + 1}</td>
+                  <td className={styles.rank}>{champion.established === false ? '—' : index + 1}</td>
                   <td>
                     <div className={styles.champion}>
                       <img src={championIcon(version, champion.name)} alt="" />
                       <div><b>{champion.name}</b><span>{champion.games} games</span></div>
                     </div>
                   </td>
-                  <td><span className={`${styles.tier} ${styles[`tier${champion.tier.replace('+', 'Plus')}`]}`}>{champion.tier}</span></td>
+                  <td>{champion.established === false ? <span className={styles.building}>Building<br />sample</span> : <span className={`${styles.tier} ${styles[`tier${champion.tier.replace('+', 'Plus')}`]}`}>{champion.tier}</span>}</td>
                   <td><span className={styles.role}>{champion.role}</span></td>
-                  <td className={champion.winRate >= 52 ? styles.good : undefined}>{champion.winRate.toFixed(1)}%</td>
+                  <td className={champion.winRate >= 52 ? styles.good : undefined}>{champion.winRate.toFixed(1)}%{champion.rawWinRate !== undefined ? <span className={styles.raw}>raw {champion.rawWinRate.toFixed(1)}%</span> : null}</td>
                   <td>{champion.pickRate.toFixed(1)}%</td>
                   <td>{champion.banRate.toFixed(1)}%</td>
                   <td>{champion.kda.toFixed(2)}</td>

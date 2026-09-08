@@ -30,6 +30,8 @@
 .tierS { color:var(--accent); background:var(--accent-soft); }
 .tierA { color:var(--good); background:var(--good-soft); }
 .tierB { color:var(--muted); }
+.building { color:var(--faint); display:inline-block; font-size:9px; line-height:1.25; text-align:center; text-transform:uppercase; }
+.raw { color:var(--faint); display:block; font-size:9px; font-weight:400; margin-top:2px; }
 .role { color:var(--muted); font-size:11px; }
 .good { color:var(--good); font-weight:700; }
 .matchups { display:flex; justify-content:flex-end; }

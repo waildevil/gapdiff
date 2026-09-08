@@ -10,12 +10,19 @@ export type GroupChampionMetaRow = {
   role: 'Top' | 'Jungle' | 'Middle' | 'Bottom' | 'Support';
   tier: 'S+' | 'S' | 'A' | 'B';
   winRate: number;
+  rawWinRate: number;
   pickRate: number;
   banRate: number;
   games: string;
   kda: number;
   strongInto: string[];
+  established: boolean;
 };
+
+/** A champion needs enough games before it can be ranked as a group comfort pick. */
+const QUALIFICATION_GAMES = 8;
+/** Prevent a handful of games from outweighing the group’s normal role win rate. */
+const PRIOR_GAMES = 12;
 
 const ROLE_LABEL = {
   TOP: 'Top',
@@ -68,6 +75,7 @@ export async function getGroupChampionMeta(groupId: number): Promise<{
     );
 
   const roleTotals = new Map<string, number>();
+  const roleWins = new Map<string, number>();
   const byChampion = new Map<string, {
     id: number;
     name: string;
@@ -86,6 +94,7 @@ export async function getGroupChampionMeta(groupId: number): Promise<{
     if (!ROLES.includes(row.role as (typeof ROLES)[number])) continue;
     const role = row.role as keyof typeof ROLE_LABEL;
     roleTotals.set(role, (roleTotals.get(role) ?? 0) + 1);
+    roleWins.set(role, (roleWins.get(role) ?? 0) + (row.win ? 1 : 0));
     rawByMatch.set(row.matchId, row.raw as StoredRawMatch);
 
     const key = `${row.championId}|${role}`;
@@ -120,24 +129,32 @@ export async function getGroupChampionMeta(groupId: number): Promise<{
 
   const rows = [...byChampion.values()]
     .map((champion) => {
-      const winRate = champion.games ? (champion.wins / champion.games) * 100 : 0;
+      const rawWinRate = champion.games ? (champion.wins / champion.games) * 100 : 0;
       const games = champion.games;
+      const roleGames = roleTotals.get(champion.role) ?? games;
+      const roleWinRate = (roleWins.get(champion.role) ?? 0) / roleGames;
+      // Empirical Bayes: each champion starts with 12 games at the group’s
+      // normal win rate for that role, then its real games take over.
+      const winRate = ((champion.wins + roleWinRate * PRIOR_GAMES) / (games + PRIOR_GAMES)) * 100;
+      const established = games >= QUALIFICATION_GAMES;
       const tier: GroupChampionMetaRow['tier'] =
-        games >= 5 && winRate >= 58 ? 'S+' : games >= 4 && winRate >= 53 ? 'S' : games >= 3 && winRate >= 48 ? 'A' : 'B';
+        established && winRate >= 56 ? 'S+' : established && winRate >= 52 ? 'S' : established && winRate >= 48 ? 'A' : 'B';
       return {
         name: champion.name,
         role: ROLE_LABEL[champion.role],
         tier,
         winRate,
-        pickRate: (games / (roleTotals.get(champion.role) ?? games)) * 100,
+        rawWinRate,
+        pickRate: (games / roleGames) * 100,
         banRate: rawByMatch.size ? (champion.bans / rawByMatch.size) * 100 : 0,
         games: games.toLocaleString('en-US'),
         kda: champion.deaths === 0 ? champion.kills + champion.assists : (champion.kills + champion.assists) / champion.deaths,
         // Matchups need opponent data; that is the next group-meta increment.
         strongInto: [],
+        established,
       };
     })
-    .sort((a, b) => b.winRate - a.winRate || Number.parseInt(b.games.replaceAll(',', ''), 10) - Number.parseInt(a.games.replaceAll(',', ''), 10));
+    .sort((a, b) => Number(b.established) - Number(a.established) || b.winRate - a.winRate || Number.parseInt(b.games.replaceAll(',', ''), 10) - Number.parseInt(a.games.replaceAll(',', ''), 10));
 
   return { rows, matches: rawByMatch.size };
 }

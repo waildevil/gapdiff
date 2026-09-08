@@ -34,7 +34,7 @@ export default async function GroupChampionsPage({ params }: { params: Promise<{
           <p style={{ color: 'var(--muted)', margin: 0 }}>Once the next scheduled ingest picks up a group member’s ranked match, their champion pool will appear here. No production API key is needed for this view.</p>
         </div>
       )}
-      <p className="note"><b>Group tier is local.</b> It ranks a champion against the rest of this group’s games in the selected role, so it is useful for deciding what your friends are strongest on—not a worldwide claim. Matchup history is the next group-meta addition.</p>
+      <p className="note"><b>Group tier is confidence-aware.</b> A champion needs 8 games before it can be ranked. Its adjusted win rate starts at this group&apos;s normal win rate for that role across 12 virtual games, then its own results take over. A two-game 100% Twitch stays visible as a building sample, but cannot outrank an established comfort pick. Matchup history is the next group-meta addition.</p>
     </div>
   );
 }
