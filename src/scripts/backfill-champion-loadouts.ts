@@ -15,6 +15,14 @@ function runeIds(perks: unknown): { primaryRuneId: number | null; secondaryRuneS
   return { primaryRuneId: styles[0]?.selections?.[0]?.perk ?? null, secondaryRuneStyleId: styles[1]?.style ?? null };
 }
 
+function runeSelections(perks: unknown) {
+  const value = perks as { styles?: Array<{ selections?: Array<{ perk?: number }> }>; statPerks?: { offenses?: number; flex?: number; defense?: number } } | undefined;
+  return {
+    runeIds: (value?.styles ?? []).flatMap((style) => (style.selections ?? []).map((selection) => selection.perk).filter((id): id is number => Number.isInteger(id))),
+    statRuneIds: [value?.statPerks?.offenses, value?.statPerks?.flex, value?.statPerks?.defense].filter((id): id is number => Number.isInteger(id)),
+  };
+}
+
 function rowsFor(match: Match) {
   const scored = scoreMatch(match);
   const participants = new Map(match.info.participants.map((participant) => [participant.participantId, participant]));
@@ -23,13 +31,14 @@ function rowsFor(match: Match) {
     const opponent = scored.find((candidate) => candidate.teamId !== row.teamId && candidate.role === row.role);
     const opponentParticipant = opponent ? participants.get(opponent.participantId) : undefined;
     const runes = runeIds(participant.perks);
+    const selection = runeSelections(participant.perks);
     return {
       matchId: match.metadata.matchId, participantId: participant.participantId, championId: participant.championId,
       championName: participant.championName, role: row.role, teamId: participant.teamId, win: participant.win,
       opponentChampionId: opponentParticipant?.championId ?? null, opponentChampionName: opponentParticipant?.championName ?? null,
       spell1Id: participant.summoner1Id, spell2Id: participant.summoner2Id,
       itemIds: [participant.item0, participant.item1, participant.item2, participant.item3, participant.item4, participant.item5].filter((item) => item > 0),
-      primaryRuneId: runes.primaryRuneId, secondaryRuneStyleId: runes.secondaryRuneStyleId, skillOrder: [],
+      primaryRuneId: runes.primaryRuneId, secondaryRuneStyleId: runes.secondaryRuneStyleId, runeIds: selection.runeIds, statRuneIds: selection.statRuneIds, skillOrder: [],
     };
   });
 }

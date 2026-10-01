@@ -87,6 +87,10 @@ export function runeIcon(runeId: number): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/styles/runesicon.png`;
 }
 
+export function statRuneIcon(runeId: number): string {
+  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/statmods/${runeId}.png`;
+}
+
 /** Ranked emblems come from Community Dragon; Data Dragon doesn't carry them. */
 export function rankEmblem(tier: string): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;

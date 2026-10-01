@@ -404,6 +404,8 @@ export const metaChampionLoadouts = pgTable(
     itemIds: jsonb('item_ids').$type<number[]>().notNull(),
     primaryRuneId: integer('primary_rune_id'),
     secondaryRuneStyleId: integer('secondary_rune_style_id'),
+    runeIds: jsonb('rune_ids').$type<number[]>().notNull().default([]),
+    statRuneIds: jsonb('stat_rune_ids').$type<number[]>().notNull().default([]),
     skillOrder: jsonb('skill_order').$type<number[]>().notNull().default([]),
   },
   (table) => [

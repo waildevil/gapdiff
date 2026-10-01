@@ -1,0 +1,2 @@
+ALTER TABLE "meta_champion_loadouts" ADD COLUMN "rune_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "meta_champion_loadouts" ADD COLUMN "stat_rune_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;

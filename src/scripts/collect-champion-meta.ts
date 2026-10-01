@@ -184,6 +184,14 @@ function runeIds(perks: unknown): { primaryRuneId: number | null; secondaryRuneS
   };
 }
 
+function runeSelections(perks: unknown): { runeIds: number[]; statRuneIds: number[] } {
+  const value = perks as { styles?: Array<{ selections?: Array<{ perk?: number }> }>; statPerks?: { offenses?: number; flex?: number; defense?: number } } | undefined;
+  return {
+    runeIds: (value?.styles ?? []).flatMap((style) => (style.selections ?? []).map((selection) => selection.perk).filter((id): id is number => Number.isInteger(id))),
+    statRuneIds: [value?.statPerks?.offenses, value?.statPerks?.flex, value?.statPerks?.defense].filter((id): id is number => Number.isInteger(id)),
+  };
+}
+
 function skillOrders(timeline: MatchTimeline | null): Map<number, number[]> {
   const orders = new Map<number, number[]>();
   for (const frame of timeline?.info.frames ?? []) {
@@ -209,6 +217,7 @@ function loadoutRows(match: Match, timeline: MatchTimeline | null) {
     const opponent = scored.find((candidate) => candidate.teamId !== row.teamId && candidate.role === row.role);
     const opponentParticipant = opponent ? byParticipant.get(opponent.participantId) : undefined;
     const runes = runeIds(participant.perks);
+    const selection = runeSelections(participant.perks);
     return {
       matchId: match.metadata.matchId,
       participantId: participant.participantId,
@@ -224,6 +233,8 @@ function loadoutRows(match: Match, timeline: MatchTimeline | null) {
       itemIds: [participant.item0, participant.item1, participant.item2, participant.item3, participant.item4, participant.item5].filter((item) => item > 0),
       primaryRuneId: runes.primaryRuneId,
       secondaryRuneStyleId: runes.secondaryRuneStyleId,
+      runeIds: selection.runeIds,
+      statRuneIds: selection.statRuneIds,
       skillOrder: orders.get(participant.participantId) ?? [],
     };
   });
