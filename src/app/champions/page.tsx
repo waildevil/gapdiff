@@ -23,7 +23,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
   const rollups = patch
     ? rankFilter.tiers
       ? await db.select().from(championMetaTierRollups).where(and(eq(championMetaTierRollups.patch, patch), inArray(championMetaTierRollups.tier, [...rankFilter.tiers])))
-      : await db.select().from(championMetaRollups).where(eq(championMetaRollups.patch, patch))
+      : await allTierRollupsForPatch(patch)
     : [];
   const grouped = new Map<string, { name: string; role: ChampionMetaRow['role']; games: number; wins: number; roleGames: number; bans: number; sampledMatches: number; kdaTotal: number }>();
   const roleNames: Record<string, ChampionMetaRow['role']> = { TOP: 'Top', JUNGLE: 'Jungle', MIDDLE: 'Middle', BOTTOM: 'Bottom', UTILITY: 'Support' };
@@ -68,4 +68,17 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
       ) : rollups.length ? <p className="note">This rank filter has data, but no champion has reached the 20-game display minimum yet.</p> : <p className="note">No public ranked-match sample has been collected yet. Champion rankings will appear after the collector runs.</p>}
     </div>
   );
+}
+
+/**
+ * The global rollup is normally rebuilt after every collection. If a run is
+ * interrupted (for example, by a storage limit) the rank-specific rollups can
+ * still be valid while that one table is temporarily empty. Keep the public
+ * All tiers view available by using those retained rollups as a fallback.
+ */
+async function allTierRollupsForPatch(patch: string) {
+  const globalRollups = await db.select().from(championMetaRollups).where(eq(championMetaRollups.patch, patch));
+  if (globalRollups.length > 0) return globalRollups;
+
+  return db.select().from(championMetaTierRollups).where(eq(championMetaTierRollups.patch, patch));
 }
