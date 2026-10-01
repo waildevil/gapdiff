@@ -72,7 +72,19 @@ export function spellIcon(version: string, spellId: number): string | null {
 
 /** Community Dragon exposes the current icon for a numeric rune/perk ID. */
 export function runeIcon(runeId: number): string {
-  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perks/${runeId}/icon.png`;
+  const styles: Record<number, string> = { 8000: 'precision', 8100: 'domination', 8200: 'sorcery', 8300: 'inspiration', 8400: 'resolve' };
+  const keystones: Record<number, [string, number]> = {
+    8005: ['precision', 8000], 8008: ['precision', 8000], 8010: ['precision', 8000], 8021: ['precision', 8000],
+    8112: ['domination', 8100], 8128: ['domination', 8100], 9923: ['domination', 8100],
+    8214: ['sorcery', 8200], 8229: ['sorcery', 8200], 8230: ['sorcery', 8200],
+    8437: ['resolve', 8400], 8439: ['resolve', 8400], 8465: ['resolve', 8400],
+    8351: ['inspiration', 8300], 8360: ['inspiration', 8300], 8369: ['inspiration', 8300],
+  };
+  const keystone = keystones[runeId];
+  if (keystone) return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/styles/${keystone[0]}/p${keystone[1]}_s0_k${runeId}.jpg`;
+  const style = styles[runeId];
+  if (style) return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/styles/${runeId === 8000 ? '7201' : runeId === 8100 ? '7200' : runeId === 8200 ? '7202' : runeId === 8300 ? '7203' : '7204'}_${style}.png`;
+  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/styles/runesicon.png`;
 }
 
 /** Ranked emblems come from Community Dragon; Data Dragon doesn't carry them. */
