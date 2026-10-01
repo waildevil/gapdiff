@@ -1,5 +1,5 @@
 .back { color:var(--muted); display:inline-block; font-family:var(--mono); font-size:11px; letter-spacing:.06em; margin-bottom:20px; text-transform:uppercase; }
-:global(.page) { margin-left:auto; margin-right:auto; }
+.pageScope { margin-left:auto; margin-right:auto; }
 .back:hover { color:var(--accent); }
 .hero { align-items:center; border-bottom:1px solid var(--line); display:flex; gap:18px; padding:8px 0 22px; }.hero > img { border:1px solid var(--accent-line); height:88px; object-fit:cover; width:88px; }.hero h1 { font-size:34px; line-height:1.05; margin:0 0 8px; text-transform:none; }.hero span,.panel header span,.metrics span,.filters label { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
 .tier { align-items:center; border:1px solid currentColor; color:#bb4b39; display:flex; flex-direction:column; font-size:25px; font-weight:700; justify-content:center; margin-left:auto; min-height:64px; min-width:64px; }.tier small { font-family:var(--mono); font-size:9px; font-weight:400; letter-spacing:.08em; text-transform:uppercase; }

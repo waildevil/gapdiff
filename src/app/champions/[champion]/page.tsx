@@ -49,7 +49,7 @@ export default async function ChampionDetailPage({ params, searchParams }: { par
   const spells = grouped(selected, (row) => [row.spell1Id, row.spell2Id].sort((a, b) => a - b).join('-')).slice(0, 3);
   const skills = grouped(selected.filter((row) => row.skillOrder.length >= 6), (row) => row.skillOrder.slice(0, 9).join('-')).slice(0, 3);
   const matchups = grouped(selected.filter((row) => row.opponentChampionName), (row) => row.opponentChampionName!).filter((row) => row.count >= 8).map((row) => ({ ...row, winRate: 100 * row.wins / row.count })).sort((a, b) => a.winRate - b.winRate || b.count - a.count);
-  return <div className="page">
+  return <div className={`page ${styles.pageScope}`}>
     <Link className={styles.back} href="/champions">Back to champion meta</Link>
     <header className={styles.hero}><img src={championIcon(version, champion)} alt="" /><div><h1>{champion} {roleLabels[selectedRole]} build</h1><span>Patch {patch} · Ranked Solo/Duo · EUW sample</span></div><div className={styles.tier}>{tier}<small>tier</small></div></header>
     <form className={styles.filters}><label>Rank<div className={styles.selectWrap}>{rankFilter.emblem ? <img className={styles.filterEmblem} src={rankEmblem(rankFilter.emblem)} alt="" /> : null}<select name="tier" defaultValue={rankFilter.key}>{RANK_FILTERS.map((filter) => <option key={filter.key} value={filter.key}>{filter.label}</option>)}</select></div></label><label>Role<select name="role" defaultValue={selectedRole}>{rolesForChampion.map((row) => <option key={row.role} value={row.role}>{roleLabels[row.role] ?? row.role}</option>)}</select></label><button type="submit">Update report</button></form>
