@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { championIcon } from '@/lib/ddragon';
 import styles from './ChampionMetaPreview.module.css';
 
@@ -153,7 +154,7 @@ export function ChampionMetaPreview({
                   <td>
                     <div className={styles.champion}>
                       <img src={championIcon(version, champion.name)} alt="" />
-                      <div><b>{champion.name}</b><span>{champion.games} games</span></div>
+                      <div><Link href={`/champions/${encodeURIComponent(champion.name)}`}>{champion.name}</Link><span>{champion.games} games</span></div>
                     </div>
                   </td>
                   <td>{champion.established === false ? <span className={styles.building}>Building<br />sample</span> : <span className={`${styles.tier} ${styles[`tier${champion.tier.replace('+', 'Plus')}`]}`}>{champion.tier}</span>}</td>

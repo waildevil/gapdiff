@@ -34,7 +34,8 @@
 .rank { color:var(--faint); }
 .champion { align-items:center; display:flex; font-family:var(--sans); gap:10px; min-width:152px; text-align:left; }
 .champion > img { border:1px solid var(--accent-line); height:38px; object-fit:cover; width:38px; }
-.champion b { display:block; font-size:14px; }
+.champion a { color:var(--text); display:block; font-size:14px; font-weight:700; }
+.champion a:hover { color:var(--accent); }
 .champion span { display:block; font-size:9px; letter-spacing:.04em; margin-top:2px; text-transform:none; }
 .tier { border:1px solid currentColor; display:inline-block; font-weight:700; min-width:28px; padding:2px 4px; text-align:center; }
 .tierSPlus { color:#bb4b39; background:rgba(187,75,57,.11); }
