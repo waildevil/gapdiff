@@ -33,6 +33,10 @@ const DEFAULT_MATCHES_PER_SEED = 20;
 const DEFAULT_EXPANSION_CAP = 250;
 /** Fresh public meta is more useful than a dormant account's old patch history. */
 const ACTIVE_WINDOW_SECONDS = 30 * 24 * 60 * 60;
+/** A sample account must have enough recent ranked activity to be representative. */
+const MINIMUM_RECENT_GAMES = 5;
+/** Extra fresh accounts held per tier so inactive accounts can be replaced. */
+const RESERVE_SEEDS_PER_TIER = 5;
 
 interface Options {
   platform: Platform;
@@ -124,6 +128,7 @@ async function selectFreshRankedSeeds(options: Options) {
     .where(and(eq(metaCollectorSeeds.platform, options.platform), inArray(metaCollectorSeeds.source, options.tiers.map((tier) => `ranked-${tier.toLowerCase()}`))));
   const fresh = eligible.filter((seed) => !seed.lastCollectedAt);
   const selected: typeof eligible = [];
+  const reserves = new Map<string, typeof eligible>();
   const perTier = Math.floor(options.limit / options.tiers.length);
   let remaining = options.limit;
 
@@ -131,6 +136,7 @@ async function selectFreshRankedSeeds(options: Options) {
     const candidates = fresh.filter((seed) => seed.rankTier === tier);
     const take = Math.min(perTier, candidates.length);
     selected.push(...candidates.slice(0, take));
+    reserves.set(tier, candidates.slice(take));
     remaining -= take;
   }
   for (const tier of options.tiers) {
@@ -139,12 +145,14 @@ async function selectFreshRankedSeeds(options: Options) {
     const next = fresh.filter((seed) => seed.rankTier === tier).slice(already, already + 1);
     if (next.length) {
       selected.push(next[0]!);
+      const reservesForTier = reserves.get(tier) ?? [];
+      reserves.set(tier, reservesForTier.slice(1));
       remaining--;
     }
   }
 
   if (selected.length === 0) throw new Error('No fresh ranked seeds were discovered. Increase --seeds-per-tier or wait for the ranked pool to change.');
-  return selected;
+  return { selected, reserves };
 }
 
 function patchFromVersion(version: string): string {
@@ -302,10 +310,14 @@ async function main() {
   }
   const riot = new RiotClient({ apiKey: process.env.RIOT_API_KEY ?? '' });
   if (options.seed) await addSeed(riot, options.platform, options.seed);
-  if (options.discover) await discoverRankedSeeds(riot, options.platform, options.seedsPerTier, options.tiers);
+  if (options.discover) {
+    const neededPerTier = Math.ceil(options.limit / options.tiers.length);
+    await discoverRankedSeeds(riot, options.platform, Math.max(options.seedsPerTier, neededPerTier) + RESERVE_SEEDS_PER_TIER, options.tiers);
+  }
 
-  const seeds = options.discover
-    ? await selectFreshRankedSeeds(options)
+  const freshSelection = options.discover ? await selectFreshRankedSeeds(options) : null;
+  const seeds = freshSelection
+    ? freshSelection.selected
     : await db
       .select()
       .from(metaCollectorSeeds)
@@ -320,13 +332,30 @@ async function main() {
   let fetched = 0;
   let stored = 0;
   let expanded = 0;
-  for (const seed of seeds) {
+  let replaced = 0;
+  let skippedForActivity = 0;
+  const pending = [...seeds];
+  for (let index = 0; index < pending.length; index++) {
+    const seed = pending[index]!;
     try {
       const ids = await riot.getMatchIds(regionForPlatform(options.platform), seed.puuid, {
         count: options.matchesPerSeed,
         queue: QUEUE_IDS.RANKED_SOLO,
         startTime: Math.floor(Date.now() / 1000) - ACTIVE_WINDOW_SECONDS,
       });
+      if (options.discover && ids.length < MINIMUM_RECENT_GAMES) {
+        skippedForActivity++;
+        await db.update(metaCollectorSeeds).set({ lastCollectedAt: new Date(), lastError: `Only ${ids.length} ranked games in the last 30 days` }).where(eq(metaCollectorSeeds.puuid, seed.puuid));
+        const replacement = seed.rankTier ? freshSelection?.reserves.get(seed.rankTier)?.shift() : undefined;
+        if (replacement) {
+          pending.push(replacement);
+          replaced++;
+          console.log(`Skipped ${seed.puuid.slice(0, 8)}…: only ${ids.length} recent games; replacing from ${seed.rankTier}.`);
+        } else {
+          console.log(`Skipped ${seed.puuid.slice(0, 8)}…: only ${ids.length} recent games; no fresh ${seed.rankTier ?? 'ranked'} reserve remains.`);
+        }
+        continue;
+      }
       const known = ids.length
         ? await db
             .select({ matchId: metaSampleMatches.matchId })
@@ -361,7 +390,7 @@ async function main() {
   }
 
   await refreshRollups();
-  console.log(`Champion meta complete: ${stored} new ranked-solo matches from ${fetched} match fetches; ${expanded} participant leads added.`);
+  console.log(`Champion meta complete: ${stored} new ranked-solo matches from ${fetched} match fetches; ${replaced} inactive accounts replaced, ${skippedForActivity} skipped; ${expanded} participant leads added.`);
 }
 
 void runScript(main);
