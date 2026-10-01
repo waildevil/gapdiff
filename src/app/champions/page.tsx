@@ -12,6 +12,9 @@ export const metadata = {
   description: 'Champion meta for Ranked Solo/Duo, built from GapDiff match samples.',
 };
 
+/** A smaller sample is shown nowhere: it is too easy for one odd game to lie. */
+const MINIMUM_DISPLAY_GAMES = 20;
+
 export default async function ChampionsPage({ searchParams }: { searchParams: Promise<{ tier?: string }> }) {
   const version = await latestVersion();
   const rankFilter = findRankFilter((await searchParams).tier);
@@ -37,7 +40,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
     group.kdaTotal += row.averageKda * row.games;
     grouped.set(key, group);
   }
-  const rows: ChampionMetaRow[] = [...grouped.values()].map((row) => {
+  const rows: ChampionMetaRow[] = [...grouped.values()].filter((row) => row.games >= MINIMUM_DISPLAY_GAMES).map((row) => {
     const rawWinRate = row.games ? 100 * row.wins / row.games : 0;
     const winRate = 100 * (row.wins + 50) / (row.games + 100);
     const established = row.games >= 100;
@@ -54,7 +57,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
       <header className="page-head">
         <div className="eyebrow">Champion meta</div>
         <h1>Champion stats, without borrowed rankings</h1>
-        <p className="page-sub">Ranked Solo/Duo match samples from GapDiff&apos;s own collector. Rankings only appear after 100 games per champion and role.</p>
+        <p className="page-sub">Ranked Solo/Duo match samples from GapDiff&apos;s own collector. Champions need 20 games in a lane to appear, and 100 games to be ranked.</p>
         <RankTierFilter selected={rankFilter.key} />
       </header>
       {rows.length ? (
@@ -62,7 +65,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
           <ChampionMetaPreview version={version} rows={rows} scope={{ region: 'EUW', queue: 'Ranked Solo/Duo', patch: patch ?? 'Unknown', sample: `${matches.toLocaleString('en-US')}+ matches` }} preview={false} />
           <p className="note"><b>Current-rank sample.</b> {rankFilter.tiers ? `This view uses games collected from accounts currently in ${rankFilter.label}.` : 'This view combines all currently sampled rank tiers.'} Win rate is adjusted toward 50% over 100 prior games; raw win rate remains visible.</p>
         </>
-      ) : <p className="note">No public ranked-match sample has been collected yet. Champion rankings will appear after the collector runs.</p>}
+      ) : rollups.length ? <p className="note">This rank filter has data, but no champion has reached the 20-game display minimum yet.</p> : <p className="note">No public ranked-match sample has been collected yet. Champion rankings will appear after the collector runs.</p>}
     </div>
   );
 }
