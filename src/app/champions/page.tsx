@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { ChampionMetaPreview, type ChampionMetaRow } from '@/components/ChampionMetaPreview';
 import { RankTierFilter } from '@/components/RankTierFilter';
 import { db } from '@/db';
@@ -50,7 +50,10 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
   const cohortMatches = patch && rankFilter.tiers
     ? await db.select({ matchId: metaMatchCohorts.matchId }).from(metaMatchCohorts).innerJoin(metaSampleMatches, eq(metaSampleMatches.matchId, metaMatchCohorts.matchId)).where(and(eq(metaSampleMatches.patch, patch), inArray(metaMatchCohorts.tier, [...rankFilter.tiers])))
     : [];
-  const matches = rankFilter.tiers ? new Set(cohortMatches.map((row) => row.matchId)).size : patch ? Math.max(0, ...rollups.map((row) => row.sampledMatches)) : 0;
+  const allTierSample = !rankFilter.tiers && patch
+    ? await db.select({ matches: count() }).from(metaSampleMatches).where(eq(metaSampleMatches.patch, patch))
+    : [];
+  const matches = rankFilter.tiers ? new Set(cohortMatches.map((row) => row.matchId)).size : allTierSample[0]?.matches ?? 0;
 
   return (
     <div className="page">
