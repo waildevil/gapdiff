@@ -42,6 +42,8 @@ export interface LeagueEntry {
 /** Entries returned by League-V4 ranked ladders. */
 export interface RankedLadderEntry {
   puuid: string;
+  /** Division for Iron–Diamond. Elite ladders omit it. */
+  rank?: string;
   leaguePoints: number;
   wins: number;
   losses: number;

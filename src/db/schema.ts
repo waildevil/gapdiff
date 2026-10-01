@@ -306,6 +306,9 @@ export const metaCollectorSeeds = pgTable(
     platform: varchar('platform', { length: 8 }).notNull(),
     region: varchar('region', { length: 12 }).notNull(),
     source: varchar('source', { length: 24 }).notNull(),
+    /** Current tier captured when this ranked-ladder seed was selected. */
+    rankTier: varchar('rank_tier', { length: 16 }),
+    rankDivision: varchar('rank_division', { length: 4 }),
     discoveredAt: timestamp('discovered_at', { withTimezone: true }).notNull().defaultNow(),
     lastCollectedAt: timestamp('last_collected_at', { withTimezone: true }),
     lastError: text('last_error'),
@@ -328,6 +331,26 @@ export const metaSampleMatches = pgTable(
   },
   (table) => [
     index('meta_matches_filter_idx').on(table.region, table.queueId, table.patch, table.gameCreation),
+  ],
+);
+
+/** The ranked seed(s) through which a public-sample match was collected. */
+export const metaMatchCohorts = pgTable(
+  'meta_match_cohorts',
+  {
+    matchId: varchar('match_id', { length: 32 })
+      .notNull()
+      .references(() => metaSampleMatches.matchId, { onDelete: 'cascade' }),
+    seedPuuid: varchar('seed_puuid', { length: 78 })
+      .notNull()
+      .references(() => metaCollectorSeeds.puuid, { onDelete: 'cascade' }),
+    tier: varchar('tier', { length: 16 }).notNull(),
+    division: varchar('division', { length: 4 }),
+    capturedAt: timestamp('captured_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.matchId, table.seedPuuid] }),
+    index('meta_cohorts_tier_match_idx').on(table.tier, table.matchId),
   ],
 );
 
@@ -394,6 +417,31 @@ export const championMetaRollups = pgTable(
   (table) => [
     primaryKey({ columns: [table.patch, table.region, table.queueId, table.role, table.championId] }),
     index('meta_rollups_lookup_idx').on(table.region, table.queueId, table.patch, table.role),
+  ],
+);
+
+/** Read model for the public champion page when a current rank tier is selected. */
+export const championMetaTierRollups = pgTable(
+  'champion_meta_tier_rollups',
+  {
+    patch: varchar('patch', { length: 32 }).notNull(),
+    region: varchar('region', { length: 12 }).notNull(),
+    queueId: integer('queue_id').notNull(),
+    tier: varchar('tier', { length: 16 }).notNull(),
+    role: varchar('role', { length: 16 }).notNull(),
+    championId: integer('champion_id').notNull(),
+    championName: varchar('champion_name', { length: 32 }).notNull(),
+    games: integer('games').notNull(),
+    wins: integer('wins').notNull(),
+    roleGames: integer('role_games').notNull(),
+    bans: integer('bans').notNull(),
+    sampledMatches: integer('sampled_matches').notNull(),
+    averageKda: real('average_kda').notNull(),
+    refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.patch, table.region, table.queueId, table.tier, table.role, table.championId] }),
+    index('meta_tier_rollups_lookup_idx').on(table.tier, table.region, table.queueId, table.patch, table.role),
   ],
 );
 

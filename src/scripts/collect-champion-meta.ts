@@ -3,9 +3,11 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import {
   championMetaRollups,
+  championMetaTierRollups,
   metaChampionBans,
   metaChampionObservations,
   metaCollectorSeeds,
+  metaMatchCohorts,
   metaSampleMatches,
 } from '@/db/schema';
 import { RiotClient } from '@/lib/riot/client';
@@ -81,7 +83,7 @@ async function discoverRankedSeeds(riot: RiotClient, platform: Platform, perTier
     }
     // Spread selection across divisions; page-one sampling is not a population census.
     const selected = Array.from({ length: Math.min(perTier, entries.length) }, (_, i) => entries[Math.floor((i + 0.5) * entries.length / Math.min(perTier, entries.length))]!);
-    if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}` }))).onConflictDoNothing();
+    if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: entry.rank ?? null }))).onConflictDoUpdate({ target: metaCollectorSeeds.puuid, set: { platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: sql`excluded.rank_division` } });
     console.log(`${tier}: ${selected.length} ranked seeds discovered.`);
   }
   for (const tier of ELITE_TIERS) {
@@ -89,7 +91,7 @@ async function discoverRankedSeeds(riot: RiotClient, platform: Platform, perTier
     try {
       const entries = (await riot.getRankedLadder(platform, tier)).entries;
       const selected = Array.from({ length: Math.min(perTier, entries.length) }, (_, i) => entries[Math.floor((i + 0.5) * entries.length / Math.min(perTier, entries.length))]!);
-      if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}` }))).onConflictDoNothing();
+      if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: entry.rank ?? null }))).onConflictDoUpdate({ target: metaCollectorSeeds.puuid, set: { platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: sql`excluded.rank_division` } });
       console.log(`${tier}: ${selected.length} ranked seeds discovered.`);
     } catch (error) {
       console.error(`${tier}: ${(error as Error).message}`);
@@ -116,7 +118,7 @@ async function addSeed(riot: RiotClient, platform: Platform, riotId: string): Pr
   console.log(`Registered ${gameName}#${tagLine} as a ${platform.toUpperCase()} meta seed.`);
 }
 
-async function storeSample(match: Match, platform: Platform): Promise<boolean> {
+async function storeSample(match: Match, platform: Platform, seed: typeof metaCollectorSeeds.$inferSelect): Promise<boolean> {
   if (match.info.queueId !== QUEUE_IDS.RANKED_SOLO || !isScorable(match) || matchDurationSeconds(match) < 300) {
     return false;
   }
@@ -136,6 +138,9 @@ async function storeSample(match: Match, platform: Platform): Promise<boolean> {
     .onConflictDoNothing()
     .returning({ matchId: metaSampleMatches.matchId });
 
+  if (seed.rankTier) {
+    await db.insert(metaMatchCohorts).values({ matchId: match.metadata.matchId, seedPuuid: seed.puuid, tier: seed.rankTier, division: seed.rankDivision }).onConflictDoNothing();
+  }
   if (inserted.length === 0) return false;
 
   const scored = scoreMatch(match);
@@ -205,6 +210,41 @@ async function refreshRollups(): Promise<void> {
     LEFT JOIN ban_totals bt ON bt.patch = sm.patch AND bt.region = sm.region AND bt.queue_id = sm.queue_id AND bt.champion_id = o.champion_id
     GROUP BY sm.patch, sm.region, sm.queue_id, o.role, o.champion_id, rt.role_games, bt.bans, st.sampled_matches
   `);
+
+  await db.delete(championMetaTierRollups);
+  await db.execute(sql`
+    WITH cohort_matches AS (
+      SELECT DISTINCT sm.patch, sm.region, sm.queue_id, mc.tier, sm.match_id
+      FROM meta_sample_matches sm
+      JOIN meta_match_cohorts mc ON mc.match_id = sm.match_id
+    ), role_totals AS (
+      SELECT cm.patch, cm.region, cm.queue_id, cm.tier, o.role, count(*)::int AS role_games
+      FROM cohort_matches cm
+      JOIN meta_champion_observations o ON o.match_id = cm.match_id
+      GROUP BY cm.patch, cm.region, cm.queue_id, cm.tier, o.role
+    ), sample_totals AS (
+      SELECT patch, region, queue_id, tier, count(*)::int AS sampled_matches
+      FROM cohort_matches GROUP BY patch, region, queue_id, tier
+    ), ban_totals AS (
+      SELECT cm.patch, cm.region, cm.queue_id, cm.tier, b.champion_id, count(*)::int AS bans
+      FROM cohort_matches cm JOIN meta_champion_bans b ON b.match_id = cm.match_id
+      GROUP BY cm.patch, cm.region, cm.queue_id, cm.tier, b.champion_id
+    )
+    INSERT INTO champion_meta_tier_rollups (
+      patch, region, queue_id, tier, role, champion_id, champion_name,
+      games, wins, role_games, bans, sampled_matches, average_kda, refreshed_at
+    )
+    SELECT cm.patch, cm.region, cm.queue_id, cm.tier, o.role, o.champion_id, min(o.champion_name),
+      count(*)::int, count(*) FILTER (WHERE o.win)::int, rt.role_games,
+      coalesce(bt.bans, 0), st.sampled_matches,
+      avg((o.kills + o.assists)::real / greatest(o.deaths, 1)), now()
+    FROM cohort_matches cm
+    JOIN meta_champion_observations o ON o.match_id = cm.match_id
+    JOIN role_totals rt ON rt.patch = cm.patch AND rt.region = cm.region AND rt.queue_id = cm.queue_id AND rt.tier = cm.tier AND rt.role = o.role
+    JOIN sample_totals st ON st.patch = cm.patch AND st.region = cm.region AND st.queue_id = cm.queue_id AND st.tier = cm.tier
+    LEFT JOIN ban_totals bt ON bt.patch = cm.patch AND bt.region = cm.region AND bt.queue_id = cm.queue_id AND bt.tier = cm.tier AND bt.champion_id = o.champion_id
+    GROUP BY cm.patch, cm.region, cm.queue_id, cm.tier, o.role, o.champion_id, rt.role_games, bt.bans, st.sampled_matches
+  `);
 }
 
 async function main() {
@@ -250,7 +290,7 @@ async function main() {
         if (knownIds.has(id)) continue;
         const match = await riot.getMatch(regionForPlatform(options.platform), id);
         fetched++;
-        if (await storeSample(match, options.platform)) {
+        if (await storeSample(match, options.platform, seed)) {
           stored++;
           const candidates = options.discover ? [] : match.metadata.participants.slice(0, Math.max(0, options.expansionCap - expanded));
           if (candidates.length > 0) {

@@ -6,6 +6,11 @@
 .search { background:var(--surface); border:1px solid var(--line); display:block; min-width:220px; }
 .search input { background:transparent; border:0; color:var(--text); font:inherit; outline:0; padding:10px 12px; width:100%; }
 .search input::placeholder { color:var(--faint); }
+.rankFilter { align-items:end; display:flex; gap:8px; margin-top:16px; }
+.rankFilter label { color:var(--faint); display:flex; flex-direction:column; font-family:var(--mono); font-size:10px; gap:4px; letter-spacing:.1em; text-transform:uppercase; }
+.rankFilter select, .rankFilter button { background:var(--surface); border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:11px; letter-spacing:.05em; padding:8px 10px; text-transform:uppercase; }
+.rankFilter button { cursor:pointer; }
+.rankFilter button:hover { border-color:var(--accent); color:var(--accent); }
 .snapshot { border-top:1px solid var(--line); border-bottom:1px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); margin-bottom:22px; }
 .snapshot div { border-right:1px solid var(--line-soft); padding:10px 13px; }
 .snapshot div:last-child { border-right:0; }
@@ -40,4 +45,4 @@
 .matchups img { border:1px solid var(--surface); height:25px; margin-left:-4px; object-fit:cover; width:25px; }
 .pending { color:var(--faint); font-size:10px; }
 .empty { color:var(--muted); padding:28px; text-align:center; }
-@media (max-width:780px) { .controls { align-items:stretch; flex-direction:column; } .search { min-width:0; } .snapshot { grid-template-columns:repeat(2,1fr); } .snapshot div:nth-child(2) { border-right:0; } .snapshot div:nth-child(-n+2) { border-bottom:1px solid var(--line-soft); } .boardHead { align-items:start; flex-direction:column; gap:8px; padding:17px; } .boardHead h2 { font-size:20px; } }
+@media (max-width:780px) { .controls { align-items:stretch; flex-direction:column; } .search { min-width:0; } .rankFilter { align-items:stretch; } .snapshot { grid-template-columns:repeat(2,1fr); } .snapshot div:nth-child(2) { border-right:0; } .snapshot div:nth-child(-n+2) { border-bottom:1px solid var(--line-soft); } .boardHead { align-items:start; flex-direction:column; gap:8px; padding:17px; } .boardHead h2 { font-size:20px; } }
