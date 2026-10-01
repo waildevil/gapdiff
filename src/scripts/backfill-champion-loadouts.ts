@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { createReadStream, existsSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
-import { inArray } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import { metaChampionLoadouts, metaSampleMatches } from '@/db/schema';
 import type { Match, MatchTimeline } from '@/lib/riot/types';
@@ -57,7 +57,16 @@ async function main() {
     const knownIds = new Set(known.map((row) => row.matchId));
     const rows = batch.filter((match) => knownIds.has(match.metadata.matchId)).flatMap(rowsFor);
     if (rows.length) {
-      await db.insert(metaChampionLoadouts).values(rows).onConflictDoNothing();
+      await db.insert(metaChampionLoadouts).values(rows).onConflictDoUpdate({
+        target: [metaChampionLoadouts.matchId, metaChampionLoadouts.participantId],
+        set: {
+          championId: sql`excluded.champion_id`, championName: sql`excluded.champion_name`, role: sql`excluded.role`,
+          teamId: sql`excluded.team_id`, win: sql`excluded.win`, opponentChampionId: sql`excluded.opponent_champion_id`,
+          opponentChampionName: sql`excluded.opponent_champion_name`, spell1Id: sql`excluded.spell_1_id`, spell2Id: sql`excluded.spell_2_id`,
+          itemIds: sql`excluded.item_ids`, primaryRuneId: sql`excluded.primary_rune_id`, secondaryRuneStyleId: sql`excluded.secondary_rune_style_id`,
+          runeIds: sql`excluded.rune_ids`, statRuneIds: sql`excluded.stat_rune_ids`, skillOrder: sql`excluded.skill_order`,
+        },
+      });
       restored += rows.length;
     }
     batch = [];
