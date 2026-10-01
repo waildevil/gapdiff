@@ -8,7 +8,9 @@ import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import { migrate as migratePostgres } from 'drizzle-orm/postgres-js/migrator';
 import { sql } from 'drizzle-orm';
 import postgres from 'postgres';
-import { PGLITE_DIR } from '@/db';
+// Do not import '@/db' here: that module opens a second PGlite handle before
+// migration and can leave the on-disk database out of sync at process exit.
+const PGLITE_DIR = process.env.PGLITE_DIR ?? path.resolve(process.cwd(), '.pglite');
 
 /**
  * Applies the SQL in ./drizzle to whichever database is configured.

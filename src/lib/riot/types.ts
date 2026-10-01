@@ -39,6 +39,18 @@ export interface LeagueEntry {
   inactive: boolean;
 }
 
+/** Entries returned by League-V4 ranked ladders. */
+export interface RankedLadderEntry {
+  puuid: string;
+  leaguePoints: number;
+  wins: number;
+  losses: number;
+}
+
+export interface RankedLadder {
+  entries: RankedLadderEntry[];
+}
+
 export type TeamPosition = 'TOP' | 'JUNGLE' | 'MIDDLE' | 'BOTTOM' | 'UTILITY' | '';
 
 export interface MatchParticipant {

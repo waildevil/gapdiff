@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import {
   championMetaRollups,
@@ -12,17 +12,17 @@ import { RiotClient } from '@/lib/riot/client';
 import { parsePlatform, parseRiotId, regionForPlatform, type Platform } from '@/lib/riot/routing';
 import { isScorable, matchDurationSeconds } from '@/lib/rating/metrics';
 import { scoreMatch } from '@/lib/rating/score';
-import { QUEUE_IDS, type Match } from '@/lib/riot/types';
+import { QUEUE_IDS, type Match, type RankedLadderEntry } from '@/lib/riot/types';
 
 /**
  * Bounded public-meta collector.
  *
- * It starts from explicit EUW Riot IDs and gradually adds lobby participants
- * as future seeds. This is deliberately a sampled corpus, not a claim of
- * census-level coverage; the rollup retains its match count for an honest UI.
+ * It starts from explicit Riot IDs or bounded ranked-ladder discovery. This is
+ * deliberately a sampled corpus, not a claim of census-level coverage.
  *
  *   npm run meta:collect -- --seed="Name#TAG" --limit=25 --matches=20
  *   npm run meta:collect -- --limit=100 --matches=20
+ *   npm run meta:collect -- --platform=EUW --discover --tiers=GOLD --seeds-per-tier=2 --limit=2 --matches=2
  */
 
 const DEFAULT_SEED_LIMIT = 25;
@@ -35,6 +35,9 @@ interface Options {
   limit: number;
   matchesPerSeed: number;
   expansionCap: number;
+  discover: boolean;
+  seedsPerTier: number;
+  tiers: string[];
 }
 
 function positiveOption(name: string, fallback: number, max: number): number {
@@ -47,13 +50,51 @@ function parseOptions(): Options {
   const args = process.argv.slice(2);
   const platformArg = args.find((arg) => arg.startsWith('--platform='));
   const seedArg = args.find((arg) => arg.startsWith('--seed='));
+  const tiersArg = args.find((arg) => arg.startsWith('--tiers='));
   return {
     platform: parsePlatform(platformArg?.split('=')[1] ?? 'EUW'),
     seed: seedArg?.slice('--seed='.length) || null,
     limit: positiveOption('limit', DEFAULT_SEED_LIMIT, 500),
     matchesPerSeed: positiveOption('matches', DEFAULT_MATCHES_PER_SEED, 100),
     expansionCap: positiveOption('expand', DEFAULT_EXPANSION_CAP, 5_000),
+    discover: args.includes('--discover'),
+    seedsPerTier: positiveOption('seeds-per-tier', 10, 100),
+    tiers: tiersArg ? tiersArg.slice('--tiers='.length).toUpperCase().split(',') : [...RANKED_TIERS, ...ELITE_TIERS],
   };
+}
+
+const RANKED_TIERS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND'] as const;
+const ELITE_TIERS = ['MASTER', 'GRANDMASTER', 'CHALLENGER'] as const;
+const DIVISIONS = ['I', 'II', 'III', 'IV'] as const;
+
+async function discoverRankedSeeds(riot: RiotClient, platform: Platform, perTier: number, tiers: string[]): Promise<void> {
+  const region = regionForPlatform(platform);
+  for (const tier of RANKED_TIERS) {
+    if (!tiers.includes(tier)) continue;
+    const entries: RankedLadderEntry[] = [];
+    for (const division of DIVISIONS) {
+      try {
+        entries.push(...await riot.getRankedEntries(platform, tier, division, 1));
+      } catch (error) {
+        console.error(`${tier} ${division}: ${(error as Error).message}`);
+      }
+    }
+    // Spread selection across divisions; page-one sampling is not a population census.
+    const selected = Array.from({ length: Math.min(perTier, entries.length) }, (_, i) => entries[Math.floor((i + 0.5) * entries.length / Math.min(perTier, entries.length))]!);
+    if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}` }))).onConflictDoNothing();
+    console.log(`${tier}: ${selected.length} ranked seeds discovered.`);
+  }
+  for (const tier of ELITE_TIERS) {
+    if (!tiers.includes(tier)) continue;
+    try {
+      const entries = (await riot.getRankedLadder(platform, tier)).entries;
+      const selected = Array.from({ length: Math.min(perTier, entries.length) }, (_, i) => entries[Math.floor((i + 0.5) * entries.length / Math.min(perTier, entries.length))]!);
+      if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}` }))).onConflictDoNothing();
+      console.log(`${tier}: ${selected.length} ranked seeds discovered.`);
+    } catch (error) {
+      console.error(`${tier}: ${(error as Error).message}`);
+    }
+  }
 }
 
 function patchFromVersion(version: string): string {
@@ -168,13 +209,19 @@ async function refreshRollups(): Promise<void> {
 
 async function main() {
   const options = parseOptions();
+  if (options.tiers.some((tier) => !(RANKED_TIERS as readonly string[]).includes(tier) && !(ELITE_TIERS as readonly string[]).includes(tier))) {
+    throw new Error(`Unknown tier in --tiers: ${options.tiers.join(', ')}`);
+  }
   const riot = new RiotClient({ apiKey: process.env.RIOT_API_KEY ?? '' });
   if (options.seed) await addSeed(riot, options.platform, options.seed);
+  if (options.discover) await discoverRankedSeeds(riot, options.platform, options.seedsPerTier, options.tiers);
 
   const seeds = await db
     .select()
     .from(metaCollectorSeeds)
-    .where(eq(metaCollectorSeeds.platform, options.platform))
+    .where(options.discover
+      ? and(eq(metaCollectorSeeds.platform, options.platform), inArray(metaCollectorSeeds.source, options.tiers.map((tier) => `ranked-${tier.toLowerCase()}`)))
+      : eq(metaCollectorSeeds.platform, options.platform))
     .orderBy(asc(metaCollectorSeeds.lastCollectedAt))
     .limit(options.limit);
 
@@ -205,7 +252,7 @@ async function main() {
         fetched++;
         if (await storeSample(match, options.platform)) {
           stored++;
-          const candidates = match.metadata.participants.slice(0, Math.max(0, options.expansionCap - expanded));
+          const candidates = options.discover ? [] : match.metadata.participants.slice(0, Math.max(0, options.expansionCap - expanded));
           if (candidates.length > 0) {
             await db
               .insert(metaCollectorSeeds)

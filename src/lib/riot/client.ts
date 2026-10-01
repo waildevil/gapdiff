@@ -10,6 +10,8 @@ import type {
   ChampionMastery,
   CurrentGameInfo,
   LeagueEntry,
+  RankedLadder,
+  RankedLadderEntry,
   Match,
   MatchTimeline,
   RiotAccount,
@@ -188,6 +190,15 @@ export class RiotClient {
   }
 
   // --- LEAGUE-V4 (platform) ------------------------------------------------
+
+  async getRankedLadder(platform: Platform, tier: 'MASTER' | 'GRANDMASTER' | 'CHALLENGER'): Promise<RankedLadder> {
+    const endpoint = { MASTER: 'masterleagues', GRANDMASTER: 'grandmasterleagues', CHALLENGER: 'challengerleagues' }[tier];
+    return this.request<RankedLadder>(platformHost(platform), `/lol/league/v4/${endpoint}/by-queue/RANKED_SOLO_5x5`, 'league.ladder');
+  }
+
+  async getRankedEntries(platform: Platform, tier: 'IRON' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'EMERALD' | 'DIAMOND', division: 'I' | 'II' | 'III' | 'IV', page = 1): Promise<RankedLadderEntry[]> {
+    return this.request<RankedLadderEntry[]>(platformHost(platform), `/lol/league/v4/entries/RANKED_SOLO_5x5/${tier}/${division}?page=${page}`, 'league.entries');
+  }
 
   /**
    * Riot has been migrating league lookups from encrypted summoner id to PUUID.
