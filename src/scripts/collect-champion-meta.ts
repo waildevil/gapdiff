@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { randomInt } from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db, runScript } from '@/db';
 import {
@@ -69,8 +70,28 @@ const RANKED_TIERS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD',
 const ELITE_TIERS = ['MASTER', 'GRANDMASTER', 'CHALLENGER'] as const;
 const DIVISIONS = ['I', 'II', 'III', 'IV'] as const;
 
+function shuffled<T>(items: readonly T[]): T[] {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index--) {
+    const next = randomInt(index + 1);
+    [result[index], result[next]] = [result[next]!, result[index]!];
+  }
+  return result;
+}
+
 async function discoverRankedSeeds(riot: RiotClient, platform: Platform, perTier: number, tiers: string[]): Promise<void> {
   const region = regionForPlatform(platform);
+  // A public-meta run must widen the sample, not keep harvesting the same
+  // accounts. Any player seen in a previous run is excluded before selection.
+  const known = new Set((await db.select({ puuid: metaCollectorSeeds.puuid }).from(metaCollectorSeeds).where(eq(metaCollectorSeeds.platform, platform))).map((row) => row.puuid));
+  const registerFresh = async (tier: string, entries: RankedLadderEntry[]) => {
+    const selected = shuffled(entries.filter((entry) => !known.has(entry.puuid))).slice(0, perTier);
+    if (selected.length) {
+      await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: entry.rank ?? null }))).onConflictDoNothing();
+      selected.forEach((entry) => known.add(entry.puuid));
+    }
+    console.log(`${tier}: ${selected.length} fresh ranked seeds discovered.`);
+  };
   for (const tier of RANKED_TIERS) {
     if (!tiers.includes(tier)) continue;
     const entries: RankedLadderEntry[] = [];
@@ -81,22 +102,47 @@ async function discoverRankedSeeds(riot: RiotClient, platform: Platform, perTier
         console.error(`${tier} ${division}: ${(error as Error).message}`);
       }
     }
-    // Spread selection across divisions; page-one sampling is not a population census.
-    const selected = Array.from({ length: Math.min(perTier, entries.length) }, (_, i) => entries[Math.floor((i + 0.5) * entries.length / Math.min(perTier, entries.length))]!);
-    if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: entry.rank ?? null }))).onConflictDoUpdate({ target: metaCollectorSeeds.puuid, set: { platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: sql`excluded.rank_division` } });
-    console.log(`${tier}: ${selected.length} ranked seeds discovered.`);
+    await registerFresh(tier, entries);
   }
   for (const tier of ELITE_TIERS) {
     if (!tiers.includes(tier)) continue;
     try {
       const entries = (await riot.getRankedLadder(platform, tier)).entries;
-      const selected = Array.from({ length: Math.min(perTier, entries.length) }, (_, i) => entries[Math.floor((i + 0.5) * entries.length / Math.min(perTier, entries.length))]!);
-      if (selected.length) await db.insert(metaCollectorSeeds).values(selected.map((entry) => ({ puuid: entry.puuid, platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: entry.rank ?? null }))).onConflictDoUpdate({ target: metaCollectorSeeds.puuid, set: { platform, region, source: `ranked-${tier.toLowerCase()}`, rankTier: tier, rankDivision: sql`excluded.rank_division` } });
-      console.log(`${tier}: ${selected.length} ranked seeds discovered.`);
+      await registerFresh(tier, entries);
     } catch (error) {
       console.error(`${tier}: ${(error as Error).message}`);
     }
   }
+}
+
+async function selectFreshRankedSeeds(options: Options) {
+  const eligible = await db
+    .select()
+    .from(metaCollectorSeeds)
+    .where(and(eq(metaCollectorSeeds.platform, options.platform), inArray(metaCollectorSeeds.source, options.tiers.map((tier) => `ranked-${tier.toLowerCase()}`))));
+  const fresh = eligible.filter((seed) => !seed.lastCollectedAt);
+  const selected: typeof eligible = [];
+  const perTier = Math.floor(options.limit / options.tiers.length);
+  let remaining = options.limit;
+
+  for (const tier of options.tiers) {
+    const candidates = fresh.filter((seed) => seed.rankTier === tier);
+    const take = Math.min(perTier, candidates.length);
+    selected.push(...candidates.slice(0, take));
+    remaining -= take;
+  }
+  for (const tier of options.tiers) {
+    if (remaining === 0) break;
+    const already = selected.filter((seed) => seed.rankTier === tier).length;
+    const next = fresh.filter((seed) => seed.rankTier === tier).slice(already, already + 1);
+    if (next.length) {
+      selected.push(next[0]!);
+      remaining--;
+    }
+  }
+
+  if (selected.length === 0) throw new Error('No fresh ranked seeds were discovered. Increase --seeds-per-tier or wait for the ranked pool to change.');
+  return selected;
 }
 
 function patchFromVersion(version: string): string {
@@ -256,14 +302,14 @@ async function main() {
   if (options.seed) await addSeed(riot, options.platform, options.seed);
   if (options.discover) await discoverRankedSeeds(riot, options.platform, options.seedsPerTier, options.tiers);
 
-  const seeds = await db
-    .select()
-    .from(metaCollectorSeeds)
-    .where(options.discover
-      ? and(eq(metaCollectorSeeds.platform, options.platform), inArray(metaCollectorSeeds.source, options.tiers.map((tier) => `ranked-${tier.toLowerCase()}`)))
-      : eq(metaCollectorSeeds.platform, options.platform))
-    .orderBy(asc(metaCollectorSeeds.lastCollectedAt))
-    .limit(options.limit);
+  const seeds = options.discover
+    ? await selectFreshRankedSeeds(options)
+    : await db
+      .select()
+      .from(metaCollectorSeeds)
+      .where(eq(metaCollectorSeeds.platform, options.platform))
+      .orderBy(asc(metaCollectorSeeds.lastCollectedAt))
+      .limit(options.limit);
 
   if (seeds.length === 0) {
     throw new Error('No meta seeds yet. Start with --seed="RiotName#TAG".');

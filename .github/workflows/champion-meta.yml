@@ -37,6 +37,6 @@ jobs:
             exit 1
           fi
 
-          # 25 seeds × at most 10 recent ranked games. Ranked-ladder discovery
-          # is idempotent, while last_collected_at rotates through the cohort.
-          npm run meta:collect -- --platform=EUW --discover --seeds-per-tier=10 --limit=25 --matches=10
+          # 25 fresh accounts × at most 10 recent ranked games. Discovery is
+          # random and never reuses an account already collected by this worker.
+          npm run meta:collect -- --platform=EUW --discover --seeds-per-tier=3 --limit=25 --matches=10
