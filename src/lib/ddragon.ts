@@ -70,6 +70,11 @@ export function spellIcon(version: string, spellId: number): string | null {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${key}.png`;
 }
 
+/** Community Dragon exposes the current icon for a numeric rune/perk ID. */
+export function runeIcon(runeId: number): string {
+  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perks/${runeId}/icon.png`;
+}
+
 /** Ranked emblems come from Community Dragon; Data Dragon doesn't carry them. */
 export function rankEmblem(tier: string): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;

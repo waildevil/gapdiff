@@ -39,6 +39,7 @@ const EXPECTED_TABLES = [
   'known_players',
   'match_participants',
   'matches',
+  'meta_champion_loadouts',
   'rank_snapshots',
   'sync_state',
   'tracked_accounts',

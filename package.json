@@ -24,6 +24,7 @@
     "meta:reclaim": "tsx src/scripts/reclaim-meta-storage.ts",
     "meta:rebuild-storage": "tsx src/scripts/rebuild-meta-sample-table.ts",
     "meta:backfill-cohorts": "tsx src/scripts/backfill-meta-cohorts.ts",
+    "meta:backfill-loadouts": "tsx src/scripts/backfill-champion-loadouts.ts",
     "discord:refresh-avatars": "tsx src/scripts/refresh-discord-avatars.ts"
   },
   "dependencies": {

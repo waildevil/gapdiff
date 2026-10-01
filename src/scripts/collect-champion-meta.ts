@@ -6,12 +6,14 @@ import {
   championMetaRollups,
   championMetaTierRollups,
   metaChampionBans,
+  metaChampionLoadouts,
   metaChampionObservations,
   metaCollectorSeeds,
   metaMatchCohorts,
   metaSampleMatches,
 } from '@/db/schema';
 import { RiotClient } from '@/lib/riot/client';
+import type { MatchTimeline } from '@/lib/riot/types';
 import { parsePlatform, parseRiotId, regionForPlatform, type Platform } from '@/lib/riot/routing';
 import { isScorable, matchDurationSeconds } from '@/lib/rating/metrics';
 import { scoreMatch } from '@/lib/rating/score';
@@ -174,7 +176,60 @@ async function addSeed(riot: RiotClient, platform: Platform, riotId: string): Pr
   console.log(`Registered ${gameName}#${tagLine} as a ${platform.toUpperCase()} meta seed.`);
 }
 
-async function storeSample(match: Match, platform: Platform, seed: typeof metaCollectorSeeds.$inferSelect): Promise<boolean> {
+function runeIds(perks: unknown): { primaryRuneId: number | null; secondaryRuneStyleId: number | null } {
+  const styles = (perks as { styles?: Array<{ style?: number; selections?: Array<{ perk?: number }> }> } | undefined)?.styles ?? [];
+  return {
+    primaryRuneId: styles[0]?.selections?.[0]?.perk ?? null,
+    secondaryRuneStyleId: styles[1]?.style ?? null,
+  };
+}
+
+function skillOrders(timeline: MatchTimeline | null): Map<number, number[]> {
+  const orders = new Map<number, number[]>();
+  for (const frame of timeline?.info.frames ?? []) {
+    for (const event of frame.events) {
+      if (event.type !== 'SKILL_LEVEL_UP' || !event.participantId) continue;
+      const slot = Number(event.skillSlot);
+      if (!Number.isInteger(slot) || slot < 1 || slot > 4) continue;
+      const order = orders.get(event.participantId) ?? [];
+      order.push(slot);
+      orders.set(event.participantId, order);
+    }
+  }
+  return orders;
+}
+
+function loadoutRows(match: Match, timeline: MatchTimeline | null) {
+  const scored = scoreMatch(match);
+  const byParticipant = new Map(match.info.participants.map((participant) => [participant.participantId, participant]));
+  const orders = skillOrders(timeline);
+
+  return scored.map((row) => {
+    const participant = byParticipant.get(row.participantId)!;
+    const opponent = scored.find((candidate) => candidate.teamId !== row.teamId && candidate.role === row.role);
+    const opponentParticipant = opponent ? byParticipant.get(opponent.participantId) : undefined;
+    const runes = runeIds(participant.perks);
+    return {
+      matchId: match.metadata.matchId,
+      participantId: participant.participantId,
+      championId: participant.championId,
+      championName: participant.championName,
+      role: row.role,
+      teamId: participant.teamId,
+      win: participant.win,
+      opponentChampionId: opponentParticipant?.championId ?? null,
+      opponentChampionName: opponentParticipant?.championName ?? null,
+      spell1Id: participant.summoner1Id,
+      spell2Id: participant.summoner2Id,
+      itemIds: [participant.item0, participant.item1, participant.item2, participant.item3, participant.item4, participant.item5].filter((item) => item > 0),
+      primaryRuneId: runes.primaryRuneId,
+      secondaryRuneStyleId: runes.secondaryRuneStyleId,
+      skillOrder: orders.get(participant.participantId) ?? [],
+    };
+  });
+}
+
+async function storeSample(match: Match, platform: Platform, seed: typeof metaCollectorSeeds.$inferSelect, timeline: MatchTimeline | null = null): Promise<boolean> {
   if (match.info.queueId !== QUEUE_IDS.RANKED_SOLO || !isScorable(match) || matchDurationSeconds(match) < 300) {
     return false;
   }
@@ -212,6 +267,7 @@ async function storeSample(match: Match, platform: Platform, seed: typeof metaCo
       assists: row.assists,
     })),
   );
+  await db.insert(metaChampionLoadouts).values(loadoutRows(match, timeline));
 
   const bans = (match.info.teams ?? []).flatMap((team) =>
     (team.bans ?? [])
@@ -367,7 +423,13 @@ async function main() {
         if (knownIds.has(id)) continue;
         const match = await riot.getMatch(regionForPlatform(options.platform), id);
         fetched++;
-        if (await storeSample(match, options.platform, seed)) {
+        let timeline: MatchTimeline | null = null;
+        try {
+          timeline = await riot.getMatchTimeline(regionForPlatform(options.platform), id);
+        } catch (timelineError) {
+          console.warn(`Timeline unavailable for ${id}; storing loadout without skill order: ${(timelineError as Error).message}`);
+        }
+        if (await storeSample(match, options.platform, seed, timeline)) {
           stored++;
           const candidates = options.discover ? [] : match.metadata.participants.slice(0, Math.max(0, options.expansionCap - expanded));
           if (candidates.length > 0) {

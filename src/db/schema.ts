@@ -379,6 +379,40 @@ export const metaChampionObservations = pgTable(
   ],
 );
 
+/**
+ * The compact loadout and lane-opponent facts used by the public champion
+ * report. Keeping this separate from observations lets the original public
+ * sample remain small while still supporting builds, runes, spells, and
+ * matchup analysis.
+ */
+export const metaChampionLoadouts = pgTable(
+  'meta_champion_loadouts',
+  {
+    matchId: varchar('match_id', { length: 32 })
+      .notNull()
+      .references(() => metaSampleMatches.matchId, { onDelete: 'cascade' }),
+    participantId: integer('participant_id').notNull(),
+    championId: integer('champion_id').notNull(),
+    championName: varchar('champion_name', { length: 32 }).notNull(),
+    role: varchar('role', { length: 16 }).notNull(),
+    teamId: integer('team_id').notNull(),
+    win: boolean('win').notNull(),
+    opponentChampionId: integer('opponent_champion_id'),
+    opponentChampionName: varchar('opponent_champion_name', { length: 32 }),
+    spell1Id: integer('spell_1_id').notNull(),
+    spell2Id: integer('spell_2_id').notNull(),
+    itemIds: jsonb('item_ids').$type<number[]>().notNull(),
+    primaryRuneId: integer('primary_rune_id'),
+    secondaryRuneStyleId: integer('secondary_rune_style_id'),
+    skillOrder: jsonb('skill_order').$type<number[]>().notNull().default([]),
+  },
+  (table) => [
+    primaryKey({ columns: [table.matchId, table.participantId] }),
+    index('meta_loadouts_champion_role_idx').on(table.championId, table.role),
+    index('meta_loadouts_opponent_idx').on(table.opponentChampionId),
+  ],
+);
+
 /** Riot returns bans in the finished match payload; keep them separately for a real ban-rate. */
 export const metaChampionBans = pgTable(
   'meta_champion_bans',
