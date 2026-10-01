@@ -91,6 +91,22 @@ export function statRuneIcon(runeId: number): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/statmods/${runeId}.png`;
 }
 
+let runeMapCache: { version: string; map: Map<number, string> } | null = null;
+
+export async function runeAssetMap(version: string): Promise<Map<number, string>> {
+  if (runeMapCache?.version === version) return runeMapCache.map;
+  const map = new Map<number, string>();
+  try {
+    const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`, { next: { revalidate: 86400 } });
+    if (response.ok) {
+      const trees = (await response.json()) as Array<{ slots: Array<{ runes: Array<{ id: number; icon: string }> }> }>;
+      for (const tree of trees) for (const slot of tree.slots) for (const rune of slot.runes) map.set(rune.id, `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`);
+    }
+  } catch { /* static fallback below keeps the page usable */ }
+  runeMapCache = { version, map };
+  return map;
+}
+
 /** Ranked emblems come from Community Dragon; Data Dragon doesn't carry them. */
 export function rankEmblem(tier: string): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${tier.toLowerCase()}.svg`;
