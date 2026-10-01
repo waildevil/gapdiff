@@ -31,6 +31,8 @@ import { QUEUE_IDS, type Match, type RankedLadderEntry } from '@/lib/riot/types'
 const DEFAULT_SEED_LIMIT = 25;
 const DEFAULT_MATCHES_PER_SEED = 20;
 const DEFAULT_EXPANSION_CAP = 250;
+/** Fresh public meta is more useful than a dormant account's old patch history. */
+const ACTIVE_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 
 interface Options {
   platform: Platform;
@@ -323,6 +325,7 @@ async function main() {
       const ids = await riot.getMatchIds(regionForPlatform(options.platform), seed.puuid, {
         count: options.matchesPerSeed,
         queue: QUEUE_IDS.RANKED_SOLO,
+        startTime: Math.floor(Date.now() / 1000) - ACTIVE_WINDOW_SECONDS,
       });
       const known = ids.length
         ? await db
