@@ -42,6 +42,7 @@ function buildItems({ pendingDuels, pendingFriendRequests, groups }: RailProps, 
 
   return [
     ...groupItems,
+    { href: '/champions', glyph: '◈', label: 'Champion meta', short: 'Meta', section: 'account' },
     { href: '/friends', glyph: '⚑', label: 'Friends', short: 'Friends', section: 'account', badge: pendingFriendRequests },
     { href: '/duels', glyph: '⇄', label: 'My duels', short: 'Duels', section: 'account', badge: pendingDuels },
     { href: '/accounts', glyph: '◈', label: 'My Riot accounts', short: 'Accounts', section: 'account' },
