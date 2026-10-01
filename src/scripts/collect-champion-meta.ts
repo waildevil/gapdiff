@@ -189,11 +189,6 @@ async function storeSample(match: Match, platform: Platform, seed: typeof metaCo
       queueId: match.info.queueId,
       patch: patchFromVersion(match.info.gameVersion),
       gameCreation: new Date(match.info.gameCreation),
-      // Public-meta calculations read the normalised observation, ban, and
-      // cohort tables below. Retain only enough source metadata to identify
-      // the match and its patch; keeping Riot's entire response here made a
-      // small sample consume hundreds of MB.
-      raw: compactMatchMetadata(match),
     })
     .onConflictDoNothing()
     .returning({ matchId: metaSampleMatches.matchId });
@@ -230,17 +225,6 @@ async function storeSample(match: Match, platform: Platform, seed: typeof metaCo
   );
   if (bans.length > 0) await db.insert(metaChampionBans).values(bans).onConflictDoNothing();
   return true;
-}
-
-function compactMatchMetadata(match: Match) {
-  return {
-    metadata: { matchId: match.metadata.matchId },
-    info: {
-      queueId: match.info.queueId,
-      gameVersion: match.info.gameVersion,
-      gameCreation: match.info.gameCreation,
-    },
-  };
 }
 
 async function refreshRollups(): Promise<void> {

@@ -316,7 +316,11 @@ export const metaCollectorSeeds = pgTable(
   (table) => [index('meta_seeds_next_idx').on(table.platform, table.lastCollectedAt)],
 );
 
-/** Raw immutable match payload for the public sample, deduplicated by match ID. */
+/**
+ * Compact public-meta match record, deduplicated by match ID. Historic full
+ * Riot payloads are preserved in object storage; ongoing meta needs only the
+ * normalised observation, ban, and cohort tables.
+ */
 export const metaSampleMatches = pgTable(
   'meta_sample_matches',
   {
@@ -326,7 +330,6 @@ export const metaSampleMatches = pgTable(
     queueId: integer('queue_id').notNull(),
     patch: varchar('patch', { length: 32 }).notNull(),
     gameCreation: timestamp('game_creation', { withTimezone: true }).notNull(),
-    raw: jsonb('raw').notNull(),
     collectedAt: timestamp('collected_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

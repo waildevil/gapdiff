@@ -14,21 +14,10 @@ async function main() {
     WHERE source LIKE 'ranked-%' AND rank_tier IS NULL
   `);
 
-  const inserted = await db.execute(sql`
-    INSERT INTO meta_match_cohorts (match_id, seed_puuid, tier, division)
-    SELECT sm.match_id, s.puuid, s.rank_tier, s.rank_division
-    FROM meta_sample_matches sm
-    JOIN meta_collector_seeds s
-      ON sm.raw->'metadata'->'participants' @> jsonb_build_array(to_jsonb(s.puuid))
-    WHERE s.rank_tier IS NOT NULL
-    ON CONFLICT DO NOTHING
-    RETURNING match_id
-  `) as unknown;
-
-  const rows = Array.isArray(inserted)
-    ? inserted
-    : (inserted as { rows?: unknown[] }).rows ?? [];
-  console.log(`Rank cohorts backfilled: ${rows.length} links added.`);
+  // Cohorts are written at collection time. The historic raw payload column
+  // was archived and removed to keep the free database sustainable, so an
+  // archive restore is required for any additional legacy reconstruction.
+  console.log('Rank cohorts are captured during collection; no raw-payload backfill is needed.');
 }
 
 void runScript(main);

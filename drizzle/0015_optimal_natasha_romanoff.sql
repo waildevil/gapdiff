@@ -1,0 +1,1 @@
+ALTER TABLE "meta_sample_matches" DROP COLUMN "raw";
