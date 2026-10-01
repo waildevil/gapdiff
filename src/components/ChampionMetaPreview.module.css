@@ -6,11 +6,15 @@
 .search { background:var(--surface); border:1px solid var(--line); display:block; min-width:220px; }
 .search input { background:transparent; border:0; color:var(--text); font:inherit; outline:0; padding:10px 12px; width:100%; }
 .search input::placeholder { color:var(--faint); }
-.rankFilter { align-items:end; display:flex; gap:8px; margin-top:16px; }
-.rankFilter label { color:var(--faint); display:flex; flex-direction:column; font-family:var(--mono); font-size:10px; gap:4px; letter-spacing:.1em; text-transform:uppercase; }
-.rankFilter select, .rankFilter button { background:var(--surface); border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:11px; letter-spacing:.05em; padding:8px 10px; text-transform:uppercase; }
-.rankFilter button { cursor:pointer; }
-.rankFilter button:hover { border-color:var(--accent); color:var(--accent); }
+.rankFilter { color:var(--faint); font-family:var(--mono); font-size:10px; letter-spacing:.1em; margin-top:16px; position:relative; text-transform:uppercase; width:210px; }
+.rankFilter > span { display:block; margin-bottom:4px; }
+.rankTrigger { align-items:center; background:var(--surface); border:1px solid var(--line); color:var(--text); display:flex; font:inherit; gap:8px; justify-content:flex-start; padding:8px 10px; text-align:left; text-transform:none; width:100%; }
+.rankTrigger img, .rankMenu img { height:24px; object-fit:contain; width:28px; }
+.rankTrigger b { font-size:14px; font-weight:400; margin-left:auto; }
+.rankMenu { background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-sm); left:0; max-height:440px; overflow-y:auto; position:absolute; top:100%; width:100%; z-index:5; }
+.rankMenu button { align-items:center; background:var(--surface); border:0; border-bottom:1px solid var(--line-soft); color:var(--text); display:flex; font:inherit; gap:10px; padding:9px 10px; text-align:left; text-transform:none; width:100%; }
+.rankMenu button:hover, .rankMenu button[aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
+.rankMenu i { display:block; width:28px; }
 .snapshot { border-top:1px solid var(--line); border-bottom:1px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); margin-bottom:22px; }
 .snapshot div { border-right:1px solid var(--line-soft); padding:10px 13px; }
 .snapshot div:last-child { border-right:0; }

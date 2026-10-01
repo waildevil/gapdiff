@@ -1,7 +1,9 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { ChampionMetaPreview, type ChampionMetaRow } from '@/components/ChampionMetaPreview';
+import { RankTierFilter } from '@/components/RankTierFilter';
 import { db } from '@/db';
-import { championMetaRollups, championMetaTierRollups, metaSampleMatches } from '@/db/schema';
+import { championMetaRollups, championMetaTierRollups, metaMatchCohorts, metaSampleMatches } from '@/db/schema';
+import { findRankFilter } from '@/lib/championMetaRanks';
 import { latestVersion } from '@/lib/ddragon';
 import styles from '@/components/ChampionMetaPreview.module.css';
 
@@ -10,17 +12,14 @@ export const metadata = {
   description: 'Champion meta for Ranked Solo/Duo, built from GapDiff match samples.',
 };
 
-const TIERS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'] as const;
-
 export default async function ChampionsPage({ searchParams }: { searchParams: Promise<{ tier?: string }> }) {
   const version = await latestVersion();
-  const requestedTier = (await searchParams).tier?.toUpperCase();
-  const tier = TIERS.includes(requestedTier as typeof TIERS[number]) ? requestedTier as typeof TIERS[number] : null;
+  const rankFilter = findRankFilter((await searchParams).tier);
   const newest = await db.select({ patch: metaSampleMatches.patch }).from(metaSampleMatches).orderBy(desc(metaSampleMatches.gameCreation)).limit(1);
   const patch = newest[0]?.patch;
   const rollups = patch
-    ? tier
-      ? await db.select().from(championMetaTierRollups).where(and(eq(championMetaTierRollups.patch, patch), eq(championMetaTierRollups.tier, tier)))
+    ? rankFilter.tiers
+      ? await db.select().from(championMetaTierRollups).where(and(eq(championMetaTierRollups.patch, patch), inArray(championMetaTierRollups.tier, [...rankFilter.tiers])))
       : await db.select().from(championMetaRollups).where(eq(championMetaRollups.patch, patch))
     : [];
   const grouped = new Map<string, { name: string; role: ChampionMetaRow['role']; games: number; wins: number; roleGames: number; bans: number; sampledMatches: number; kdaTotal: number }>();
@@ -45,7 +44,10 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
     const tier: ChampionMetaRow['tier'] = winRate >= 53 ? 'S+' : winRate >= 51.5 ? 'S' : winRate >= 49.5 ? 'A' : 'B';
     return { name: row.name, role: row.role, tier, winRate, rawWinRate, pickRate: 100 * row.games / Math.max(row.roleGames, 1), banRate: 100 * row.bans / Math.max(row.sampledMatches, 1), games: row.games.toLocaleString('en-US'), kda: row.kdaTotal / Math.max(row.games, 1), strongInto: [], established };
   });
-  const matches = patch ? Math.max(0, ...rollups.map((row) => row.sampledMatches)) : 0;
+  const cohortMatches = patch && rankFilter.tiers
+    ? await db.select({ matchId: metaMatchCohorts.matchId }).from(metaMatchCohorts).innerJoin(metaSampleMatches, eq(metaSampleMatches.matchId, metaMatchCohorts.matchId)).where(and(eq(metaSampleMatches.patch, patch), inArray(metaMatchCohorts.tier, [...rankFilter.tiers])))
+    : [];
+  const matches = rankFilter.tiers ? new Set(cohortMatches.map((row) => row.matchId)).size : patch ? Math.max(0, ...rollups.map((row) => row.sampledMatches)) : 0;
 
   return (
     <div className="page">
@@ -53,20 +55,12 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
         <div className="eyebrow">Champion meta</div>
         <h1>Champion stats, without borrowed rankings</h1>
         <p className="page-sub">Ranked Solo/Duo match samples from GapDiff&apos;s own collector. Rankings only appear after 100 games per champion and role.</p>
-        <form action="/champions" className={styles.rankFilter}>
-          <label>Rank tier
-            <select name="tier" defaultValue={tier ?? ''}>
-              <option value="">All ranks</option>
-              {TIERS.map((item) => <option key={item} value={item}>{item[0]}{item.slice(1).toLowerCase()}</option>)}
-            </select>
-          </label>
-          <button type="submit">Apply</button>
-        </form>
+        <RankTierFilter selected={rankFilter.key} />
       </header>
       {rows.length ? (
         <>
           <ChampionMetaPreview version={version} rows={rows} scope={{ region: 'EUW', queue: 'Ranked Solo/Duo', patch: patch ?? 'Unknown', sample: `${matches.toLocaleString('en-US')}+ matches` }} preview={false} />
-          <p className="note"><b>Current-rank sample.</b> {tier ? `This view uses games collected from accounts currently in ${tier[0]}${tier.slice(1).toLowerCase()}.` : 'This view combines all currently sampled rank tiers.'} Win rate is adjusted toward 50% over 100 prior games; raw win rate remains visible.</p>
+          <p className="note"><b>Current-rank sample.</b> {rankFilter.tiers ? `This view uses games collected from accounts currently in ${rankFilter.label}.` : 'This view combines all currently sampled rank tiers.'} Win rate is adjusted toward 50% over 100 prior games; raw win rate remains visible.</p>
         </>
       ) : <p className="note">No public ranked-match sample has been collected yet. Champion rankings will appear after the collector runs.</p>}
     </div>
