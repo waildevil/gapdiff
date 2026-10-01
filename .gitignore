@@ -21,3 +21,7 @@ config/group.json
 
 .DS_Store
 *.log
+
+# Verified local archives of full public-meta Riot payloads. These are data
+# backups, never source code; keep a copy in object storage before compacting.
+archives/
