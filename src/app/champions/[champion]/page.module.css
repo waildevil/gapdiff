@@ -4,24 +4,32 @@
 .hero { align-items:center; border-bottom:1px solid var(--line); display:flex; gap:18px; padding:8px 0 22px; }
 .hero > img { border:1px solid var(--accent-line); height:88px; object-fit:cover; width:88px; }
 .hero h1 { font-size:34px; line-height:1.05; margin:0 0 8px; text-transform:none; }
-.hero span,.panel header span,.matchupPanel > header span,.metrics span,.dropdownField > span { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+.hero span,.panel header span,.matchupPanel > header span,.metrics span,.dropdownField > span,.roleField > span { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
 .tier { align-items:center; border:1px solid currentColor; color:#bb4b39; display:flex; flex-direction:column; font-size:25px; font-weight:700; justify-content:center; margin-left:auto; min-height:64px; min-width:64px; }
 .tier small { font-family:var(--mono); font-size:9px; font-weight:400; letter-spacing:.08em; text-transform:uppercase; }
 .filters { align-items:flex-end; display:flex; gap:10px; justify-content:flex-end; margin:18px 0; transition:opacity .18s ease-out; }
 .filtersPending { opacity:.62; }
-.dropdownField { display:grid; gap:5px; min-width:150px; position:relative; }
-.dropdownTrigger { align-items:center; background:var(--surface); border:1px solid var(--line); display:grid; gap:8px; grid-template-columns:34px 1fr 10px; min-height:42px; padding:3px 10px 3px 5px; text-align:left; }
+.dropdownField { display:grid; gap:5px; min-width:184px; position:relative; }
+.dropdownTrigger { align-items:center; background:var(--surface); border:1px solid var(--line); display:grid; gap:10px; grid-template-columns:48px 1fr 10px; min-height:50px; overflow:hidden; padding:3px 12px 3px 4px; text-align:left; }
 .dropdownTrigger:hover,.dropdownTrigger[aria-expanded="true"] { border-color:var(--accent-line); background:var(--surface-2); }
 .dropdownTrigger:disabled { cursor:wait; }
-.dropdownTrigger img,.dropdownMenu img { height:32px; object-fit:contain; width:32px; }
-.dropdownTrigger b { font-size:12px; font-weight:650; }
-.dropdownPlaceholder { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:50%; height:26px; margin:3px; width:26px; }
+.dropdownTrigger img,.dropdownMenu img { height:48px; object-fit:contain; transform:scale(1.55); width:48px; }
+.dropdownTrigger b { font-size:13px; font-weight:650; }
+.dropdownPlaceholder { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:50%; height:34px; margin:7px; width:34px; }
 .chevron { border-bottom:2px solid var(--accent); border-right:2px solid var(--accent); height:7px; transform:translateY(-2px) rotate(45deg); width:7px; }
-.dropdownMenu { background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-md); left:0; max-height:360px; min-width:210px; overflow-y:auto; padding:5px; position:absolute; top:calc(100% + 5px); z-index:20; }
-.dropdownMenu button { align-items:center; display:grid; gap:9px; grid-template-columns:34px 1fr 14px; min-height:40px; padding:3px 7px; text-align:left; width:100%; }
+.dropdownMenu { background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-md); left:0; max-height:430px; min-width:246px; overflow-x:hidden; overflow-y:auto; padding:6px; position:absolute; top:calc(100% + 5px); z-index:20; }
+.dropdownMenu button { align-items:center; display:grid; gap:12px; grid-template-columns:54px 1fr 14px; min-height:58px; overflow:hidden; padding:4px 9px; text-align:left; width:100%; }
 .dropdownMenu button:hover,.dropdownMenu button[aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
-.dropdownMenu button > span { font-size:12px; }
+.dropdownMenu button > span { font-size:13px; }
 .dropdownMenu button > b { color:var(--accent); font-size:11px; }
+.roleField { display:grid; gap:5px; }
+.roleTabs { border:1px solid var(--line); display:flex; min-height:50px; }
+.roleTabs button { align-items:center; border-right:1px solid var(--line-soft); color:var(--faint); display:flex; justify-content:center; min-width:50px; padding:0; }
+.roleTabs button:last-child { border-right:0; }
+.roleTabs button:hover { background:var(--surface-2); color:var(--text); }
+.roleTabs button[aria-checked="true"] { background:var(--accent); color:var(--surface); }
+.roleTabs button:disabled { cursor:wait; }
+.roleTabs svg { height:25px; width:25px; }
 .filterStatus { align-self:center; color:var(--muted); font-family:var(--mono); font-size:9px; letter-spacing:.04em; min-width:108px; text-transform:uppercase; }
 .metrics { border-bottom:1px solid var(--line); border-top:1px solid var(--line-soft); display:grid; grid-template-columns:repeat(5,1fr); margin:20px 0 24px; }
 .metrics > div { border-right:1px solid var(--line-soft); padding:11px 14px; }
@@ -93,5 +101,5 @@
 .empty { margin:0; padding:18px; }
 .note { margin:0; padding:18px 0; }
 @media (max-width:960px) { .reportLayout { grid-template-columns:minmax(0,1fr) 250px; } .runeSlot { gap:3px; } .runeChoice { min-width:34px; } .skillRow { grid-template-columns:auto minmax(0,1fr); } .skillStats { display:none; } }
-@media (max-width:780px) { .hero > img { height:64px; width:64px; } .hero h1 { font-size:27px; } .filters { align-items:stretch; justify-content:stretch; } .dropdownField { flex:1; } .filterStatus { display:none; } .metrics { grid-template-columns:repeat(2,1fr); } .metrics > div:nth-child(2n) { border-right:0; } .metrics > div:nth-child(-n+4) { border-bottom:1px solid var(--line-soft); } .reportLayout { grid-template-columns:1fr; } .matchupRail { position:static; } .dataRow { grid-template-columns:1fr 1.25fr; } .dataRow > span { display:none; } .runeColumns { grid-template-columns:1fr 1fr; } .shardPath { border-right:0; border-top:1px solid var(--line-soft); grid-column:1 / -1; } .shardPath .runeSlot { display:inline-flex; width:33.33%; } }
-@media (max-width:520px) { .hero { align-items:flex-start; flex-wrap:wrap; } .hero .tier { margin-left:82px; } .filters { display:grid; grid-template-columns:1fr 1fr; } .dropdownTrigger { grid-template-columns:28px 1fr 8px; } .dropdownTrigger img,.dropdownMenu img { height:27px; width:27px; } .runeColumns { display:block; } .runePath { border-bottom:1px solid var(--line-soft); border-right:0; } .shardPath { border-bottom:0; } .skillRow { grid-template-columns:1fr; } .skillTimeline { overflow-x:auto; padding-bottom:4px; } .abilityIcons img { height:34px; width:34px; } .skillTimeline span { min-width:27px; } }
+@media (max-width:780px) { .hero > img { height:64px; width:64px; } .hero h1 { font-size:27px; } .filters { align-items:stretch; display:grid; grid-template-columns:1fr auto; justify-content:stretch; } .dropdownField { min-width:0; } .filterStatus { display:none; } .metrics { grid-template-columns:repeat(2,1fr); } .metrics > div:nth-child(2n) { border-right:0; } .metrics > div:nth-child(-n+4) { border-bottom:1px solid var(--line-soft); } .reportLayout { grid-template-columns:1fr; } .matchupRail { position:static; } .dataRow { grid-template-columns:1fr 1.25fr; } .dataRow > span { display:none; } .runeColumns { grid-template-columns:1fr 1fr; } .shardPath { border-right:0; border-top:1px solid var(--line-soft); grid-column:1 / -1; } .shardPath .runeSlot { display:inline-flex; width:33.33%; } }
+@media (max-width:520px) { .hero { align-items:flex-start; flex-wrap:wrap; } .hero .tier { margin-left:82px; } .filters { grid-template-columns:1fr; } .dropdownTrigger { grid-template-columns:42px 1fr 8px; } .dropdownTrigger img,.dropdownMenu img { height:42px; width:42px; } .roleTabs button { flex:1; min-width:0; } .runeColumns { display:block; } .runePath { border-bottom:1px solid var(--line-soft); border-right:0; } .shardPath { border-bottom:0; } .skillRow { grid-template-columns:1fr; } .skillTimeline { overflow-x:auto; padding-bottom:4px; } .abilityIcons img { height:34px; width:34px; } .skillTimeline span { min-width:27px; } }

@@ -10,6 +10,9 @@ import styles from './page.module.css';
 
 const roleLabels: Record<string, string> = { TOP: 'Top', JUNGLE: 'Jungle', MIDDLE: 'Middle', BOTTOM: 'Bottom', UTILITY: 'Support' };
 const roles = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
+const roleSlugs: Record<string, string> = { TOP: 'top', JUNGLE: 'jungle', MIDDLE: 'middle', BOTTOM: 'bottom', UTILITY: 'support' };
+const roleFromSlug: Record<string, string> = { top: 'TOP', jungle: 'JUNGLE', middle: 'MIDDLE', bottom: 'BOTTOM', support: 'UTILITY', utility: 'UTILITY' };
+const roleSlug = (role: string) => roleSlugs[role] ?? role.toLowerCase();
 type Loadout = typeof metaChampionLoadouts.$inferSelect;
 
 export default async function ChampionDetailPage({ params, searchParams }: { params: Promise<{ champion: string }>; searchParams: Promise<{ role?: string; tier?: string }> }) {
@@ -18,6 +21,13 @@ export default async function ChampionDetailPage({ params, searchParams }: { par
   if (requestedChampion !== requestedChampion.toLowerCase()) {
     const query = new URLSearchParams(Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])));
     redirect(`/champions/${requestedChampion.toLowerCase()}${query.size ? `?${query}` : ''}`);
+  }
+  const requestedRole = filters.role?.toLowerCase();
+  const canonicalRole = requestedRole ? roleFromSlug[requestedRole] : undefined;
+  if (filters.role && canonicalRole && filters.role !== roleSlug(canonicalRole)) {
+    const query = new URLSearchParams(Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])));
+    query.set('role', roleSlug(canonicalRole));
+    redirect(`/champions/${requestedChampion}?${query}`);
   }
   const rankFilter = findRankFilter(filters.tier);
   const newest = await db.select({ patch: metaSampleMatches.patch }).from(metaSampleMatches).orderBy(desc(metaSampleMatches.gameCreation)).limit(1);
@@ -40,7 +50,7 @@ export default async function ChampionDetailPage({ params, searchParams }: { par
     loadouts = loadouts.filter((row) => allowed.has(row.matchId));
   }
   const rolesForChampion = rows.filter((row) => roles.includes(row.role)).sort((a, b) => b.games - a.games);
-  const selectedRole = roles.includes(filters.role ?? '') ? filters.role! : rolesForChampion[0]?.role ?? 'TOP';
+  const selectedRole = canonicalRole && roles.includes(canonicalRole) ? canonicalRole : rolesForChampion[0]?.role ?? 'TOP';
   const selected = loadouts.filter((row) => row.role === selectedRole);
   const selectedTiers = new Set<string>(rankFilter.tiers ?? []);
   const summaryRows = rankFilter.tiers ? tierRows.filter((row) => selectedTiers.has(row.tier) && row.role === selectedRole) : rows.filter((row) => row.role === selectedRole);
@@ -61,7 +71,7 @@ export default async function ChampionDetailPage({ params, searchParams }: { par
   return <div className={`page ${styles.pageScope}`}>
     <Link className={styles.back} href="/champions">Back to champion meta</Link>
     <header className={styles.hero}><img src={championIcon(version, champion)} alt="" /><div><h1>{champion} {roleLabels[selectedRole]} build</h1><span>Patch {patch} · Ranked Solo/Duo · EUW sample</span></div><div className={styles.tier}>{tier}<small>tier</small></div></header>
-    <AutoFilters rank={rankFilter.key} role={selectedRole} ranks={RANK_FILTERS} roles={rolesForChampion.map((row) => ({ key: row.role, label: roleLabels[row.role] ?? row.role }))} />
+    <AutoFilters rank={rankFilter.key} role={roleSlug(selectedRole)} ranks={RANK_FILTERS} roles={rolesForChampion.map((row) => ({ key: roleSlug(row.role), label: roleLabels[row.role] ?? row.role }))} />
     <section className={styles.metrics}><Metric label="Adjusted win rate" value={`${adjustedWinRate.toFixed(1)}%`} detail={`raw ${rawWinRate.toFixed(1)}%`} /><Metric label="Games sampled" value={games.toLocaleString('en-US')} detail={`${selected.length.toLocaleString('en-US')} loadouts`} /><Metric label="Pick rate" value={`${(100 * games / Math.max(roleGames, 1)).toFixed(1)}%`} detail={`${roleLabels[selectedRole]} only`} /><Metric label="Average KDA" value={kda.toFixed(2)} detail="kills + assists / deaths" /><Metric label="Patch sample" value={(sampleResult[0]?.matches ?? 0).toLocaleString('en-US')} detail="ranked matches" /></section>
     <div className={styles.reportLayout}>
       <div className={styles.buildColumn}>
