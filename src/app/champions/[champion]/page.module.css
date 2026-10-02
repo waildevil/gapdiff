@@ -1,12 +1,69 @@
+.pageScope { margin-left:auto; margin-right:auto; max-width:1240px; }
 .back { color:var(--muted); display:inline-block; font-family:var(--mono); font-size:11px; letter-spacing:.06em; margin-bottom:20px; text-transform:uppercase; }
-.pageScope { margin-left:auto; margin-right:auto; }
 .back:hover { color:var(--accent); }
-.hero { align-items:center; border-bottom:1px solid var(--line); display:flex; gap:18px; padding:8px 0 22px; }.hero > img { border:1px solid var(--accent-line); height:88px; object-fit:cover; width:88px; }.hero h1 { font-size:34px; line-height:1.05; margin:0 0 8px; text-transform:none; }.hero span,.panel header span,.metrics span,.filters label { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
-.tier { align-items:center; border:1px solid currentColor; color:#bb4b39; display:flex; flex-direction:column; font-size:25px; font-weight:700; justify-content:center; margin-left:auto; min-height:64px; min-width:64px; }.tier small { font-family:var(--mono); font-size:9px; font-weight:400; letter-spacing:.08em; text-transform:uppercase; }
-.filters { align-items:flex-end; display:flex; gap:10px; justify-content:flex-end; margin:18px 0; }.filters label { display:grid; gap:5px; }.filters select,.filters button { background:var(--surface); border:1px solid var(--line); color:var(--ink); font:inherit; min-height:34px; padding:0 10px; }.filters button { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
-.selectWrap { align-items:center; display:flex; position:relative; }.selectWrap select { padding-left:31px; }.filterEmblem { height:20px; left:8px; position:absolute; width:20px; z-index:1; }
-.metrics { border-bottom:1px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); margin:20px 0 24px; }.metrics > div { border-right:1px solid var(--line-soft); padding:11px 14px; }.metrics > div:last-child { border-right:0; }.metrics strong { display:block; font-family:var(--mono); font-size:20px; margin:5px 0 2px; }.metrics small { color:var(--muted); font-size:10px; }
-.grid { display:grid; gap:16px; grid-template-columns:repeat(2,minmax(0,1fr)); }.panel,.matchups > div { background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-sm); }.panel header { border-bottom:1px solid var(--line); padding:15px 18px 12px; }.panel h2,.matchups h2 { font-size:18px; margin:0 0 4px; text-transform:none; }.rows { min-height:150px; }.dataRow { align-items:center; border-bottom:1px solid var(--line-soft); display:grid; gap:10px; grid-template-columns:1.1fr 1.15fr 1.1fr; min-height:50px; padding:8px 18px; }.dataRow:last-child { border-bottom:0; }.dataRow b,.dataRow span { font-family:var(--mono); font-size:10px; }.dataRow span { color:var(--muted); }.icons { align-items:center; display:flex; gap:4px; min-width:0; }.icons img { height:28px; object-fit:cover; width:28px; }.runeSet { display:flex; flex-wrap:wrap; gap:4px; }.runeSet .icons + .icons { border-left:1px solid var(--line); padding-left:5px; }.runeSet img { border-radius:50%; height:25px; width:25px; }.skills { display:flex; gap:3px; }.skills span { background:var(--ink); color:var(--surface); font-family:var(--mono); font-size:10px; padding:4px 5px; }
-.matchups { display:grid; gap:16px; grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:16px; }.matchups > div > h2,.matchups > div > p { margin-left:18px; margin-right:18px; }.matchups > div > h2 { margin-top:16px; }.matchups > div > p,.empty,.note { color:var(--muted); font-size:12px; }.matchupRows { margin-top:12px; }.matchupRows > div { align-items:center; border-top:1px solid var(--line-soft); display:grid; gap:9px; grid-template-columns:30px 1fr .7fr .9fr; padding:8px 18px; }.matchupRows img { height:28px; width:28px; }.matchupRows b { font-size:13px; }.matchupRows span,.matchupRows strong { font-family:var(--mono); font-size:10px; }.matchupRows span { color:var(--muted); }.matchupRows strong { color:var(--accent); text-align:right; }.empty { margin:0; padding:18px; }.note { margin:0; padding:18px 0; }
-@media (max-width:780px) { .hero > img { height:64px; width:64px; }.hero h1 { font-size:27px; }.filters { align-items:stretch; justify-content:stretch; }.filters label,.filters button { flex:1; }.metrics { grid-template-columns:repeat(2,1fr); }.metrics > div:nth-child(2n) { border-right:0; }.metrics > div:nth-child(-n+4) { border-bottom:1px solid var(--line-soft); }.grid,.matchups { grid-template-columns:1fr; }.dataRow { grid-template-columns:1fr 1.25fr; }.dataRow > span { display:none; } }
-.runeRow { border-bottom:1px solid var(--line-soft); display:flex; gap:18px; justify-content:space-between; padding:14px 18px; }.runeRow:last-child { border-bottom:0; }.runeTrees { display:grid; flex:1; gap:18px; grid-template-columns:repeat(3,minmax(0,1fr)); }.runeTrees small { color:var(--muted); display:block; font-family:var(--mono); font-size:9px; letter-spacing:.08em; margin-bottom:7px; text-transform:uppercase; }.runeIcons { align-items:center; display:flex; flex-wrap:wrap; gap:5px; }.runeIcons img { background:var(--line-soft); border-radius:50%; height:31px; object-fit:cover; padding:2px; width:31px; }.runeStats { align-self:center; display:grid; gap:4px; min-width:140px; text-align:right; }.runeStats b,.runeStats span { font-family:var(--mono); font-size:10px; }.runeStats span { color:var(--muted); }
+.hero { align-items:center; border-bottom:1px solid var(--line); display:flex; gap:18px; padding:8px 0 22px; }
+.hero > img { border:1px solid var(--accent-line); height:88px; object-fit:cover; width:88px; }
+.hero h1 { font-size:34px; line-height:1.05; margin:0 0 8px; text-transform:none; }
+.hero span,.panel header span,.matchupPanel > header span,.metrics span,.filters label { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+.tier { align-items:center; border:1px solid currentColor; color:#bb4b39; display:flex; flex-direction:column; font-size:25px; font-weight:700; justify-content:center; margin-left:auto; min-height:64px; min-width:64px; }
+.tier small { font-family:var(--mono); font-size:9px; font-weight:400; letter-spacing:.08em; text-transform:uppercase; }
+.filters { align-items:flex-end; display:flex; gap:10px; justify-content:flex-end; margin:18px 0; }
+.filters label { display:grid; gap:5px; }
+.filters select,.filters button { background:var(--surface); border:1px solid var(--line); color:var(--text); font:inherit; min-height:36px; padding:0 10px; }
+.filters button { background:var(--accent); border-color:var(--accent); color:var(--surface); cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+.selectWrap { align-items:center; display:flex; position:relative; }
+.selectWrap select { padding-left:31px; }
+.filterEmblem { height:20px; left:8px; position:absolute; width:20px; z-index:1; }
+.metrics { border-bottom:1px solid var(--line); border-top:1px solid var(--line-soft); display:grid; grid-template-columns:repeat(5,1fr); margin:20px 0 24px; }
+.metrics > div { border-right:1px solid var(--line-soft); padding:11px 14px; }
+.metrics > div:last-child { border-right:0; }
+.metrics strong { display:block; font-family:var(--mono); font-size:20px; margin:5px 0 2px; }
+.metrics small { color:var(--muted); font-size:10px; }
+.reportLayout { align-items:start; display:grid; gap:16px; grid-template-columns:minmax(0,2.15fr) minmax(260px,.85fr); }
+.buildColumn { display:grid; gap:12px; min-width:0; }
+.panel,.matchupPanel { background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-sm); }
+.panel > header,.matchupPanel > header { align-items:baseline; border-bottom:1px solid var(--line); display:flex; gap:12px; justify-content:space-between; padding:13px 16px 11px; }
+.panel h2,.matchupPanel h2 { font-size:17px; margin:0; text-transform:none; }
+.rows { min-height:0; }
+.dataRow { align-items:center; border-bottom:1px solid var(--line-soft); display:grid; gap:10px; grid-template-columns:1.1fr 1.15fr 1fr; min-height:52px; padding:8px 16px; }
+.dataRow:last-child { border-bottom:0; }
+.dataRow b,.dataRow span { font-family:var(--mono); font-size:10px; }
+.dataRow > span { color:var(--muted); text-align:right; }
+.icons { align-items:center; display:flex; gap:4px; min-width:0; }
+.icons img { height:30px; object-fit:cover; width:30px; }
+.skills { display:flex; gap:3px; }
+.skills span { background:var(--text); color:var(--surface); font-family:var(--mono); font-size:10px; padding:4px 5px; }
+.runeRow { align-items:stretch; border-bottom:1px solid var(--line-soft); display:grid; grid-template-columns:48px minmax(0,1fr) 116px; min-height:210px; }
+.runeRow:last-child { border-bottom:0; }
+.runeRank { align-items:center; background:var(--surface-2); border-right:1px solid var(--line-soft); display:flex; flex-direction:column; justify-content:center; }
+.runeRank span { color:var(--muted); font-family:var(--mono); font-size:8px; letter-spacing:.12em; text-transform:uppercase; }
+.runeRank strong { color:var(--accent); font-family:var(--mono); font-size:21px; }
+.runeTrees { display:flex; gap:32px; justify-content:center; padding:16px 24px; }
+.runeTrees > div { min-width:74px; text-align:center; }
+.runeTrees small { color:var(--muted); display:block; font-family:var(--mono); font-size:9px; letter-spacing:.08em; margin-bottom:9px; text-transform:uppercase; }
+.runeIcons { align-items:center; display:flex; flex-direction:column; gap:5px; }
+.runeIcons img { background:var(--surface-3); border:1px solid transparent; border-radius:50%; height:34px; object-fit:cover; padding:2px; width:34px; }
+.runeIcons img:first-child { border-color:var(--accent-line); height:38px; width:38px; }
+.shardTree .runeIcons img { height:29px; width:29px; }
+.runeStats { align-content:center; border-left:1px solid var(--line-soft); display:grid; gap:5px; padding:14px; text-align:right; }
+.runeStats b,.runeStats span,.runeStats strong { font-family:var(--mono); font-size:10px; }
+.runeStats span { color:var(--muted); }
+.runeStats strong { font-size:11px; }
+.positive { color:var(--good); }
+.negative { color:var(--bad); }
+.matchupRail { min-width:0; position:sticky; top:16px; }
+.matchupGroup + .matchupGroup { border-top:1px solid var(--line); }
+.matchupGroup h3 { font-family:var(--font-display),var(--sans); font-size:14px; margin:0; padding:13px 14px 0; text-transform:none; }
+.matchupGroup > p { color:var(--muted); font-size:10px; margin:2px 14px 10px; }
+.matchupRows > div { align-items:center; border-top:1px solid var(--line-soft); display:grid; gap:9px; grid-template-columns:38px minmax(0,1fr) auto; min-height:58px; padding:8px 14px; }
+.matchupRows img { height:38px; object-fit:cover; width:38px; }
+.matchupName { display:grid; min-width:0; }
+.matchupName b { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.matchupName small { color:var(--muted); font-family:var(--mono); font-size:9px; }
+.matchupRows strong { font-family:var(--mono); font-size:11px; font-variant-numeric:tabular-nums; text-align:right; }
+.empty,.note { color:var(--muted); font-size:12px; }
+.empty { margin:0; padding:18px; }
+.note { margin:0; padding:18px 0; }
+@media (max-width:960px) { .reportLayout { grid-template-columns:minmax(0,1fr) 250px; } .runeTrees { gap:18px; padding-left:14px; padding-right:14px; } }
+@media (max-width:780px) { .hero > img { height:64px; width:64px; } .hero h1 { font-size:27px; } .filters { align-items:stretch; justify-content:stretch; } .filters label,.filters button { flex:1; } .metrics { grid-template-columns:repeat(2,1fr); } .metrics > div:nth-child(2n) { border-right:0; } .metrics > div:nth-child(-n+4) { border-bottom:1px solid var(--line-soft); } .reportLayout { grid-template-columns:1fr; } .matchupRail { position:static; } .dataRow { grid-template-columns:1fr 1.25fr; } .dataRow > span { display:none; } }
+@media (max-width:520px) { .hero { align-items:flex-start; flex-wrap:wrap; } .hero .tier { margin-left:82px; } .filters { display:grid; grid-template-columns:1fr 1fr; } .filters button { grid-column:1 / -1; } .runeRow { grid-template-columns:38px minmax(0,1fr); } .runeTrees { gap:12px; justify-content:space-around; padding:14px 8px; } .runeTrees > div { min-width:0; } .runeStats { border-left:0; border-top:1px solid var(--line-soft); display:flex; grid-column:1 / -1; justify-content:space-between; padding:10px 12px; } }
