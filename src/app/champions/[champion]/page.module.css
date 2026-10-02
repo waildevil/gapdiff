@@ -29,7 +29,8 @@
 .roleTabs button:hover { background:var(--surface-2); color:var(--text); }
 .roleTabs button[aria-checked="true"] { background:var(--accent); color:var(--surface); }
 .roleTabs button:disabled { cursor:wait; }
-.roleTabs svg { height:25px; width:25px; }
+.roleTabs img { height:27px; object-fit:contain; width:27px; }
+.roleTabs button[aria-checked="true"] img { filter:brightness(0) invert(1); }
 .filterStatus { align-self:center; color:var(--muted); font-family:var(--mono); font-size:9px; letter-spacing:.04em; min-width:108px; text-transform:uppercase; }
 .metrics { border-bottom:1px solid var(--line); border-top:1px solid var(--line-soft); display:grid; grid-template-columns:repeat(5,1fr); margin:20px 0 24px; }
 .metrics > div { border-right:1px solid var(--line-soft); padding:11px 14px; }

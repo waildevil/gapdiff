@@ -28,18 +28,12 @@ export function AutoFilters({ rank, role, ranks, roles }: { rank: string; role: 
 }
 
 function RoleTabs({ value, options, disabled, onChange }: { value: string; options: RoleOption[]; disabled: boolean; onChange: (value: string) => void }) {
-  return <div className={styles.roleField}><span>Role</span><div className={styles.roleTabs} role="radiogroup" aria-label="Role">{options.map((option) => <button key={option.key} type="button" role="radio" aria-checked={option.key === value} aria-label={option.label} title={option.label} disabled={disabled} onClick={() => onChange(option.key)}><RoleIcon role={option.key} /></button>)}</div></div>;
+  return <div className={styles.roleField}><span>Role</span><div className={styles.roleTabs} role="radiogroup" aria-label="Role">{options.map((option) => <button key={option.key} type="button" role="radio" aria-checked={option.key === value} aria-label={option.label} title={option.label} disabled={disabled} onClick={() => onChange(option.key)}><img src={roleIcon(option.key)} alt="" /></button>)}</div></div>;
 }
 
-function RoleIcon({ role }: { role: string }) {
-  const marks: Record<string, React.ReactNode> = {
-    top: <><path d="M5 18V5h13"/><path d="m8 15 7-7"/></>,
-    jungle: <><path d="M12 19c0-6 2-10 6-14-1 6-2 11-6 14Z"/><path d="M11 19C9 13 7 9 4 7c1 6 3 10 7 12Z"/><path d="M12 19v-8"/></>,
-    middle: <><path d="M5 19 19 5"/><path d="M5 14v5h5M14 5h5v5"/></>,
-    bottom: <><path d="M19 6v13H6"/><path d="m16 9-7 7"/></>,
-    support: <><path d="M12 5v14M5 9h14"/><path d="m7 9 2 4h6l2-4M9 19h6"/></>,
-  };
-  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{marks[role] ?? marks.middle}</svg>;
+function roleIcon(role: string) {
+  const assetRole = role === 'support' ? 'utility' : role;
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-${assetRole}.png`;
 }
 
 function ChoiceDropdown({ label, value, options, disabled, onChange }: { label: string; value: string; options: Array<{ key: string; label: string; icon: string | null }>; disabled: boolean; onChange: (value: string) => void }) {
