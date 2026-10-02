@@ -88,23 +88,59 @@ export function runeIcon(runeId: number): string {
 }
 
 export function statRuneIcon(runeId: number): string {
-  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/statmods/${runeId}.png`;
+  const names: Record<number, string> = {
+    5001: 'statmodshealthscalingicon',
+    5002: 'statmodsarmoricon',
+    5003: 'statmodsmagicresicon',
+    5005: 'statmodsattackspeedicon',
+    5007: 'statmodscdrscalingicon',
+    5008: 'statmodsadaptiveforceicon',
+    5010: 'statmodsmovespeedicon',
+    5011: 'statmodshealthplusicon',
+    5013: 'statmodstenacityicon',
+  };
+  const name = names[runeId] ?? 'statmodsadaptiveforceicon';
+  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/statmods/${name}.png`;
 }
 
-let runeMapCache: { version: string; map: Map<number, string> } | null = null;
+export type RuneCatalogTree = { id: number; name: string; icon: string; slots: Array<Array<{ id: number; name: string; icon: string }>> };
+let runeMapCache: { version: string; map: Map<number, string>; trees: RuneCatalogTree[] } | null = null;
 
 export async function runeAssetMap(version: string): Promise<Map<number, string>> {
-  if (runeMapCache?.version === version) return runeMapCache.map;
+  return (await loadRuneData(version)).map;
+}
+
+export async function runeCatalog(version: string): Promise<RuneCatalogTree[]> {
+  return (await loadRuneData(version)).trees;
+}
+
+async function loadRuneData(version: string): Promise<{ map: Map<number, string>; trees: RuneCatalogTree[] }> {
+  if (runeMapCache?.version === version) return runeMapCache;
   const map = new Map<number, string>();
+  let trees: RuneCatalogTree[] = [];
   try {
     const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`, { next: { revalidate: 86400 } });
     if (response.ok) {
-      const trees = (await response.json()) as Array<{ slots: Array<{ runes: Array<{ id: number; icon: string }> }> }>;
-      for (const tree of trees) for (const slot of tree.slots) for (const rune of slot.runes) map.set(rune.id, `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`);
+      const raw = (await response.json()) as Array<{ id: number; name: string; icon: string; slots: Array<{ runes: Array<{ id: number; name: string; icon: string }> }> }>;
+      trees = raw.map((tree) => ({ id: tree.id, name: tree.name, icon: `https://ddragon.leagueoflegends.com/cdn/img/${tree.icon}`, slots: tree.slots.map((slot) => slot.runes.map((rune) => ({ ...rune, icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}` }))) }));
+      for (const tree of trees) for (const slot of tree.slots) for (const rune of slot) map.set(rune.id, rune.icon);
     }
   } catch { /* static fallback below keeps the page usable */ }
-  runeMapCache = { version, map };
-  return map;
+  runeMapCache = { version, map, trees };
+  return runeMapCache;
+}
+
+export async function championAbilityIcons(version: string, championName: string): Promise<Record<'Q' | 'W' | 'E' | 'R', string>> {
+  try {
+    const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion/${championName}.json`, { next: { revalidate: 86400 } });
+    if (!response.ok) throw new Error('Champion data unavailable');
+    const payload = (await response.json()) as { data: Record<string, { spells: Array<{ image: { full: string } }> }> };
+    const spells = payload.data[championName]?.spells ?? [];
+    const icon = (index: number) => spells[index]?.image.full ? `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${spells[index].image.full}` : '';
+    return { Q: icon(0), W: icon(1), E: icon(2), R: icon(3) };
+  } catch {
+    return { Q: '', W: '', E: '', R: '' };
+  }
 }
 
 /** Ranked emblems come from Community Dragon; Data Dragon doesn't carry them. */

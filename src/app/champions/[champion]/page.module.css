@@ -4,21 +4,24 @@
 .hero { align-items:center; border-bottom:1px solid var(--line); display:flex; gap:18px; padding:8px 0 22px; }
 .hero > img { border:1px solid var(--accent-line); height:88px; object-fit:cover; width:88px; }
 .hero h1 { font-size:34px; line-height:1.05; margin:0 0 8px; text-transform:none; }
-.hero span,.panel header span,.matchupPanel > header span,.metrics span,.filters label { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+.hero span,.panel header span,.matchupPanel > header span,.metrics span,.dropdownField > span { color:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
 .tier { align-items:center; border:1px solid currentColor; color:#bb4b39; display:flex; flex-direction:column; font-size:25px; font-weight:700; justify-content:center; margin-left:auto; min-height:64px; min-width:64px; }
 .tier small { font-family:var(--mono); font-size:9px; font-weight:400; letter-spacing:.08em; text-transform:uppercase; }
 .filters { align-items:flex-end; display:flex; gap:10px; justify-content:flex-end; margin:18px 0; transition:opacity .18s ease-out; }
-.filters label { display:grid; gap:5px; }
-.filters select { appearance:none; background:var(--surface); border:1px solid var(--line); color:var(--text); cursor:pointer; font:inherit; min-height:40px; padding:0 34px 0 12px; }
-.filters select:hover { border-color:var(--accent-line); }
-.filters select:disabled { cursor:wait; }
 .filtersPending { opacity:.62; }
-.selectWrap { align-items:center; display:flex; position:relative; }
-.selectWrap::after,.filters label:last-of-type::after { border-bottom:2px solid var(--accent); border-right:2px solid var(--accent); content:''; height:6px; pointer-events:none; position:absolute; right:13px; top:31px; transform:rotate(45deg); width:6px; }
-.filters label:last-of-type { position:relative; }
-.selectWrap select { min-width:158px; padding-left:48px; }
-.filterEmblem { height:34px; left:5px; object-fit:contain; position:absolute; width:34px; z-index:1; }
-.allRanksIcon { align-items:center; color:var(--accent); display:flex; font-family:var(--font-display),var(--sans); font-size:20px; height:32px; justify-content:center; left:6px; position:absolute; width:32px; z-index:1; }
+.dropdownField { display:grid; gap:5px; min-width:150px; position:relative; }
+.dropdownTrigger { align-items:center; background:var(--surface); border:1px solid var(--line); display:grid; gap:8px; grid-template-columns:34px 1fr 10px; min-height:42px; padding:3px 10px 3px 5px; text-align:left; }
+.dropdownTrigger:hover,.dropdownTrigger[aria-expanded="true"] { border-color:var(--accent-line); background:var(--surface-2); }
+.dropdownTrigger:disabled { cursor:wait; }
+.dropdownTrigger img,.dropdownMenu img { height:32px; object-fit:contain; width:32px; }
+.dropdownTrigger b { font-size:12px; font-weight:650; }
+.dropdownPlaceholder { background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:50%; height:26px; margin:3px; width:26px; }
+.chevron { border-bottom:2px solid var(--accent); border-right:2px solid var(--accent); height:7px; transform:translateY(-2px) rotate(45deg); width:7px; }
+.dropdownMenu { background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-md); left:0; max-height:360px; min-width:210px; overflow-y:auto; padding:5px; position:absolute; top:calc(100% + 5px); z-index:20; }
+.dropdownMenu button { align-items:center; display:grid; gap:9px; grid-template-columns:34px 1fr 14px; min-height:40px; padding:3px 7px; text-align:left; width:100%; }
+.dropdownMenu button:hover,.dropdownMenu button[aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
+.dropdownMenu button > span { font-size:12px; }
+.dropdownMenu button > b { color:var(--accent); font-size:11px; }
 .filterStatus { align-self:center; color:var(--muted); font-family:var(--mono); font-size:9px; letter-spacing:.04em; min-width:108px; text-transform:uppercase; }
 .metrics { border-bottom:1px solid var(--line); border-top:1px solid var(--line-soft); display:grid; grid-template-columns:repeat(5,1fr); margin:20px 0 24px; }
 .metrics > div { border-right:1px solid var(--line-soft); padding:11px 14px; }
@@ -37,31 +40,43 @@
 .dataRow > span { color:var(--muted); text-align:right; }
 .icons { align-items:center; display:flex; gap:4px; min-width:0; }
 .icons img { height:30px; object-fit:cover; width:30px; }
-.skills { display:flex; gap:3px; }
-.skills span { align-items:center; background:var(--surface-2); border:1px solid var(--line-soft); display:grid; height:34px; justify-items:center; min-width:28px; overflow:hidden; }
-.skills small { color:var(--muted); font-family:var(--mono); font-size:7px; line-height:1; margin-top:3px; }
-.skills b { align-items:center; color:var(--text); display:flex; font-family:var(--font-display),var(--sans); font-size:13px; justify-content:center; line-height:1; width:100%; }
-.skills .skillQ b { box-shadow:inset 0 -3px 0 #3977c3; }
-.skills .skillW b { box-shadow:inset 0 -3px 0 #1a9d86; }
-.skills .skillE b { box-shadow:inset 0 -3px 0 #c27a28; }
-.skills .skillR b { box-shadow:inset 0 -3px 0 #a73f56; }
-.runeRow { align-items:stretch; border-bottom:1px solid var(--line-soft); display:grid; grid-template-columns:44px minmax(0,1fr) 112px; min-height:148px; }
-.runeRow:last-child { border-bottom:0; }
-.runeRank { align-items:center; background:var(--surface-2); border-right:1px solid var(--line-soft); display:flex; flex-direction:column; justify-content:center; }
-.runeRank span { color:var(--muted); font-family:var(--mono); font-size:8px; letter-spacing:.12em; text-transform:uppercase; }
-.runeRank strong { color:var(--accent); font-family:var(--mono); font-size:18px; }
-.runeTrees { display:flex; gap:42px; justify-content:center; padding:11px 18px; }
-.runeTrees > div { min-width:94px; text-align:center; }
-.runeTrees small { color:var(--muted); display:block; font-family:var(--mono); font-size:8px; letter-spacing:.08em; margin-bottom:6px; text-transform:uppercase; }
-.runeIcons { align-items:center; display:grid; gap:2px; grid-auto-flow:column; grid-template-rows:repeat(2,28px); justify-content:center; }
-.runeIcons img { background:var(--surface-3); border:1px solid transparent; border-radius:50%; height:28px; object-fit:cover; padding:1px; width:28px; }
-.runeIcons img:first-child { border-color:var(--accent-line); height:31px; width:31px; }
-.shardTree .runeIcons { grid-auto-flow:row; grid-template-columns:repeat(2,25px); grid-template-rows:repeat(2,25px); }
-.shardTree .runeIcons img { height:25px; width:25px; }
-.runeStats { align-content:center; border-left:1px solid var(--line-soft); display:grid; gap:5px; padding:14px; text-align:right; }
-.runeStats b,.runeStats span,.runeStats strong { font-family:var(--mono); font-size:10px; }
-.runeStats span { color:var(--muted); }
-.runeStats strong { font-size:11px; }
+.runeMatrixHead { background:var(--surface-2); border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; }
+.runeMatrixHead > div { align-items:center; display:flex; gap:8px; padding:10px 16px; }
+.runeMatrixHead > div + div { border-left:1px solid var(--line); }
+.runeMatrixHead b { font-family:var(--mono); font-size:16px; }
+.runeMatrixHead span { color:var(--muted); font-family:var(--mono); font-size:9px; text-transform:uppercase; }
+.runeColumns { display:grid; grid-template-columns:1.25fr 1.25fr .8fr; }
+.runePath { border-right:1px solid var(--line-soft); min-width:0; padding:14px 12px 12px; }
+.runePath:last-child { border-right:0; }
+.runePath > header { align-items:center; display:flex; gap:7px; justify-content:center; margin-bottom:10px; min-height:28px; }
+.runePath > header img { height:26px; object-fit:contain; width:26px; }
+.runePath > header b { font-family:var(--font-display),var(--sans); font-size:13px; }
+.runeSlot { display:flex; gap:7px; justify-content:center; min-height:57px; }
+.runeChoice { align-items:center; display:grid; justify-items:center; min-width:39px; opacity:.24; }
+.runeChoice img { filter:grayscale(1); height:34px; object-fit:contain; width:34px; }
+.runeChoice span { color:var(--muted); font-family:var(--mono); font-size:8px; font-variant-numeric:tabular-nums; }
+.runeSelected { opacity:1; }
+.runeSelected img { border-radius:50%; box-shadow:0 0 0 2px var(--accent); filter:none; }
+.runeSelected span { color:var(--text); font-weight:700; }
+.shardPath .runeChoice img { height:28px; width:28px; }
+.shardPath .runeChoice { min-width:34px; }
+.skillRow { align-items:center; border-bottom:1px solid var(--line-soft); display:grid; gap:14px; grid-template-columns:auto minmax(0,1fr) 150px; min-height:78px; padding:10px 16px; }
+.skillRow:last-child { border-bottom:0; }
+.abilityIcons { display:flex; gap:4px; }
+.abilityIcons > div { position:relative; }
+.abilityIcons img { display:block; height:38px; object-fit:cover; width:38px; }
+.abilityIcons b { background:rgba(4,7,10,.82); bottom:0; color:#fff; font-family:var(--mono); font-size:8px; padding:1px 4px; position:absolute; right:0; }
+.skillTimeline { display:flex; gap:3px; }
+.skillTimeline span { align-items:center; background:var(--surface-2); border:1px solid var(--line-soft); display:grid; height:34px; justify-items:center; min-width:28px; overflow:hidden; }
+.skillTimeline small { color:var(--muted); font-family:var(--mono); font-size:7px; line-height:1; margin-top:3px; }
+.skillTimeline b { align-items:center; color:var(--text); display:flex; font-family:var(--font-display),var(--sans); font-size:13px; justify-content:center; line-height:1; width:100%; }
+.skillTimeline .skillQ b { box-shadow:inset 0 -3px 0 #3977c3; }
+.skillTimeline .skillW b { box-shadow:inset 0 -3px 0 #1a9d86; }
+.skillTimeline .skillE b { box-shadow:inset 0 -3px 0 #c27a28; }
+.skillTimeline .skillR b { box-shadow:inset 0 -3px 0 #a73f56; }
+.skillStats { display:grid; gap:3px; text-align:right; }
+.skillStats b,.skillStats span { font-family:var(--mono); font-size:9px; }
+.skillStats span { color:var(--muted); }
 .positive { color:var(--good); }
 .negative { color:var(--bad); }
 .matchupRail { min-width:0; position:sticky; top:16px; }
@@ -77,6 +92,6 @@
 .empty,.note { color:var(--muted); font-size:12px; }
 .empty { margin:0; padding:18px; }
 .note { margin:0; padding:18px 0; }
-@media (max-width:960px) { .reportLayout { grid-template-columns:minmax(0,1fr) 250px; } .runeTrees { gap:18px; padding-left:14px; padding-right:14px; } }
-@media (max-width:780px) { .hero > img { height:64px; width:64px; } .hero h1 { font-size:27px; } .filters { align-items:stretch; justify-content:stretch; } .filters label { flex:1; } .filterStatus { display:none; } .metrics { grid-template-columns:repeat(2,1fr); } .metrics > div:nth-child(2n) { border-right:0; } .metrics > div:nth-child(-n+4) { border-bottom:1px solid var(--line-soft); } .reportLayout { grid-template-columns:1fr; } .matchupRail { position:static; } .dataRow { grid-template-columns:1fr 1.25fr; } .dataRow > span { display:none; } }
-@media (max-width:520px) { .hero { align-items:flex-start; flex-wrap:wrap; } .hero .tier { margin-left:82px; } .filters { display:grid; grid-template-columns:1fr 1fr; } .filters select { width:100%; } .runeRow { grid-template-columns:38px minmax(0,1fr); } .runeTrees { gap:4px; justify-content:space-around; padding:12px 4px; } .runeTrees > div { min-width:0; } .runeStats { border-left:0; border-top:1px solid var(--line-soft); display:flex; grid-column:1 / -1; justify-content:space-between; padding:10px 12px; } .skills { gap:2px; } .skills span { min-width:24px; } }
+@media (max-width:960px) { .reportLayout { grid-template-columns:minmax(0,1fr) 250px; } .runeSlot { gap:3px; } .runeChoice { min-width:34px; } .skillRow { grid-template-columns:auto minmax(0,1fr); } .skillStats { display:none; } }
+@media (max-width:780px) { .hero > img { height:64px; width:64px; } .hero h1 { font-size:27px; } .filters { align-items:stretch; justify-content:stretch; } .dropdownField { flex:1; } .filterStatus { display:none; } .metrics { grid-template-columns:repeat(2,1fr); } .metrics > div:nth-child(2n) { border-right:0; } .metrics > div:nth-child(-n+4) { border-bottom:1px solid var(--line-soft); } .reportLayout { grid-template-columns:1fr; } .matchupRail { position:static; } .dataRow { grid-template-columns:1fr 1.25fr; } .dataRow > span { display:none; } .runeColumns { grid-template-columns:1fr 1fr; } .shardPath { border-right:0; border-top:1px solid var(--line-soft); grid-column:1 / -1; } .shardPath .runeSlot { display:inline-flex; width:33.33%; } }
+@media (max-width:520px) { .hero { align-items:flex-start; flex-wrap:wrap; } .hero .tier { margin-left:82px; } .filters { display:grid; grid-template-columns:1fr 1fr; } .dropdownTrigger { grid-template-columns:28px 1fr 8px; } .dropdownTrigger img,.dropdownMenu img { height:27px; width:27px; } .runeColumns { display:block; } .runePath { border-bottom:1px solid var(--line-soft); border-right:0; } .shardPath { border-bottom:0; } .skillRow { grid-template-columns:1fr; } .skillTimeline { overflow-x:auto; padding-bottom:4px; } .abilityIcons img { height:34px; width:34px; } .skillTimeline span { min-width:27px; } }
